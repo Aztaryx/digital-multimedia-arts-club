@@ -2,6 +2,42 @@
    home.css — page-specific styles for index.html
 ═══════════════════════════════════════════════════ */
 
+/* ── BANNER ─────────────────────────────────────── */
+.home-banner-container {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin: 60px 0 10px;
+}
+.home-banner-line {
+  height: 2px;
+  background: linear-gradient(to right, var(--magenta), var(--teal));
+  width: 100%;
+}
+.home-banner-wrap {
+  background: linear-gradient(to right, var(--magenta), var(--teal));
+  padding: 1px;
+}
+.home-banner {
+  position: relative; overflow: hidden;
+  /* Swap tile-light class for url('../assets/tile-pattern-light.png') when ready */
+}
+.home-banner::after {
+  content: ''; position: absolute; inset: 0; pointer-events: none;
+  background: linear-gradient(to right, rgba(232,121,249,.82), rgba(34,211,238,.82));
+}
+.home-banner-inner {
+  position: relative; z-index: 1;
+  display: flex; align-items: center; gap: 20px;
+  padding: 20px 28px;
+}
+.home-banner-logo { height: clamp(60px, 9vw, 110px); width: auto; flex-shrink: 0; }
+.home-banner-title {
+  font-family: var(--font); font-weight: 700;
+  font-size: clamp(1.6rem, 4.5vw, 3.8rem); line-height: 1.1;
+  color: #fff; text-shadow: 3px 3px 0 #000, 5px 5px 0 rgba(0,0,0,.35);
+}
+
 /* ── HERO ───────────────────────────────────────── */
 #hero { height: 100vh; display: flex; overflow: hidden; }
 
@@ -46,6 +82,7 @@
 
 /* ── RESPONSIVE (hero overrides) ───────────────── */
 @media (max-width: 768px) {
+  .home-banner-inner { gap: 14px; padding: 16px 18px; }
   .hp-content { bottom: 52px; }
 }
 @media (max-width: 480px) {
