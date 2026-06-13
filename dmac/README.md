@@ -22,7 +22,7 @@ dmac/
 │   └── index.html           How to Join
 ├── socials/
 │   └── index.html           Socials hub
-├── assets/                  Drop logo, images, libs here
+├── assets/                  Drop logo, images, libs, audio here
 ├── css/
 │   ├── global.css           Shared styles (all pages)
 │   ├── animations.css       .animate-in + .reveal
@@ -59,3 +59,4 @@ Drop files into `assets/`:
 - `images/members/`    — member photos (photo-[name].webp)
 - `images/projects/`   — project thumbnails ([slug]-thumb.webp)
 - `lib/`               — self-hosted JS libraries (e.g. pixi.min.js)
+- `audio/`             — sound effects and audio tracks
