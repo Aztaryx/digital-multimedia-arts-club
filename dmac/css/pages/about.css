@@ -1,0 +1,61 @@
+/* ═══════════════════════════════════════════════════
+   about.css — page-specific styles for about/index.html
+═══════════════════════════════════════════════════ */
+
+/* ── BANNER ─────────────────────────────────────── */
+.about-banner-wrap {
+  background: linear-gradient(to right, var(--magenta), var(--teal));
+  padding: 1px;
+}
+.about-banner {
+  position: relative; overflow: hidden;
+  /* Swap tile-light class for url('../assets/tile-pattern-light.png') when ready */
+}
+.about-banner::after {
+  content: ''; position: absolute; inset: 0; pointer-events: none;
+  background: linear-gradient(to right, rgba(232,121,249,.82), rgba(34,211,238,.82));
+}
+.about-banner-inner {
+  position: relative; z-index: 1;
+  display: flex; align-items: center; gap: 20px;
+  padding: 20px 28px;
+}
+.about-banner-logo { height: clamp(60px, 9vw, 110px); width: auto; flex-shrink: 0; }
+.about-banner-title {
+  font-family: var(--font); font-weight: 700;
+  font-size: clamp(1.6rem, 4.5vw, 3.8rem); line-height: 1.1;
+  color: #fff; text-shadow: 3px 3px 0 #000, 5px 5px 0 rgba(0,0,0,.35);
+}
+
+/* ── BODY ───────────────────────────────────────── */
+.about-body {
+  display: grid; grid-template-columns: 1fr 1fr;
+  gap: 40px; align-items: start;
+  padding: 48px 40px 80px;
+  max-width: 1400px; margin: 0 auto;
+}
+.about-img-placeholder {
+  min-height: 340px; border-radius: 12px;
+  border: 2px dashed var(--teal);
+  display: flex; align-items: center; justify-content: center;
+  color: rgba(255,255,255,.3); font-family: var(--font);
+  font-size: .85rem; letter-spacing: .1em;
+}
+.about-text { display: flex; flex-direction: column; gap: 20px; }
+.about-text .sec-head { margin-bottom: 4px; }
+.about-paragraph {
+  font-family: var(--font); font-size: clamp(.85rem, 1.1vw, 1rem);
+  line-height: 1.8; color: var(--muted); letter-spacing: .02em;
+}
+
+/* ── RESPONSIVE ─────────────────────────────────── */
+@media (max-width: 900px) {
+  .about-body { grid-template-columns: 1fr; }
+}
+@media (max-width: 768px) {
+  .about-banner-inner { gap: 14px; padding: 16px 18px; }
+  .about-body { padding-left: 20px; padding-right: 20px; }
+}
+@media (max-width: 480px) {
+  .about-body { padding-left: 16px; padding-right: 16px; }
+}

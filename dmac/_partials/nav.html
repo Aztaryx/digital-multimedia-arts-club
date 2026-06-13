@@ -1,0 +1,71 @@
+<!-- ════════════════════════════════ NAVBAR ═══════════════════════════════════ -->
+  <!-- Source of truth: _partials/nav.html — keep in sync when editing -->
+  <nav id="navbar">
+    <a href="index.html" class="nav-logo">
+      <img src="assets/logo.png" alt="DMAC" height="38" />
+    </a>
+    <ul class="nav-links">
+      <li><a href="index.html">home</a></li>
+
+      <li class="has-dropdown">
+        <a href="about/" data-icon="down">about</a>
+        <ul class="dropdown">
+          <li><a href="about/">about us</a></li>
+          <li><a href="about/mission.html">mission</a></li>
+          <li><a href="about/members.html">members</a></li>
+        </ul>
+      </li>
+
+      <li><a href="projects/">projects</a></li>
+
+      <li class="has-dropdown">
+        <a href="info/announcements.html" data-icon="down">information</a>
+        <ul class="dropdown">
+          <li><a href="info/announcements.html">announcements</a></li>
+          <li><a href="info/events.html">events</a></li>
+          <li><a href="info/update-log.html">update log</a></li>
+          <li><a href="info/faq.html">faq</a></li>
+        </ul>
+      </li>
+
+      <li><a href="join/">how to join</a></li>
+
+      <li class="has-dropdown">
+        <a href="socials/" data-icon="down">socials</a>
+        <ul class="dropdown">
+          <!-- Social links TBD -->
+        </ul>
+      </li>
+    </ul>
+    <button id="hamburger" aria-label="Open navigation menu">
+      <span></span><span></span><span></span>
+    </button>
+  </nav>
+
+  <nav id="mobile-nav" aria-label="Mobile navigation">
+    <a href="index.html">home</a>
+
+    <div class="mobile-group">
+      <span class="mobile-group-label">◆ about</span>
+      <a href="about/">about us</a>
+      <a href="about/mission.html">mission</a>
+      <a href="about/members.html">members</a>
+    </div>
+
+    <a href="projects/">projects</a>
+
+    <div class="mobile-group">
+      <span class="mobile-group-label">◆ information</span>
+      <a href="info/announcements.html">announcements</a>
+      <a href="info/events.html">events</a>
+      <a href="info/update-log.html">update log</a>
+      <a href="info/faq.html">faq</a>
+    </div>
+
+    <a href="join/">how to join</a>
+
+    <div class="mobile-group">
+      <span class="mobile-group-label">◆ socials</span>
+      <!-- Social links TBD -->
+    </div>
+  </nav>
