@@ -1,0 +1,851 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Aztaryx — Student Dev</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <style>
+
+    /* ── TOKENS ─────────────────────────────────── */
+    :root {
+      --bg:          #0C0C0C;
+      --surface:     #141414;
+      --border:      #212121;
+      --subtle:      #2E2E2E;
+      --accent:      #4AE3A0;
+      --accent-dim:  rgba(74, 227, 160, 0.08);
+      --accent-ring: rgba(74, 227, 160, 0.18);
+      --warm:        #F2905A;
+      --text:        #EDE8DF;
+      --muted:       #65625E;
+      --font-display: 'Chakra Petch', sans-serif;
+      --font-body:    'Chakra Petch', sans-serif;
+      --font-mono:    'JetBrains Mono', monospace;
+      --radius: 8px;
+      --max-w: 1080px;
+    }
+
+    /* ── RESET ──────────────────────────────────── */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html { scroll-behavior: smooth; }
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: var(--font-body);
+      font-size: 16px;
+      line-height: 1.6;
+      -webkit-font-smoothing: antialiased;
+    }
+    a { color: inherit; text-decoration: none; }
+
+    /* ── LAYOUT ─────────────────────────────────── */
+    .container { max-width: var(--max-w); margin: 0 auto; padding: 0 24px; }
+    section { padding: 96px 0; }
+    .divider { border: none; border-top: 1px solid var(--border); }
+
+    /* ── [1] SCROLL PROGRESS BAR ────────────────── */
+    #scroll-progress {
+      position: fixed; top: 0; left: 0; z-index: 200;
+      height: 2px; width: 0%;
+      background: var(--accent);
+      transition: width 0.08s linear;
+      pointer-events: none;
+    }
+
+    /* ── NAV ────────────────────────────────────── */
+    nav {
+      position: fixed; top: 0; left: 0; right: 0; z-index: 100;
+      background: rgba(12, 12, 12, 0.82);
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      border-bottom: 1px solid transparent;
+      transition: border-color 0.3s;
+    }
+    nav.scrolled { border-color: var(--border); }
+    .nav-inner {
+      display: flex; align-items: center;
+      justify-content: space-between; height: 60px;
+    }
+
+    /* ── [6] NAV LOGO GLITCH ────────────────────── */
+    .nav-logo {
+      font-family: var(--font-mono); font-size: 14px;
+      color: var(--accent); letter-spacing: -0.01em;
+      position: relative;
+    }
+    .nav-logo::before,
+    .nav-logo::after {
+      content: 'aztaryx';
+      position: absolute; top: 0; left: 0;
+      font-family: var(--font-mono); font-size: 14px;
+      letter-spacing: -0.01em;
+      opacity: 0; pointer-events: none;
+    }
+    .nav-logo::before { color: #FF218C; }
+    .nav-logo::after  { color: #21B1FF; }
+    @keyframes glitch-before {
+      0%   { opacity: 1; clip-path: inset(10% 0 70% 0); transform: translate(-3px, 0); }
+      25%  { clip-path: inset(50% 0 30% 0);             transform: translate( 2px, 0); }
+      50%  { clip-path: inset(30% 0 50% 0);             transform: translate(-2px, 1px); }
+      75%  { clip-path: inset(70% 0 10% 0);             transform: translate( 3px,-1px); }
+      100% { opacity: 0; clip-path: inset(0 0 100% 0);  transform: translate(0, 0); }
+    }
+    @keyframes glitch-after {
+      0%   { opacity: 1; clip-path: inset(60% 0 20% 0); transform: translate( 3px, 0); }
+      25%  { clip-path: inset(20% 0 60% 0);             transform: translate(-2px, 0); }
+      50%  { clip-path: inset(40% 0 40% 0);             transform: translate( 2px,-1px); }
+      75%  { clip-path: inset(10% 0 70% 0);             transform: translate(-3px, 1px); }
+      100% { opacity: 0; clip-path: inset(0 0 100% 0);  transform: translate(0, 0); }
+    }
+    .nav-logo:hover::before { animation: glitch-before 0.45s steps(1) forwards; }
+    .nav-logo:hover::after  { animation: glitch-after  0.45s steps(1) forwards; }
+
+    .nav-links { display: flex; gap: 32px; list-style: none; }
+    .nav-links a {
+      font-family: var(--font-mono); font-size: 13px;
+      color: var(--muted); transition: color 0.2s;
+    }
+    .nav-links a:hover { color: var(--text); }
+    .nav-toggle {
+      display: none; flex-direction: column; gap: 5px;
+      background: none; border: none; cursor: pointer; padding: 4px;
+    }
+    .nav-toggle span {
+      display: block; width: 22px; height: 2px;
+      background: var(--text); transition: transform 0.25s, opacity 0.25s;
+    }
+    .nav-toggle.open span:nth-child(1) { transform: translateY(7px) rotate(45deg); }
+    .nav-toggle.open span:nth-child(2) { opacity: 0; }
+    .nav-toggle.open span:nth-child(3) { transform: translateY(-7px) rotate(-45deg); }
+    .nav-mobile {
+      display: none; flex-direction: column;
+      padding: 12px 24px 20px; gap: 18px;
+      border-top: 1px solid var(--border);
+    }
+    .nav-mobile a { font-family: var(--font-mono); font-size: 15px; color: var(--muted); }
+    .nav-mobile.open { display: flex; }
+
+    /* ── EYEBROW ────────────────────────────────── */
+    .eyebrow {
+      font-family: var(--font-mono); font-size: 13px;
+      color: var(--accent); margin-bottom: 18px;
+    }
+
+    /* ── HERO ───────────────────────────────────── */
+    .hero {
+      min-height: 100vh; display: flex;
+      flex-direction: column; justify-content: center;
+      padding-top: 60px;
+      position: relative; overflow: hidden;
+    }
+
+    /* ── [5] HERO CANVAS (particles) ────────────── */
+    #hero-canvas {
+      position: absolute; inset: 0;
+      width: 100%; height: 100%;
+      pointer-events: none; z-index: 0;
+    }
+
+    /* ── [4] HERO AMBIENT GLOW ORBS ─────────────── */
+    .hero-glow, .hero-glow-warm {
+      position: absolute; border-radius: 50%;
+      pointer-events: none; z-index: 0;
+    }
+    .hero-glow {
+      top: 5%; left: -8%;
+      width: 720px; height: 720px;
+      background: radial-gradient(circle, rgba(74,227,160,0.07) 0%, transparent 65%);
+      animation: orb-drift 10s ease-in-out infinite alternate;
+    }
+    .hero-glow-warm {
+      bottom: 0%; right: -8%;
+      width: 520px; height: 520px;
+      background: radial-gradient(circle, rgba(242,144,90,0.05) 0%, transparent 65%);
+      animation: orb-drift 13s ease-in-out infinite alternate-reverse;
+    }
+    @keyframes orb-drift {
+      from { transform: translate(0, 0) scale(1); }
+      to   { transform: translate(44px, -28px) scale(1.1); }
+    }
+
+    /* ── [2] HERO ENTRANCE ANIMATIONS ───────────── */
+    @keyframes letter-in {
+      from { opacity: 0; transform: translateY(40px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+    @keyframes fade-in-up {
+      from { opacity: 0; transform: translateY(14px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    .hero .eyebrow {
+      opacity: 0;
+      animation: fade-in-up 0.5s ease 0.05s forwards;
+    }
+    .hero h1 {
+      font-family: var(--font-display);
+      font-size: clamp(54px, 9vw, 100px);
+      font-weight: 700; line-height: 0.97;
+      letter-spacing: 0; margin-bottom: 18px;
+    }
+    .letter {
+      display: inline-block;
+      opacity: 0;
+      transform: translateY(40px);
+      animation: letter-in 0.6s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+    }
+
+    .hero-inner { max-width: 780px; position: relative; z-index: 1; }
+
+    /* ── [3] TYPEWRITER ─────────────────────────── */
+    .hero-sub {
+      font-family: var(--font-mono);
+      font-size: clamp(15px, 2.2vw, 20px);
+      color: var(--muted); margin-bottom: 28px;
+      display: flex; align-items: center; gap: 3px;
+    }
+    .cursor {
+      display: inline-block; width: 2px; height: 1.1em;
+      background: var(--accent); vertical-align: middle;
+      animation: blink 1.1s step-end infinite;
+    }
+    @keyframes blink { 0%, 100% { opacity: 1; } 50% { opacity: 0; } }
+
+    .hero-desc {
+      font-size: 17px; color: var(--muted);
+      max-width: 500px; margin-bottom: 40px; line-height: 1.75;
+      opacity: 0;
+      animation: fade-in-up 0.7s cubic-bezier(0.22, 1, 0.36, 1) 0.85s forwards;
+    }
+    .hero-actions {
+      display: flex; gap: 14px; flex-wrap: wrap;
+      opacity: 0;
+      animation: fade-in-up 0.7s cubic-bezier(0.22, 1, 0.36, 1) 1.05s forwards;
+    }
+
+    /* ── BUTTONS ────────────────────────────────── */
+    .btn {
+      display: inline-flex; align-items: center; gap: 7px;
+      padding: 11px 22px; border-radius: var(--radius);
+      font-family: var(--font-mono); font-size: 13px;
+      font-weight: 500; cursor: pointer; border: none;
+      transition: all 0.2s;
+    }
+
+    /* ── [8] BTN PRIMARY + SHIMMER ──────────────── */
+    .btn-primary {
+      background: var(--accent); color: #0C0C0C;
+      position: relative; overflow: hidden;
+    }
+    .btn-primary::after {
+      content: '';
+      position: absolute; top: 0; left: -100%;
+      width: 55%; height: 100%;
+      background: linear-gradient(90deg, transparent, rgba(255,255,255,0.32), transparent);
+      transform: skewX(-15deg);
+      transition: none;
+    }
+    .btn-primary:hover { background: #62EBB0; transform: translateY(-1px); }
+    .btn-primary:hover::after {
+      transition: left 0.42s ease;
+      left: 175%;
+    }
+    .btn-ghost {
+      background: transparent; color: var(--text);
+      border: 1px solid var(--border);
+    }
+    .btn-ghost:hover {
+      border-color: var(--subtle); background: var(--surface);
+      transform: translateY(-1px);
+    }
+
+    /* ── ABOUT ──────────────────────────────────── */
+    .about-grid {
+      display: grid; grid-template-columns: 1fr 1fr;
+      gap: 60px; align-items: start;
+    }
+    .about-text h2 {
+      font-family: var(--font-display);
+      font-size: clamp(30px, 3.5vw, 42px);
+      font-weight: 700; letter-spacing: -0.03em;
+      line-height: 1.15; margin-bottom: 20px;
+    }
+    .about-text p {
+      color: var(--muted); font-size: 16px;
+      line-height: 1.78; margin-bottom: 14px;
+    }
+    .about-text p:last-child { margin-bottom: 0; }
+    .skills-col { padding-top: 4px; }
+    .skills-group + .skills-group { margin-top: 24px; }
+    .skills-group h3 {
+      font-family: var(--font-mono); font-size: 12px;
+      color: var(--accent); margin-bottom: 12px; letter-spacing: 0.03em;
+    }
+    .skill-tags { display: flex; flex-wrap: wrap; gap: 7px; }
+    .tag {
+      font-family: var(--font-mono); font-size: 12px;
+      color: var(--muted); background: var(--surface);
+      border: 1px solid var(--border); border-radius: 4px;
+      padding: 4px 10px;
+      transition: border-color 0.2s, color 0.2s, transform 0.2s;
+    }
+    .tag:hover { border-color: var(--subtle); color: var(--text); transform: translateY(-1px); }
+
+    /* ── [7] PRIDE TEXT — gradient sweep ────────── */
+    .pride-text {
+      color: var(--muted);
+      cursor: default;
+      display: inline-block; /* keeps ::after anchored to the text box */
+      position: relative;
+    }
+    .pride-text::after {
+      content: attr(data-text);
+      position: absolute; inset: 0;
+      background: linear-gradient(90deg,
+        #FF218C  0%,
+        #FFD800 28%,
+        #21B1FF 55%,
+        #800080 78%,
+        #A4A4A4 100%
+      );
+      -webkit-background-clip: text;
+      background-clip: text;
+      -webkit-text-fill-color: transparent;
+      clip-path: inset(0 100% 0 0);
+      transition: clip-path 0.5s ease;
+      white-space: nowrap;
+      pointer-events: none;
+    }
+    .pride-text:hover::after {
+      clip-path: inset(0 0% 0 0);
+    }
+
+    /* ── PROJECTS ───────────────────────────────── */
+    .projects-header { margin-bottom: 44px; }
+    .projects-header h2 {
+      font-family: var(--font-display);
+      font-size: clamp(30px, 3.5vw, 42px);
+      font-weight: 700; letter-spacing: -0.03em; line-height: 1.15;
+    }
+    .projects-grid {
+      display: grid; grid-template-columns: repeat(2, 1fr); gap: 18px;
+    }
+    .project-card {
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: 12px; padding: 26px;
+      display: flex; flex-direction: column;
+      transition: border-color 0.25s, box-shadow 0.25s, transform 0.25s;
+    }
+    .project-card:hover {
+      border-color: var(--accent-ring);
+      box-shadow: 0 0 0 1px var(--accent-dim), 0 8px 32px rgba(0,0,0,0.45);
+      transform: translateY(-2px);
+    }
+    .project-status {
+      font-family: var(--font-mono); font-size: 11px;
+      padding: 3px 9px; border-radius: 20px;
+      margin-bottom: 14px; display: inline-block; width: fit-content;
+    }
+    .project-status.upcoming {
+      color: var(--warm);
+      background: rgba(242, 144, 90, 0.08);
+      border: 1px solid rgba(242, 144, 90, 0.22);
+    }
+    .project-status.archived {
+      color: var(--muted);
+      background: transparent;
+      border: 1px solid var(--border);
+    }
+    .project-top {
+      display: flex; align-items: flex-start;
+      justify-content: space-between; margin-bottom: 14px; gap: 12px;
+    }
+    .project-name {
+      font-family: var(--font-display); font-size: 19px;
+      font-weight: 600; letter-spacing: -0.02em;
+    }
+    .project-links { display: flex; gap: 14px; flex-shrink: 0; }
+    .project-links a {
+      font-family: var(--font-mono); font-size: 12px;
+      color: var(--muted); transition: color 0.2s;
+    }
+    .project-links a:hover { color: var(--accent); }
+    .project-desc {
+      color: var(--muted); font-size: 14px;
+      line-height: 1.68; flex: 1; margin-bottom: 18px;
+    }
+    .project-tags { display: flex; flex-wrap: wrap; gap: 6px; }
+    .project-tag {
+      font-family: var(--font-mono); font-size: 11px;
+      color: var(--accent); background: var(--accent-dim);
+      border: 1px solid var(--accent-ring);
+      border-radius: 4px; padding: 3px 8px;
+    }
+    .card-bottom {
+      display: flex; align-items: flex-end;
+      justify-content: space-between; gap: 12px; flex-wrap: wrap;
+    }
+    .view-link {
+      font-family: var(--font-mono); font-size: 12px;
+      color: var(--muted); transition: color 0.2s;
+      white-space: nowrap; flex-shrink: 0;
+    }
+    .view-link:hover { color: var(--accent); }
+
+    /* ── CONTACT ────────────────────────────────── */
+    .contact { text-align: center; }
+    .contact .eyebrow { display: flex; justify-content: center; }
+    .contact h2 {
+      font-family: var(--font-display);
+      font-size: clamp(36px, 5.5vw, 62px);
+      font-weight: 700; letter-spacing: -0.04em;
+      line-height: 1.05; margin-bottom: 16px;
+    }
+    .contact-sub {
+      color: var(--muted); font-size: 17px;
+      max-width: 420px; margin: 0 auto 36px; line-height: 1.7;
+    }
+    .contact-links { display: flex; justify-content: center; gap: 14px; flex-wrap: wrap; }
+    .contact-link {
+      display: flex; align-items: center; gap: 8px;
+      font-family: var(--font-mono); font-size: 13px;
+      color: var(--muted); padding: 11px 18px;
+      border: 1px solid var(--border); border-radius: var(--radius);
+      transition: all 0.2s;
+    }
+    .contact-link:hover {
+      color: var(--text); border-color: var(--subtle);
+      background: var(--surface); transform: translateY(-1px);
+    }
+    .contact-link svg { flex-shrink: 0; }
+
+    /* ── FOOTER ─────────────────────────────────── */
+    footer { padding: 28px 0; border-top: 1px solid var(--border); }
+    .footer-inner {
+      display: flex; justify-content: space-between;
+      align-items: center; gap: 12px;
+    }
+    .footer-text { font-family: var(--font-mono); font-size: 12px; color: var(--muted); }
+    .footer-accent { color: var(--accent); }
+
+    /* ── SCROLL FADE-UP ──────────────────────────── */
+    .fade-up {
+      opacity: 0; transform: translateY(18px);
+      transition: opacity 0.55s ease, transform 0.55s ease;
+    }
+    .fade-up.in { opacity: 1; transform: none; }
+    .fade-up:nth-child(2) { transition-delay: 0.07s; }
+    .fade-up:nth-child(3) { transition-delay: 0.14s; }
+    .fade-up:nth-child(4) { transition-delay: 0.21s; }
+
+    /* ── RESPONSIVE ──────────────────────────────── */
+    @media (max-width: 720px) {
+      section { padding: 68px 0; }
+      .nav-links { display: none; }
+      .nav-toggle { display: flex; }
+      .about-grid { grid-template-columns: 1fr; gap: 36px; }
+      .projects-grid { grid-template-columns: 1fr; }
+      .footer-inner { flex-direction: column; text-align: center; }
+    }
+
+    /* ── REDUCED MOTION ──────────────────────────── */
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after { animation: none !important; transition: none !important; }
+      .cursor { opacity: 1; }
+      .fade-up { opacity: 1; transform: none; }
+      .letter { opacity: 1 !important; transform: none !important; }
+      .hero-desc, .hero-actions, .hero .eyebrow { opacity: 1 !important; transform: none !important; }
+    }
+
+  </style>
+</head>
+<body>
+
+  <!-- ── [1] SCROLL PROGRESS ── -->
+  <div id="scroll-progress"></div>
+
+  <!-- ── NAV ── -->
+  <nav id="nav">
+    <div class="container">
+      <div class="nav-inner">
+        <a href="#home" class="nav-logo">aztaryx</a>
+        <ul class="nav-links">
+          <li><a href="#about">about</a></li>
+          <li><a href="#projects">projects</a></li>
+          <li><a href="#contact">contact</a></li>
+        </ul>
+        <button class="nav-toggle" id="navToggle" aria-label="Toggle navigation">
+          <span></span><span></span><span></span>
+        </button>
+      </div>
+      <div class="nav-mobile" id="navMobile">
+        <a href="#about"    onclick="closeNav()">about</a>
+        <a href="#projects" onclick="closeNav()">projects</a>
+        <a href="#contact"  onclick="closeNav()">contact</a>
+      </div>
+    </div>
+  </nav>
+
+  <!-- ── HERO ── -->
+  <section class="hero" id="home">
+    <!-- [5] particle canvas -->
+    <canvas id="hero-canvas"></canvas>
+    <!-- [4] ambient glow orbs -->
+    <div class="hero-glow"      aria-hidden="true"></div>
+    <div class="hero-glow-warm" aria-hidden="true"></div>
+
+    <div class="container">
+      <div class="hero-inner">
+        <div class="eyebrow">// hello world</div>
+
+        <!-- [2] letter-stagger h1 — spans hardcoded to avoid FOUC -->
+        <h1 aria-label="Aztaryx"><span
+          class="letter" style="animation-delay:.10s">A</span><span
+          class="letter" style="animation-delay:.16s">z</span><span
+          class="letter" style="animation-delay:.22s">t</span><span
+          class="letter" style="animation-delay:.28s">a</span><span
+          class="letter" style="animation-delay:.34s">r</span><span
+          class="letter" style="animation-delay:.40s">y</span><span
+          class="letter" style="animation-delay:.46s">x</span></h1>
+
+        <!-- [3] typewriter target -->
+        <div class="hero-sub">
+          <span id="typewriter-text"></span>
+          <span class="cursor" aria-hidden="true"></span>
+        </div>
+
+        <p class="hero-desc">
+          Student dev from General Trias, Cavite — building for the web and beyond.
+          Currently deep in rhythm games, club sites, and WebGL experiments.
+        </p>
+        <div class="hero-actions">
+          <a href="#projects" class="btn btn-primary">View my work →</a>
+          <a href="#contact"  class="btn btn-ghost">Get in touch</a>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <hr class="divider">
+
+  <!-- ── ABOUT ── -->
+  <section id="about">
+    <div class="container">
+      <div class="eyebrow fade-up">// about</div>
+      <div class="about-grid">
+        <div class="about-text fade-up">
+          <!-- [10] h2 scrambled on scroll-enter by JS -->
+          <h2>A bit about me</h2>
+          <p>
+            I'm the most autistic queer person you'll see working as a dev —
+            and I wouldn't have it any other way. Based in General Trias, Cavite,
+            I'm a student developer with a thing for the web, rhythm games, and
+            pushing browsers further than they were probably meant to go.
+          </p>
+          <p>
+            Outside of code, I'm a former top 10,000 TETR.IO player in the Philippines,
+            part of the furry community, and proudly
+            <!-- [7] pride sweep -->
+            <span class="pride-text">pansexual&#8209;asexual</span>.
+            Hobbies and identity blur together — makes for interesting About pages.
+          </p>
+        </div>
+        <div class="skills-col fade-up">
+          <div class="skills-group">
+            <h3>// languages</h3>
+            <div class="skill-tags">
+              <span class="tag">HTML</span>
+              <span class="tag">CSS</span>
+              <span class="tag">JavaScript</span>
+              <span class="tag">TypeScript</span>
+              <span class="tag">C++</span>
+              <span class="tag">WebGL</span>
+            </div>
+          </div>
+          <div class="skills-group">
+            <h3>// tools</h3>
+            <div class="skill-tags">
+              <span class="tag">Antigravity</span>
+              <span class="tag">Claude</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <hr class="divider">
+
+  <!-- ── PROJECTS ── -->
+  <section id="projects">
+    <div class="container">
+      <div class="eyebrow fade-up">// projects</div>
+      <div class="projects-header fade-up">
+        <!-- [10] h2 scrambled on scroll-enter -->
+        <h2>Work I'm proud of</h2>
+      </div>
+      <!-- [9] cards stagger in via JS transitionDelay -->
+      <div class="projects-grid">
+
+        <div class="project-card fade-up">
+          <span class="project-status archived">// early work</span>
+          <div class="project-top">
+            <div class="project-name">Website Development Fundamentals</div>
+          </div>
+          <p class="project-desc">
+            A school project from about seven years ago — the first time HTML and CSS
+            really clicked. Rough around the edges, but that's where it all started.
+          </p>
+          <div class="card-bottom">
+            <div class="project-tags">
+              <span class="project-tag">HTML</span>
+              <span class="project-tag">CSS</span>
+              <span class="project-tag">JavaScript</span>
+            </div>
+            <a href="fundamentals.html" class="view-link">view →</a>
+          </div>
+        </div>
+
+        <div class="project-card fade-up">
+          <span class="project-status upcoming">// upcoming</span>
+          <div class="project-top">
+            <div class="project-name">DMAC Club Website</div>
+          </div>
+          <p class="project-desc">
+            The official website for the DMAC Club — and the first club of its kind
+            to have one. Making a little bit of history, one commit at a time.
+          </p>
+          <div class="card-bottom">
+            <div class="project-tags">
+              <span class="project-tag">HTML</span>
+              <span class="project-tag">CSS</span>
+              <span class="project-tag">JavaScript</span>
+            </div>
+            <a href="dmac.html" class="view-link">view →</a>
+          </div>
+        </div>
+
+        <div class="project-card fade-up">
+          <span class="project-status upcoming">// upcoming</span>
+          <div class="project-top">
+            <div class="project-name">Webscape</div>
+          </div>
+          <p class="project-desc">
+            A nullscape-inspired web implementation — part homage, part evolution.
+            A spiritual sequel that brings the experience to the browser.
+          </p>
+          <div class="card-bottom">
+            <div class="project-tags">
+              <span class="project-tag">JavaScript</span>
+              <span class="project-tag">WebGL</span>
+              <span class="project-tag">CSS</span>
+            </div>
+            <a href="webscape.html" class="view-link">view →</a>
+          </div>
+        </div>
+
+        <div class="project-card fade-up">
+          <span class="project-status upcoming">// upcoming</span>
+          <div class="project-top">
+            <div class="project-name">Keybound</div>
+          </div>
+          <p class="project-desc">
+            A 4/6/8k noteITG rhythm game built for the web with a focus on breaking
+            limits. Players personalize every corner of their client; chart creators
+            get a UI + code editor that compiles down to WebGL for max performance.
+          </p>
+          <div class="card-bottom">
+            <div class="project-tags">
+              <span class="project-tag">TypeScript</span>
+              <span class="project-tag">WebGL</span>
+              <span class="project-tag">JavaScript</span>
+            </div>
+            <a href="keybound.html" class="view-link">view →</a>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </section>
+
+  <hr class="divider">
+
+  <!-- ── CONTACT ── -->
+  <section id="contact" class="contact">
+    <div class="container">
+      <div class="eyebrow fade-up">// contact</div>
+      <!-- [10] h2 scrambled on scroll-enter -->
+      <h2 class="fade-up">Let's build something.</h2>
+      <p class="contact-sub fade-up">
+        Whether it's a job opportunity, a project idea, or just a hello —
+        my inbox is open.
+      </p>
+      <div class="contact-links fade-up">
+        <a href="mailto:aztaryxspersonalspace@gmail.com" class="contact-link">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/></svg>
+          aztaryxspersonalspace@gmail.com
+        </a>
+        <a href="https://github.com/Aztaryx" class="contact-link" target="_blank" rel="noopener">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.477 2 2 6.484 2 12.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.531 1.032 1.531 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0 1 12 6.844a9.59 9.59 0 0 1 2.504.337c1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.02 10.02 0 0 0 22 12.017C22 6.484 17.522 2 12 2z"/></svg>
+          GitHub
+        </a>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── FOOTER ── -->
+  <footer>
+    <div class="container">
+      <div class="footer-inner">
+        <span class="footer-text">Designed &amp; built by <span class="footer-accent">Aztaryx</span></span>
+        <span class="footer-text">© 2026</span>
+      </div>
+    </div>
+  </footer>
+
+  <script>
+    const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+    /* ── NAV SCROLL BORDER ── */
+    const nav = document.getElementById('nav');
+    window.addEventListener('scroll', () => {
+      nav.classList.toggle('scrolled', window.scrollY > 20);
+    }, { passive: true });
+
+    /* ── MOBILE NAV ── */
+    const toggle     = document.getElementById('navToggle');
+    const mobileMenu = document.getElementById('navMobile');
+    toggle.addEventListener('click', () => {
+      toggle.classList.toggle('open');
+      mobileMenu.classList.toggle('open');
+    });
+    function closeNav() {
+      toggle.classList.remove('open');
+      mobileMenu.classList.remove('open');
+    }
+
+    /* ── [1] SCROLL PROGRESS BAR ── */
+    const progressBar = document.getElementById('scroll-progress');
+    window.addEventListener('scroll', () => {
+      const max = document.documentElement.scrollHeight - window.innerHeight;
+      if (max > 0) progressBar.style.width = (window.scrollY / max * 100) + '%';
+    }, { passive: true });
+
+    /* ── [3] TYPEWRITER ── */
+    (function () {
+      const el   = document.getElementById('typewriter-text');
+      const text = 'Student Dev';
+      if (reducedMotion) { el.textContent = text; return; }
+      let i = 0;
+      function type() {
+        if (i < text.length) { el.textContent += text[i++]; setTimeout(type, 75); }
+      }
+      setTimeout(type, 660);   // start after letter animation peaks
+    })();
+
+    /* ── [7] PRIDE TEXT — set data-text for CSS ::after sweep ── */
+    document.querySelectorAll('.pride-text').forEach(el => {
+      el.setAttribute('data-text', el.textContent);
+    });
+
+    /* ── SCROLL FADE-UP OBSERVER ── */
+    const observer = new IntersectionObserver((entries) => {
+      entries.forEach(entry => {
+        if (entry.isIntersecting) {
+          entry.target.classList.add('in');
+          observer.unobserve(entry.target);
+        }
+      });
+    }, { threshold: 0.08 });
+    document.querySelectorAll('.fade-up').forEach(el => observer.observe(el));
+
+    /* ── [9] PROJECT CARD STAGGER — override :nth-child delays ── */
+    document.querySelectorAll('.project-card').forEach((card, i) => {
+      card.style.transitionDelay = `${i * 0.11}s`;
+    });
+
+    /* ── [10] SECTION HEADING SCRAMBLE ── */
+    (function () {
+      if (reducedMotion) return;
+      const CHARS = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789!@#%&';
+      function scramble(el) {
+        const original = el.dataset.orig || (el.dataset.orig = el.textContent);
+        let frame = 0;
+        const total = 26;
+        if (el._st) clearInterval(el._st);
+        el._st = setInterval(() => {
+          el.textContent = original.split('').map((ch, i) => {
+            if (ch === ' ' || ch === "'") return ch;
+            return (frame / total > i / original.length)
+              ? ch
+              : CHARS[Math.floor(Math.random() * CHARS.length)];
+          }).join('');
+          if (++frame > total) { el.textContent = original; clearInterval(el._st); }
+        }, 28);
+      }
+
+      const ho = new IntersectionObserver((entries) => {
+        entries.forEach(entry => {
+          if (entry.isIntersecting) {
+            // fire early — scramble plays as the element fades in
+            setTimeout(() => scramble(entry.target), 150);
+            ho.unobserve(entry.target);
+          }
+        });
+      }, { threshold: 0.1 });
+
+      document.querySelectorAll('#about h2, .projects-header h2, #contact h2')
+        .forEach(h => ho.observe(h));
+    })();
+
+    /* ── [5] FLOATING PARTICLES ── */
+    (function () {
+      if (reducedMotion) return;
+      const canvas = document.getElementById('hero-canvas');
+      const ctx    = canvas.getContext('2d');
+
+      function resize() {
+        canvas.width  = canvas.offsetWidth  || window.innerWidth;
+        canvas.height = canvas.offsetHeight || window.innerHeight;
+      }
+      resize();
+      window.addEventListener('resize', resize, { passive: true });
+
+      // 55 particles: mostly accent-green, occasionally warm-orange
+      const pts = Array.from({ length: 55 }, () => ({
+        x:   Math.random() * canvas.width,
+        y:   Math.random() * canvas.height,
+        vx:  (Math.random() - 0.5) * 0.28,
+        vy:  -(Math.random() * 0.32 + 0.08),
+        r:   Math.random() * 1.4 + 0.3,
+        op:  Math.random() * 0.32 + 0.05,
+        rgb: Math.random() > 0.82 ? '242,144,90' : '74,227,160',
+      }));
+
+      function tick() {
+        if (!document.hidden) {
+          ctx.clearRect(0, 0, canvas.width, canvas.height);
+          pts.forEach(p => {
+            p.x += p.vx;
+            p.y += p.vy;
+            // wrap edges
+            if (p.y < -6)               { p.y = canvas.height + 6; p.x = Math.random() * canvas.width; }
+            if (p.x < -6)               p.x = canvas.width + 6;
+            if (p.x > canvas.width + 6) p.x = -6;
+            ctx.beginPath();
+            ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
+            ctx.fillStyle = `rgba(${p.rgb},${p.op})`;
+            ctx.fill();
+          });
+        }
+        requestAnimationFrame(tick);
+      }
+      tick();
+    })();
+  </script>
+
+</body>
+</html>

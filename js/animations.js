@@ -54,3 +54,44 @@ function initGradText(wrapEl, layerEl) {
   wrapEl.addEventListener('mouseleave', () => hovered = false);
   document.fonts.ready.then(() => requestAnimationFrame(tick));
 }
+
+/**
+ * Applies a text scramble glitch effect on a .grad-wrap element,
+ * keeping both the base and layer text perfectly in sync so they don't clash.
+ *
+ * @param {HTMLElement} wrapEl The .grad-wrap container
+ */
+function scrambleGradWrap(wrapEl) {
+  const base = wrapEl.querySelector('.grad-base');
+  const layer = wrapEl.querySelector('.grad-layer');
+  if (!base) return;
+
+  // Use base.textContent as the source of truth for the original string
+  const original = base.dataset.orig || (base.dataset.orig = base.textContent.trim());
+  const CHARS = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789!@#%&';
+  
+  let frame = 0;
+  const total = 26;
+
+  // If already scrambling, clear it
+  if (wrapEl._st) clearInterval(wrapEl._st);
+
+  wrapEl._st = setInterval(() => {
+    const scrambled = original.split('').map((ch, i) => {
+      if (ch === ' ' || ch === "'") return ch;
+      return (frame / total > i / original.length)
+        ? ch
+        : CHARS[Math.floor(Math.random() * CHARS.length)];
+    }).join('');
+
+    base.textContent = scrambled;
+    if (layer) layer.textContent = scrambled;
+
+    if (++frame > total) {
+      base.textContent = original;
+      if (layer) layer.textContent = original;
+      clearInterval(wrapEl._st);
+    }
+  }, 28);
+}
+

@@ -106,6 +106,18 @@
       if (e.isIntersecting) {
         e.target.classList.add('visible');
         revealObs.unobserve(e.target);
+
+        // Trigger scramble effect on any .grad-wrap inside the revealed element
+        if (typeof scrambleGradWrap === 'function') {
+          setTimeout(() => {
+            e.target.querySelectorAll('.grad-wrap').forEach(wrap => {
+              const layer = wrap.querySelector('.grad-layer');
+              if (layer && getComputedStyle(layer).display !== 'none') {
+                scrambleGradWrap(wrap);
+              }
+            });
+          }, 150);
+        }
       }
     });
   }, { threshold: 0.12 });
