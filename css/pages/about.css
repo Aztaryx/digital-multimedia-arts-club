@@ -13,13 +13,29 @@
 }
 .about-img-container {
   min-height: 340px; border-radius: 12px;
-  border: 1px solid rgba(255,255,255,.12);
+  border: none; /* removed border for individual frames */
   overflow: hidden;
   position: relative;
-  display: flex; align-items: center; justify-content: center;
+  display: flex; align-items: center; justify-content: center; gap: 12px;
+  flex-wrap: nowrap;
   box-shadow: 0 8px 32px rgba(0,0,0,.4);
   background: var(--surface);
   transition: border-color .3s var(--ease-out), box-shadow .3s var(--ease-out);
+}
+.about-img-frame {
+  min-height: 340px; border-radius: 12px;
+  border: 1px solid rgba(255,255,255,.12);
+  overflow: hidden;
+  position: relative;
+  display: flex; align-items: center; justify-content: center; gap: 12px;
+  flex-wrap: nowrap;
+  box-shadow: 0 8px 32px rgba(0,0,0,.4);
+  background: var(--surface);
+  transition: border-color .3s var(--ease-out), box-shadow .3s var(--ease-out);
+}
+.about-img-frame:hover {
+  border-color: var(--teal);
+  box-shadow: 0 0 24px rgba(34, 211, 238, .25);
 }
 .about-img-container:hover {
   border-color: var(--teal);
