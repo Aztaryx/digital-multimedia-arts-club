@@ -259,7 +259,7 @@ function openCard(memberId) {
   }
 
   if (data.avatar) {
-    elAvatar.style.backgroundImage = `url(../assets/avatars/${data.avatar})`;
+    elAvatar.style.backgroundImage = `url(https://aztaryx.github.io/dmac-assets/avatars/${data.avatar})`;
   } else {
     elAvatar.style.backgroundImage = 'none'; // Fallback to CSS default
   }
@@ -294,7 +294,7 @@ function openCard(memberId) {
       a.href = soc.url;
       a.target = '_blank';
       a.className = 'card-social-link';
-      a.innerHTML = `<img src="../assets/icons/${soc.icon}" alt="${soc.platform}" />`;
+      a.innerHTML = `<img src="https://aztaryx.github.io/dmac-assets/icons/${soc.icon}" alt="${soc.platform}" />`;
       elSocials.appendChild(a);
     });
   } else {

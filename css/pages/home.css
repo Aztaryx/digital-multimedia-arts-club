@@ -20,7 +20,7 @@
 }
 .home-banner {
   position: relative; overflow: hidden;
-  /* Swap tile-light class for url('../assets/tile-pattern-light.png') when ready */
+  /* Swap tile-light class for url('https://aztaryx.github.io/dmac-assets/tile-pattern-light.png') when ready */
   animation: move-tiles 5s linear infinite;
 }
 @keyframes move-tiles {

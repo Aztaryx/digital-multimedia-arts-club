@@ -41,6 +41,10 @@ dmac/
 Must be served over HTTP/HTTPS — not opened as file:// directly.
 Local: `npx serve .` or `python -m http.server` in this folder.
 
+**Note:** images/logo/etc. now load from `https://aztaryx.github.io/dmac-assets/`
+(see Assets below), so GitHub Pages must be enabled on the `dmac-assets` repo
+for images to show up, even when developing this repo locally.
+
 ## Nav + Footer
 
 The nav and footer HTML are duplicated across all pages.
@@ -50,13 +54,35 @@ the partial first, then copy the changes to each affected page.
 
 ## Assets
 
-Drop files into `assets/`:
-- `logo.png`           — main logo
-- `logo-alt.png`       — simplified variant
-- `tile-pattern-light.png`  — replace data URI in global.css
-- `tile-pattern-dark.png`   — replace data URI in global.css
-- `images/hero/`       — D / M / A panel photos
-- `images/members/`    — member photos (photo-[name].webp)
-- `images/projects/`   — project thumbnails ([slug]-thumb.webp)
-- `lib/`               — self-hosted JS libraries (e.g. pixi.min.js)
-- `audio/`             — sound effects and audio tracks
+**Media assets live in a separate repo: [`dmac-assets`](https://github.com/aztaryx/dmac-assets),
+served via GitHub Pages at `https://aztaryx.github.io/dmac-assets/`.**
+This keeps this repo light and fast to clone. Every image, logo, and future
+audio/lib file is referenced by its full `https://aztaryx.github.io/dmac-assets/...`
+URL in the HTML/CSS/JS — nothing but code lives in this repo's `assets/` folder.
+
+To add or change a logo, hero image, group photo, member avatar, or social icon:
+push it to the `dmac-assets` repo, then reference it as
+`https://aztaryx.github.io/dmac-assets/<path>` wherever you need it here.
+
+**Exception — badges (`assets/badges/`):** badge icons are SVGs that get edited
+directly as part of this repo (not just dropped in as-is), so they stay local.
+Reference them as `../assets/badges/<file>` like `js/pages/members.js` already does.
+
+If you ever rename the `dmac-assets` repo or move it off GitHub Pages, every
+reference uses the exact same base string `https://aztaryx.github.io/dmac-assets`
+— a project-wide find & replace across `.html`, `.js`, and `.css` is all it takes.
+
+### dmac-assets structure (for reference — lives in the other repo)
+```
+dmac-assets/
+├── logo.png
+├── images/
+│   ├── hero/        D / M / A panel photos
+│   ├── misc/        group photos, school/org logos
+│   ├── members/      member photos
+│   └── projects/     project thumbnails
+├── avatars/          member avatar images (js/pages/members.js)
+├── icons/             social platform icons (js/pages/members.js)
+├── lib/               self-hosted JS libraries (e.g. pixi.min.js)
+└── audio/             sound effects and audio tracks
+```
