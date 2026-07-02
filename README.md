@@ -86,3 +86,53 @@ dmac-assets/
 ├── lib/               self-hosted JS libraries (e.g. pixi.min.js)
 └── audio/             sound effects and audio tracks
 ```
+
+## Leaderboard system
+
+Badges are metric-based (e.g. speedtypist tracks lines of code written).
+Tiers aren't fixed thresholds — a badge's #1 holder sets "the floor," and
+everyone else's tier is their percentage of that floor. The floor moves
+automatically as scores change; nothing needs manual recalculating.
+
+**Where things live:**
+- `js/leaderboard.js` — the engine (fetch, rank, tier assignment). Fully
+  documented at the top of the file, including exact Sheet setup steps.
+- `dev/leaderboard-test.html` — standalone test harness, not linked from
+  the nav. Paste a published Sheet CSV URL in here to sanity-check
+  rankings before wiring a badge into a real page.
+
+**Data lives in Google Sheets**, not in this repo — a "Scores" tab
+(`badge_id | member_id | value | issue_number | date`), published to web
+as CSV. Club officers add a row to update a score; no code or deploy
+needed. Get the published CSV URL via
+`File → Share → Publish to web → Scores tab → CSV`.
+
+**Two assumptions baked into the current defaults** — both are just
+config constants at the top of `js/leaderboard.js`, safe to tune without
+touching the ranking logic:
+- Tier order (low → high): copper, silver, gold, diamond, orichalcum,
+  ruby, amethyst, prism, allomorphite. Note diamond sits well below
+  orichalcum/ruby/amethyst here — this isn't alphabetical or "rarity
+  intuition," it's Aztaryx's balance pass. Allomorphite is exclusive to
+  an exact 100% — i.e. the actual floor holder (or a tie for #1). Prism
+  is the "close second" band just below that.
+- Tier % breakpoints: copper 1–6.99, silver 7–16.99, gold 17–23.99,
+  diamond 24–48.99, orichalcum 49–57.99, ruby 58–73.99, amethyst
+  74–93.99, prism 94–99.99, allomorphite 100 only. Copper starts at 1
+  rather than 0 — a literal zero still falls back to copper (the
+  bottom rung), there's just nowhere lower to land.
+
+Tier **colors** live in `Leaderboard.TIER_COLORS` — the single source of
+truth other files should reference rather than keeping their own copy
+(that already caused a real bug once: `members.js` had stale tier names
+before this system existed).
+
+Secret/issue-tracked badges don't use percent-of-floor — worth decays
+by issue order (first to earn it = issue #1 = allomorphite, same "you're
+literally first" logic), reassigned to match the same tier order above.
+Also tunable in `js/leaderboard.js` (`ISSUE_TIER_BREAKPOINTS`), currently
+placeholder values pending real secret badges to test against.
+
+Not yet wired into `members.js`/member cards — this is the engine +
+test harness only, so you can verify the ranking math against a real
+Sheet before deciding how it should render on badge cards.
