@@ -72,11 +72,13 @@ const MEMBERS = {
     tagline:    'Lead Developer · Web & Systems',
     about:      "The guy who actually builds stuff around here. If it's on the site, I probably made it.",
     bannerKey:  'mark',
+    /* Lead Developer isn't in this grid — it lives in the card's
+       "Special stuff" section instead, rendered separately from the
+       regular badge slots (that section is on you to build/wire up). */
     badges: [
-      { level: null,      name: 'Lead Developer', file: 'leaddeveloper.png',     tierKey: 'leaddeveloper' },
-      { level: 'Quartz',  name: 'Contributor',    file: 'quartzcontributor.png', tierKey: 'quartz'        },
-      { level: 'Quartz',  name: 'Builder',        file: 'quartzbuilder.png',     tierKey: 'quartz'        },
-      { level: 'Quartz',  name: 'Secret',         file: 'quartzsecret.png',      tierKey: 'quartz'        },
+      { level: 'Prism',   name: 'Contributor',    file: 'quartzcontributor.png', tierKey: 'prism'         },
+      { level: 'Prism',   name: 'Builder',        file: 'quartzbuilder.png',     tierKey: 'prism'         },
+      { level: 'Prism',   name: 'Secret',         file: 'quartzsecret.png',      tierKey: 'prism'         },
       { level: 'Copper',  name: 'larper',         file: 'copperlarper.png',      tierKey: 'copper'        },
     ],
     gradeSection: '',
@@ -186,7 +188,21 @@ function drawCardZigzag() {
   zzPoly.setAttribute('points', pts.join(' '));
 }
 
-/* ── BADGE RENDERING ──────────────────────────────── */
+/* ── BADGE RENDERING ──────────────────────────────── *
+   Each badge is two stacked images, not one:
+     - .badge-bg   the tier gem, e.g. "gold-badge.svg" — one per
+                   leaderboard tier, filename = `${tierKey}-badge.svg`
+     - .badge-icon the actual badge logo on top, e.g. "speedtypist.svg"
+                   — this is `badge.file` from MEMBERS, unchanged
+   Non-tiered badges (e.g. founder) have no matching gem asset —
+   that's expected, not an error. .badge-bg just silently
+   removes itself on 404 and the existing --tier-color border/glow
+   on .badge-slot carries the "background" for those instead.
+
+   The icon layer has a two-step fallback: missing icon → placeholder.svg
+   (add that file to assets/badges/ once — it's the generic "badge not
+   drawn yet" art) → if even that 404s, the old ◆ glyph as a last resort
+   so a card never shows a broken-image icon. */
 function renderBadge(badge) {
   const color   = TIER_COLORS[badge.tierKey] || '#888';
   const label   = badge.level ? `${badge.level} ${badge.name}` : badge.name;
@@ -201,13 +217,27 @@ function renderBadge(badge) {
   tip.className = 'badge-tip';
   tip.textContent = label;
 
-  const img = document.createElement('img');
-  img.src   = `../assets/badges/${badge.file}`;
-  img.alt   = label;
-  img.className = 'badge-img';
+  // Tier gem background — behind the icon, tier-driven, optional.
+  const bg = document.createElement('img');
+  bg.src = `../assets/badges/${badge.tierKey}-badge.svg`;
+  bg.alt = '';
+  bg.className = 'badge-bg';
+  bg.onerror = () => bg.remove(); // no gem for this tierKey — fine, .badge-slot's glow covers it
 
-  img.onerror = () => {
-    img.remove();
+  // Badge icon — the actual logo, always present, always on top.
+  const icon = document.createElement('img');
+  icon.src = `../assets/badges/${badge.file}`;
+  icon.alt = label;
+  icon.className = 'badge-icon';
+
+  icon.onerror = () => {
+    if (icon.dataset.fallback !== 'placeholder') {
+      icon.dataset.fallback = 'placeholder';
+      icon.src = '../assets/badges/placeholder.svg';
+      return;
+    }
+    // Even placeholder.svg is missing — glyph as the true last resort.
+    icon.remove();
     const diamond = document.createElement('span');
     diamond.className  = 'badge-diamond';
     diamond.textContent = '◆';
@@ -216,8 +246,17 @@ function renderBadge(badge) {
     slot.insertBefore(diamond, tip);
   };
 
-  slot.appendChild(img);
+  slot.appendChild(bg);
+  slot.appendChild(icon);
   slot.appendChild(tip);
+
+  // Badges are decorative — they visually invite a click (glow +
+  // tooltip) but there's nothing behind them, so confirm that with
+  // a "no" tick rather than silence. Hover still gets a tick too,
+  // same as every other effect-hover element on the site.
+  slot.addEventListener('mouseenter', () => window.playSfx?.('menuhover'));
+  slot.addEventListener('click', () => window.playSfx?.('no'));
+
   return slot;
 }
 
@@ -225,6 +264,8 @@ function renderBadge(badge) {
 function openCard(memberId) {
   const data = MEMBERS[memberId];
   if (!data) return;
+
+  window.playSfx?.('menuconfirm');
 
   // Populate text & stats
   elName.textContent       = data.name;
@@ -292,6 +333,7 @@ function openCard(memberId) {
       a.target = '_blank';
       a.className = 'card-social-link';
       a.innerHTML = `<img src="https://aztaryx.github.io/dmac-assets/icons/${soc.icon}" alt="${soc.platform}" />`;
+      a.addEventListener('mouseenter', () => window.playSfx?.('menuhover'));
       elSocials.appendChild(a);
     });
   } else {
@@ -334,6 +376,7 @@ function openCard(memberId) {
 
 /* ── CLOSE CARD ───────────────────────────────────── */
 function closeCard() {
+  window.playSfx?.('menuback');
   panel.classList.remove('open');
   panel.addEventListener('transitionend', () => {
     overlay.classList.remove('open');

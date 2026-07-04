@@ -44,6 +44,7 @@
 
   /* ── COLLAPSE ────────────────────────────────── */
   function collapsePanel(panel) {
+    window.playSfx?.('menuback');
     panel.classList.remove('expanded');
     hero.classList.remove('has-expanded');
     document.body.style.overflow = '';

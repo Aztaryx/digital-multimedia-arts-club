@@ -2,8 +2,10 @@
    DMAC — GLOBAL SCRIPTS
    Runs on every page. Handles: preloader, nav,
    hamburger, mobile nav, scroll reveals, active link
-   detection, gradient-text headings, and the
-   zigzag + footer divider.
+   detection, gradient-text headings, the zigzag +
+   footer divider, and site-wide sound effect wiring
+   (hover/tap/edge/empty-state feedback — see SFX
+   sections near the bottom of this file).
 ═══════════════════════════════════════════════════ */
 
 (function () {
@@ -11,7 +13,34 @@
 
   const el = id => document.getElementById(id);
 
+  /* ── SFX HELPER ──────────────────────────────
+     Every page now loads js/sfx-data.js + js/sfx.js before this
+     file, but this guards against that failing to load (bad
+     network, etc.) so a missing SFX global can't crash the rest
+     of the page's scripts — same defensive pattern as the
+     initGradText / scrambleGradWrap checks below. */
+  window.playSfx = (name, opts) => {
+    if (typeof SFX !== 'undefined') SFX.play(name, opts);
+  };
+
   /* ── PRELOADER ──────────────────────────────── */
+  const preStatus = el('pre-status');
+  const setStatus = text => { if (preStatus) preStatus.textContent = text; };
+
+  /* Stage 1: code — this script is mid-parse (this tag runs before
+     animations.js / page scripts have loaded), so "code" is still
+     genuinely in flight until DOMContentLoaded fires. */
+  setStatus('Loading code…');
+
+  const showAssetsStage = () => setStatus('Loading assets…');
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', showAssetsStage, { once: true });
+  } else {
+    /* Scripts already parsed by the time we got here — skip straight
+       to the assets stage (fonts/images are what's left). */
+    showAssetsStage();
+  }
+
   Promise.all([
     document.fonts.ready,
     new Promise(res => {
@@ -19,8 +48,12 @@
       else window.addEventListener('load', res);
     })
   ]).then(() => {
+    setStatus('Ready');
     document.body.classList.add('loaded');
-    setTimeout(() => el('preloader')?.classList.add('hidden'), 380);
+    setTimeout(() => {
+      el('preloader')?.classList.add('hidden');
+      playSfx('menuback');
+    }, 380);
 
     /* Clean up will-change on hero panels (homepage only) */
     document.querySelectorAll('.hero-panel').forEach(p => {
@@ -49,6 +82,7 @@
   burger?.addEventListener('click', () => {
     burger.classList.toggle('open');
     mobileNav?.classList.toggle('open');
+    playSfx('menutap');
   });
 
   /* Close mobile nav on any link click */
@@ -172,5 +206,135 @@
     build(0);
     requestAnimationFrame(tick);
   })();
+
+  /* ── SFX: NAV DROPDOWN TAP ───────────────────────
+     The "about" / "information" / "socials" nav links are small
+     hit targets that also open a dropdown on hover — a tap-style
+     tick on click (in addition to whatever CSS hover already gives
+     text-only feedback for) makes that small target feel
+     confirmed. These are still real links, so the click also
+     navigates — the sound just plays alongside, not instead of. */
+  document.querySelectorAll('.nav-links li.has-dropdown > a[data-icon="down"]').forEach(a => {
+    a.addEventListener('click', () => playSfx('menutap'));
+  });
+
+  /* ── SFX: HOVER (effect, not text) ───────────────
+     Elements with a real visual hover effect (lift, glow, scale,
+     border) rather than a plain text-color swap. Nav links, footer
+     links, and inline FAQ links are deliberately excluded — those
+     are just text turning a different color. Badge slots and member
+     social icons are wired separately in members.js since they're
+     created dynamically after a card opens, not present at load. */
+  const HOVER_FX_SELECTOR = [
+    '.hero-panel',
+    '.hp-expanded-close',
+    '.wwd-card',
+    '.req-card',
+    '.join-email-link',
+    '.about-img-frame',
+    '.officer-card',
+    '.adviser-card',
+    '.member-card',
+    '.card-close',
+    '.mission-card',
+    '.news-panel'
+  ].join(', ');
+
+  document.querySelectorAll(HOVER_FX_SELECTOR).forEach(fx => {
+    fx.addEventListener('mouseenter', () => playSfx('menuhover'));
+  });
+
+  /* ── SFX: PROTECTED CLICKS (empty/stub content) ──
+     .stub-body (projects/socials/update-log) and .news-empty
+     (newsletters — announcements & events before any are added)
+     are placeholders with nothing behind them yet. Picks one of
+     three "protected" stings at random each click so it doesn't
+     feel like a broken button repeating the exact same sound. */
+  const PROTECTED_SOUNDS = ['protectedsmall', 'protectedmedium', 'protectedlarge'];
+  document.querySelectorAll('.stub-body, .news-empty').forEach(stub => {
+    stub.addEventListener('click', () => {
+      const pick = PROTECTED_SOUNDS[Math.floor(Math.random() * PROTECTED_SOUNDS.length)];
+      playSfx(pick);
+    });
+  });
+
+  /* ── SFX: FLOOR (bottom of page) ─────────────────
+     Fires once when the page is scrolled to (or within a hair of)
+     the bottom, and re-arms only after scrolling back up a decent
+     margin — otherwise a person resting at the bottom would hear
+     it fire repeatedly on every micro-scroll. Never fires on pages
+     short enough that they don't scroll at all (no scroll event to
+     trigger it), which is the correct behavior — nothing was "hit". */
+  (function () {
+    const REARM_MARGIN = 60; // px — must scroll up this far above the bottom to re-arm
+    let atFloor = false;
+
+    function checkFloor() {
+      const distanceFromBottom = document.documentElement.scrollHeight - (window.scrollY + window.innerHeight);
+      if (distanceFromBottom <= 1 && !atFloor) {
+        atFloor = true;
+        playSfx('floor');
+      } else if (distanceFromBottom > REARM_MARGIN && atFloor) {
+        atFloor = false;
+      }
+    }
+
+    window.addEventListener('scroll', checkFloor, { passive: true });
+  })();
+
+  /* ── SFX: SIDEHIT (page/scroll-area edges) ───────
+     Two distinct edge triggers, both re-arming the same way as
+     FLOOR above (hit → arm false → must move away by a margin to
+     re-arm) so hovering right at an edge doesn't spam the sound:
+       1. Cursor reaching the left/right edge of the viewport.
+       2. A horizontally-scrolling area (.news-scroll on the
+          newsletters page, .card-badges-scrollable inside a member
+          card) reaching the start/end of its scroll range. */
+  (function () {
+    const EDGE_PX = 3;
+    const REARM_PX = 40;
+    const armed = { left: true, right: true };
+
+    document.addEventListener('mousemove', e => {
+      const x = e.clientX;
+      const w = window.innerWidth;
+
+      if (x <= EDGE_PX) {
+        if (armed.left) { armed.left = false; playSfx('sidehit'); }
+      } else if (x > REARM_PX) {
+        armed.left = true;
+      }
+
+      if (x >= w - EDGE_PX) {
+        if (armed.right) { armed.right = false; playSfx('sidehit'); }
+      } else if (x < w - REARM_PX) {
+        armed.right = true;
+      }
+    }, { passive: true });
+  })();
+
+  document.querySelectorAll('.news-scroll, .card-badges-scrollable').forEach(scroller => {
+    const armed = { start: true, end: true };
+    const REARM_PX = 40;
+
+    scroller.addEventListener('scroll', () => {
+      const maxScroll = scroller.scrollWidth - scroller.clientWidth;
+      if (maxScroll <= 0) return; // nothing to scroll — no edges to hit
+
+      const pos = scroller.scrollLeft;
+
+      if (pos <= 0) {
+        if (armed.start) { armed.start = false; playSfx('sidehit'); }
+      } else if (pos > REARM_PX) {
+        armed.start = true;
+      }
+
+      if (pos >= maxScroll) {
+        if (armed.end) { armed.end = false; playSfx('sidehit'); }
+      } else if (pos < maxScroll - REARM_PX) {
+        armed.end = true;
+      }
+    }, { passive: true });
+  });
 
 })();
