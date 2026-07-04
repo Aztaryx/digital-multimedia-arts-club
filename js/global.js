@@ -12,6 +12,23 @@
   const el = id => document.getElementById(id);
 
   /* ── PRELOADER ──────────────────────────────── */
+  const preStatus = el('pre-status');
+  const setStatus = text => { if (preStatus) preStatus.textContent = text; };
+
+  /* Stage 1: code — this script is mid-parse (this tag runs before
+     animations.js / page scripts have loaded), so "code" is still
+     genuinely in flight until DOMContentLoaded fires. */
+  setStatus('Loading code…');
+
+  const showAssetsStage = () => setStatus('Loading assets…');
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', showAssetsStage, { once: true });
+  } else {
+    /* Scripts already parsed by the time we got here — skip straight
+       to the assets stage (fonts/images are what's left). */
+    showAssetsStage();
+  }
+
   Promise.all([
     document.fonts.ready,
     new Promise(res => {
@@ -19,6 +36,7 @@
       else window.addEventListener('load', res);
     })
   ]).then(() => {
+    setStatus('Ready');
     document.body.classList.add('loaded');
     setTimeout(() => el('preloader')?.classList.add('hidden'), 380);
 
