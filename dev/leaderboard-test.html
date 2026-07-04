@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Leaderboard test — not part of the live site</title>
+  <link href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@400;600;700&family=Rajdhani:wght@400;500;600&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="../css/global.css" />
+  <style>
+    body { padding: 40px 20px; max-width: 720px; margin: 0 auto; }
+    h1 { font-family: var(--font); color: var(--text); font-size: 1.4rem; margin-bottom: 6px; }
+    .note { color: var(--muted); font-size: .85rem; margin-bottom: 28px; }
+    label { display: block; font-family: var(--font2); color: var(--muted); font-size: .85rem; margin: 16px 0 6px; }
+    input, select {
+      width: 100%; padding: 10px 12px; background: var(--surface);
+      border: 1px solid rgba(255,255,255,.1); border-radius: 6px;
+      color: var(--text); font-family: var(--font2); font-size: .9rem;
+    }
+    button {
+      margin-top: 20px; padding: 10px 20px; background: var(--teal);
+      color: #041313; border: none; border-radius: 6px; font-family: var(--font);
+      font-weight: 600; cursor: pointer; font-size: .85rem;
+    }
+    button:hover { opacity: .85; }
+    table { width: 100%; border-collapse: collapse; margin-top: 24px; font-family: var(--font2); }
+    th, td { text-align: left; padding: 10px 8px; border-bottom: 1px solid rgba(255,255,255,.08); font-size: .88rem; }
+    th { color: var(--muted); font-weight: 500; font-size: .78rem; text-transform: uppercase; letter-spacing: .04em; }
+    .tier-dot { display: inline-block; width: 10px; height: 10px; border-radius: 50%; margin-right: 8px; vertical-align: middle; }
+    .err { color: #ff6b6b; margin-top: 20px; font-family: var(--font2); font-size: .85rem; }
+    .floor-line { color: var(--muted); font-size: .82rem; margin-top: 20px; font-family: var(--font2); }
+  </style>
+</head>
+<body style="background: var(--bg);">
+  <h1>Leaderboard test harness</h1>
+  <p class="note">
+    Not linked from the site nav — just for checking that a published Sheet
+    + leaderboard.js actually produces the right rankings before wiring it
+    into a real page. Safe to delete once you trust it.
+  </p>
+
+  <label for="csv-url">Published CSV URL</label>
+  <input id="csv-url" type="text" placeholder="https://docs.google.com/spreadsheets/d/e/.../pub?gid=0&single=true&output=csv" />
+
+  <label for="badge-id">Badge ID</label>
+  <input id="badge-id" type="text" value="speedtypist" placeholder="e.g. speedtypist" />
+
+  <button id="run">Fetch &amp; rank</button>
+
+  <div id="output"></div>
+
+  <script src="../js/leaderboard.js"></script>
+  <script>
+    const TIER_COLORS = Leaderboard.TIER_COLORS;
+
+    document.getElementById('run').addEventListener('click', async () => {
+      const url = document.getElementById('csv-url').value.trim();
+      const badgeId = document.getElementById('badge-id').value.trim();
+      const output = document.getElementById('output');
+      output.innerHTML = '<p class="floor-line">Fetching…</p>';
+
+      if (!url) {
+        output.innerHTML = '<p class="err">Paste a published CSV URL first.</p>';
+        return;
+      }
+
+      try {
+        const scores = await Leaderboard.fetchScores(url);
+        const board = Leaderboard.getLeaderboard(scores, badgeId);
+
+        if (!board.length) {
+          output.innerHTML = `<p class="err">No rows found for badge_id "${badgeId}". Check the Sheet has a "Scores" tab published, and that badge_id matches exactly.</p>`;
+          return;
+        }
+
+        const floor = board[0];
+        let html = `<p class="floor-line">Floor: <strong style="color:var(--text)">${floor.value}</strong> — held by <strong style="color:var(--text)">${floor.member_id}</strong></p>`;
+        html += '<table><thead><tr><th>Rank</th><th>Member</th><th>Value</th><th>Tier</th><th>%</th></tr></thead><tbody>';
+        board.forEach(entry => {
+          const color = TIER_COLORS[entry.tier.name] || '#888';
+          html += `<tr>
+            <td>${entry.rank}</td>
+            <td>${entry.member_id}</td>
+            <td>${entry.value}</td>
+            <td><span class="tier-dot" style="background:${color}"></span>${entry.tier.name}</td>
+            <td>${entry.percent}%</td>
+          </tr>`;
+        });
+        html += '</tbody></table>';
+        output.innerHTML = html;
+      } catch (err) {
+        output.innerHTML = `<p class="err">${err.message}</p>`;
+      }
+    });
+  </script>
+</body>
+</html>

@@ -3,17 +3,14 @@
    ═══════════════════════════════════════════════════ */
 
 /* ── TIER COLOURS ─────────────────────────────────── */
+/* The 8 leaderboard tiers now live in js/leaderboard.js as the single
+   source of truth (this file used to keep its own copy, which drifted
+   out of sync — don't reintroduce that). Only truly unique, non-tiered
+   badges belong here. */
 const TIER_COLORS = {
-  copper:        '#b87333',
-  silver:        '#c0c0c0',
-  iron:          '#8a9ba8',
-  gold:          '#ffd700',
-  diamond:       '#b9f2ff',
-  adamantite:    '#4ee44e',
-  amethyst:      '#9b59b6',
-  quartz:        '#ff6fd8',
-  leaddeveloper: '#ff4444',   /* unique — no level */
-  founder:       '#f97316',   /* orange — founder exclusive */
+  ...Leaderboard.TIER_COLORS,
+  leaddeveloper: '#ff4444',
+  founder:       '#f97316',
 };
 
 /* ── MEMBER DATA ──────────────────────────────────── */
