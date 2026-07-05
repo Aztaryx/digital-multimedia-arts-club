@@ -27,27 +27,95 @@
   const preStatus = el('pre-status');
   const setStatus = text => { if (preStatus) preStatus.textContent = text; };
 
+  /* Site root, derived from this script's own <script src="…js/global.js">
+     tag rather than hardcoded. Every page loads this file via a relative
+     path matching its own folder depth ("js/global.js" at root,
+     "../js/global.js" one level down — see any page's <script> block), so
+     this resolves the same way and keeps working regardless of nesting or
+     a GitHub Pages project-page subpath. Must be read synchronously, right
+     here at parse time — document.currentScript is only valid while this
+     file is the one actively executing, not inside a later callback. */
+  const ROOT = (() => {
+    const src = document.currentScript && document.currentScript.src;
+    return src ? src.replace(/js\/global\.js(?:[?#].*)?$/, '') : '';
+  })();
+
+  /* Local badge art — the one exception to "all media lives in the
+     dmac-assets repo" (see README "Assets"), since badges get edited
+     alongside the site itself. They're stamped into the DOM by
+     members.js only when a member card is opened, so they never sit in
+     an <img> at initial page load and the native `window.load` wait
+     below never covers them — preloaded by hand here so the first card
+     opened on ANY page already has them cached and decoded.
+     No directory listing on a static site, so this list has to be kept
+     in sync with assets/badges/ by hand when a file is added/renamed. */
+  const BADGE_FILES = [
+    'copper-badge.svg', 'silver-badge.svg', 'gold-badge.svg',
+    'diamond-badge.svg', 'orichalcum-badge.svg', 'ruby-badge.svg',
+    'amethyst-badge.svg', 'prism-badge.svg', 'speedtypist.svg'
+  ];
+
+  function preloadImage(url) {
+    return new Promise(resolve => {
+      const img = new Image();
+      img.onload  = resolve;
+      img.onerror = resolve; // one missing/renamed badge shouldn't stall the preloader
+      img.src = url;
+    });
+  }
+
+  const badgesReady = Promise.all(
+    BADGE_FILES.map(f => preloadImage(`${ROOT}assets/badges/${f}`))
+  );
+
+  /* Every SFX sprite, fetched + decoded ahead of time instead of on
+     first play(). A page nav is a real page load — nothing survives
+     from the previous page, the AudioContext and decoded buffers are
+     gone, and there's no way around that short of rebuilding this as a
+     JS-routed single-page app (a much bigger change than this site's
+     plain multi-page structure calls for). Without this preload, the
+     FIRST sound triggered on each new page has to wait on a fetch +
+     decode before it's audible, which is what reads as "the audio has
+     to reload." Preloading here pays that cost during the loading
+     screen instead — on every page — so playback is already warm the
+     moment anything on the page could trigger a sound. */
+  const sfxReady = (typeof SFX === 'undefined' || typeof SFX_DATA === 'undefined')
+    ? Promise.resolve()
+    : Promise.all(
+        Object.keys(SFX_DATA).map(sprite =>
+          SFX.preload(sprite).catch(err => {
+            console.error(`SFX: preload failed for sprite "${sprite}" —`, err.message || err);
+          })
+        )
+      );
+
   /* Stage 1: code — this script is mid-parse (this tag runs before
      animations.js / page scripts have loaded), so "code" is still
      genuinely in flight until DOMContentLoaded fires. */
   setStatus('Loading code…');
 
-  const showAssetsStage = () => setStatus('Loading assets…');
+  const showImagesStage = () => setStatus('Loading images…');
   if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', showAssetsStage, { once: true });
+    document.addEventListener('DOMContentLoaded', showImagesStage, { once: true });
   } else {
     /* Scripts already parsed by the time we got here — skip straight
-       to the assets stage (fonts/images are what's left). */
-    showAssetsStage();
+       to the images stage. */
+    showImagesStage();
   }
 
-  Promise.all([
+  const fontsAndImagesReady = Promise.all([
     document.fonts.ready,
     new Promise(res => {
       if (document.readyState === 'complete') res();
       else window.addEventListener('load', res);
-    })
-  ]).then(() => {
+    }),
+    badgesReady
+  ]);
+
+  fontsAndImagesReady.then(() => {
+    setStatus('Loading audio…');
+    return sfxReady;
+  }).then(() => {
     setStatus('Ready');
     document.body.classList.add('loaded');
     setTimeout(() => {
