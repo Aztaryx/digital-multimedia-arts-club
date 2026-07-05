@@ -33,13 +33,11 @@
 <body style="background: var(--bg);">
   <h1>Leaderboard test harness</h1>
   <p class="note">
-    Not linked from the site nav — just for checking that a published Sheet
-    + leaderboard.js actually produces the right rankings before wiring it
-    into a real page. Safe to delete once you trust it.
+    Not linked from the site nav — just for checking that the `scores`
+    table in Supabase + leaderboard.js actually produces the right
+    rankings before wiring it into a real page. Safe to delete once
+    you trust it.
   </p>
-
-  <label for="csv-url">Published CSV URL</label>
-  <input id="csv-url" type="text" placeholder="https://docs.google.com/spreadsheets/d/e/.../pub?gid=0&single=true&output=csv" />
 
   <label for="badge-id">Badge ID</label>
   <input id="badge-id" type="text" value="speedtypist" placeholder="e.g. speedtypist" />
@@ -48,27 +46,28 @@
 
   <div id="output"></div>
 
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+  <script src="../js/supabase-client.js"></script>
   <script src="../js/leaderboard.js"></script>
   <script>
     const TIER_COLORS = Leaderboard.TIER_COLORS;
 
     document.getElementById('run').addEventListener('click', async () => {
-      const url = document.getElementById('csv-url').value.trim();
       const badgeId = document.getElementById('badge-id').value.trim();
       const output = document.getElementById('output');
       output.innerHTML = '<p class="floor-line">Fetching…</p>';
 
-      if (!url) {
-        output.innerHTML = '<p class="err">Paste a published CSV URL first.</p>';
+      if (!badgeId) {
+        output.innerHTML = '<p class="err">Enter a badge ID first.</p>';
         return;
       }
 
       try {
-        const scores = await Leaderboard.fetchScores(url);
+        const scores = await Leaderboard.fetchScores();
         const board = Leaderboard.getLeaderboard(scores, badgeId);
 
         if (!board.length) {
-          output.innerHTML = `<p class="err">No rows found for badge_id "${badgeId}". Check the Sheet has a "Scores" tab published, and that badge_id matches exactly.</p>`;
+          output.innerHTML = `<p class="err">No rows found for badge_id "${badgeId}". Check the \`scores\` table in Supabase has rows with that exact badge_id.</p>`;
           return;
         }
 

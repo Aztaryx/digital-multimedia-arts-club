@@ -1,39 +1,37 @@
 /* ═══════════════════════════════════════════════════
    leaderboard.js — badge leaderboard / tier engine
    ═══════════════════════════════════════════════════
-   Reads raw scores from a published Google Sheet (as CSV),
-   ranks members per badge, and assigns each member a tier
-   based on their percentage of the current #1 holder's value
-   (the "floor"). The floor moves automatically as scores change
-   — there's nothing to manually recalculate.
+   Reads raw scores from the `scores` table in Supabase, ranks
+   members per badge, and assigns each member a tier based on
+   their percentage of the current #1 holder's value (the
+   "floor"). The floor moves automatically as scores change —
+   there's nothing to manually recalculate.
 
    USAGE
    ------------------------------------------------------
-   Leaderboard.fetchScores(CSV_URL).then(scores => {
+   Any page using this must load, in order, BEFORE this file:
+     1. the supabase-js CDN script
+     2. js/supabase-client.js  (creates window.sb)
+
+   Then:
+   Leaderboard.fetchScores().then(scores => {
      const board = Leaderboard.getLeaderboard(scores, 'speedtypist');
      // board is an array of ranked entries, see getLeaderboard() below
    });
 
-   SHEET SETUP (do this once in Google Sheets)
+   DATA SOURCE
    ------------------------------------------------------
-   1. Create a tab named exactly "Scores" with these columns
-      (header row required, order doesn't matter):
+   Scores live in the `scores` table (see the schema + RLS policies
+   set up via the SQL Editor — public.scores, publicly readable,
+   writable only by members with role='officer' in public.profiles).
+   Officers add/edit rows directly in the Supabase Table Editor, or
+   through a future admin UI — either way, no code changes or
+   redeploys are needed for a score update to show up on the site.
 
-        badge_id | member_id | value | issue_number | date
-
-      - badge_id      e.g. "speedtypist" — matches the id used in code
-      - member_id     matches a key in MEMBERS (members.js)
-      - value         the raw metric (lines of code, seconds, count, etc.)
-      - issue_number  only used for secret/issue-tracked badges — leave
-                       blank for standard leaderboard badges
-      - date          optional, not used by the engine yet
-
-   2. File → Share → Publish to web → select the "Scores" sheet
-      (not "Entire document") → format: Comma-separated values (.csv)
-      → Publish. Copy the URL it gives you — that's your CSV_URL.
-
-   3. Anyone with edit access to the Sheet can now add a row to update
-      a score. No code changes needed — the site re-fetches on load.
+   Previously this read a published Google Sheet as CSV. That path
+   is gone — parseCSV() below is kept only as a one-time-import
+   utility if you ever need to bulk-load old Sheet data into
+   Supabase again; it's no longer part of the live fetch path.
    ═══════════════════════════════════════════════════ */
 
 const Leaderboard = (() => {
@@ -93,9 +91,41 @@ const Leaderboard = (() => {
     '2fast4u':   { direction: 'asc'  },
   };
 
-  /* ── CSV PARSING ───────────────────────────────────
-     Minimal parser: handles quoted fields with embedded commas.
-     Good enough for a Sheet you control the formatting of. */
+  /* ── FETCH ─────────────────────────────────────────
+     Pulls every row from the `scores` table and returns them in
+     the same shape the rest of this file has always expected:
+     an array of { badge_id, member_id, value, issue_number, date }.
+     getLeaderboard() below is completely unchanged — it has no
+     idea the data used to come from a CSV. */
+  async function fetchScores() {
+    if (!window.sb) {
+      throw new Error(
+        'Supabase client not found. Make sure the supabase-js CDN script ' +
+        'and js/supabase-client.js are both loaded, in that order, before js/leaderboard.js.'
+      );
+    }
+
+    const { data, error } = await window.sb
+      .from('scores')
+      .select('badge_id, member_id, value, issue_number, date');
+
+    if (error) throw new Error(`Leaderboard fetch failed: ${error.message}`);
+
+    return (data || [])
+      .map(r => ({
+        badge_id: r.badge_id,
+        member_id: r.member_id,
+        value: parseFloat(r.value),
+        issue_number: r.issue_number ?? null,
+        date: r.date || null,
+      }))
+      .filter(r => r.badge_id && r.member_id && !isNaN(r.value));
+  }
+
+  /* ── LEGACY: CSV PARSING ───────────────────────────
+     No longer used by fetchScores() — kept only in case you need
+     to bulk-import old published-Sheet data into Supabase once.
+     Not part of the live site's fetch path. */
   function parseCSV(text) {
     const rows = [];
     let row = [], field = '', inQuotes = false;
@@ -127,22 +157,6 @@ const Leaderboard = (() => {
         headers.forEach((h, i) => { obj[h] = (r[i] || '').trim(); });
         return obj;
       });
-  }
-
-  /* ── FETCH ─────────────────────────────────────────
-     Pulls the published CSV and returns parsed score rows with
-     `value` and `issue_number` coerced to numbers. */
-  async function fetchScores(csvUrl) {
-    const res = await fetch(csvUrl);
-    if (!res.ok) throw new Error(`Leaderboard fetch failed: ${res.status}`);
-    const text = await res.text();
-    return parseCSV(text).map(r => ({
-      badge_id: r.badge_id,
-      member_id: r.member_id,
-      value: parseFloat(r.value),
-      issue_number: r.issue_number ? parseInt(r.issue_number, 10) : null,
-      date: r.date || null,
-    })).filter(r => r.badge_id && r.member_id && !isNaN(r.value));
   }
 
   /* ── TIER ASSIGNMENT ───────────────────────────────
