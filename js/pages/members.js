@@ -287,7 +287,7 @@ function openCard(memberId) {
     }
   });
 
-  if (!data.isFounder && data.name) {
+  if (data.bannerKey && !data.isFounder && data.name) {
     const wm = document.createElement('div');
     wm.className = 'card-banner-wm';
     wm.setAttribute('aria-hidden', 'true');
