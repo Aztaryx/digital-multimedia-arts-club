@@ -279,22 +279,13 @@ function openCard(memberId) {
 
   // Banner & Avatar styling
   elBanner.className = `card-banner card-banner--${data.bannerKey || 'default'}`;
-  
+
   // Clean up banner children
   Array.from(elBanner.children).forEach(child => {
     if (child.classList.contains('card-banner-wm')) {
       child.remove();
     }
   });
-
-  if (data.bannerKey && !data.isFounder && data.name) {
-    const wm = document.createElement('div');
-    wm.className = 'card-banner-wm';
-    wm.setAttribute('aria-hidden', 'true');
-    const shortName = data.name.split(' ').map(w => w[0]).join('').toUpperCase();
-    wm.textContent = (shortName + ' ').repeat(40);
-    elBanner.insertBefore(wm, elBanner.firstChild);
-  }
 
   if (data.avatar) {
     elAvatar.style.backgroundImage = `url(https://aztaryx.github.io/dmac-assets/avatars/${data.avatar})`;

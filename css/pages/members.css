@@ -288,52 +288,13 @@
   position: relative;
   overflow: hidden;
   flex-shrink: 0;
-}
-
-/* Default banner — plain orange→purple gradient */
-.card-banner--default {
   background: linear-gradient(135deg, var(--orange) 0%, var(--purple) 100%);
 }
 
-/* Mark's unique banner — orange→teal diagonal gradient */
-.card-banner--mark {
-  background: linear-gradient(
-    135deg,
-    #0d0d0d 0%,
-    #1a0a00 20%,
-    #f97316 50%,
-    var(--purple) 80%,
-    #0d1a1a 100%
-  );
-  background-size: 300% 300%;
-  animation: banner-shift 8s ease-in-out infinite alternate;
-}
-
-/* Founder banner — diagonal tile pattern and orange→purple palette */
+.card-banner--default,
+.card-banner--mark,
 .card-banner--founder {
   background: linear-gradient(135deg, var(--orange) 0%, var(--purple) 100%);
-  position: relative;
-}
-.card-banner--founder::before {
-  content: '';
-  position: absolute;
-  inset: -100%;
-  background-image: url("data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20width='26'%20height='26'%3E%3Crect%20x='0'%20y='0'%20width='13'%20height='13'%20fill='%23282828'/%3E%3Crect%20x='13'%20y='0'%20width='13'%20height='13'%20fill='%23181818'/%3E%3Crect%20x='0'%20y='13'%20width='13'%20height='13'%20fill='%23181818'/%3E%3Crect%20x='13'%20y='13'%20width='13'%20height='13'%20fill='%23282828'/%3E%3Crect%20x='0.5'%20y='0.5'%20width='12'%20height='12'%20fill='none'%20stroke='%23181818'%20stroke-width='1'/%3E%3Crect%20x='13.5'%20y='13.5'%20width='12'%20height='12'%20fill='none'%20stroke='%23181818'%20stroke-width='1'/%3E%3Crect%20x='13.5'%20y='0.5'%20width='12'%20height='12'%20fill='none'%20stroke='%23282828'%20stroke-width='1'/%3E%3Crect%20x='0.5'%20y='13.5'%20width='12'%20height='12'%20fill='none'%20stroke='%23282828'%20stroke-width='1'/%3E%3C/svg%3E");
-  background-repeat: repeat;
-  transform: rotate(-45deg);
-  opacity: 0.3;
-  mix-blend-mode: overlay;
-  animation: bg-pan 30s linear infinite;
-}
-
-@keyframes bg-pan {
-  0% { transform: rotate(-45deg) translateY(0); }
-  100% { transform: rotate(-45deg) translateY(-50%); }
-}
-
-@keyframes banner-shift {
-  0%   { background-position: 0% 50%; }
-  100% { background-position: 100% 50%; }
 }
 
 /* Watermark text inside banner */
@@ -353,12 +314,6 @@
   word-break: keep-all;
   user-select: none;
   pointer-events: none;
-  animation: wm-scroll 18s linear infinite;
-}
-
-@keyframes wm-scroll {
-  0%   { transform: translateX(0); }
-  100% { transform: translateX(-50%); }
 }
 
 /* Gradient fade edge on banner */
