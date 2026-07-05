@@ -97,7 +97,12 @@
     }
 
     document.getElementById('sign-in').addEventListener('click', () => {
-      window.sb.auth.signInWithOAuth({ provider: 'google' });
+      // explicit redirectTo — don't rely on Supabase's Site URL setting,
+      // which is easy to leave pointed at whatever environment you set up first
+      window.sb.auth.signInWithOAuth({
+        provider: 'google',
+        options: { redirectTo: window.location.href },
+      });
     });
 
     document.getElementById('sign-out').addEventListener('click', async () => {
