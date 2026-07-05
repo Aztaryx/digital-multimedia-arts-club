@@ -94,7 +94,7 @@ const Leaderboard = (() => {
   /* ── FETCH ─────────────────────────────────────────
      Pulls every row from the `scores` table and returns them in
      the same shape the rest of this file has always expected:
-     an array of { badge_id, member_id, value, issue_number, date }.
+     an array of { badge_id, member_id, value, issue_number, awarded_on }.
      getLeaderboard() below is completely unchanged — it has no
      idea the data used to come from a CSV. */
   async function fetchScores() {
@@ -107,7 +107,7 @@ const Leaderboard = (() => {
 
     const { data, error } = await window.sb
       .from('scores')
-      .select('badge_id, member_id, value, issue_number, date');
+      .select('badge_id, member_id, value, issue_number, awarded_on');
 
     if (error) throw new Error(`Leaderboard fetch failed: ${error.message}`);
 
@@ -117,7 +117,7 @@ const Leaderboard = (() => {
         member_id: r.member_id,
         value: parseFloat(r.value),
         issue_number: r.issue_number ?? null,
-        date: r.date || null,
+        awarded_on: r.awarded_on || null,
       }))
       .filter(r => r.badge_id && r.member_id && !isNaN(r.value));
   }

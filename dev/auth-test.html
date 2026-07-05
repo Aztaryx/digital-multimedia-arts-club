@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Auth test — not part of the live site</title>
+  <link href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@400;600;700&family=Rajdhani:wght@400;500;600&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="../css/global.css" />
+  <style>
+    body { padding: 40px 20px; max-width: 720px; margin: 0 auto; }
+    h1 { font-family: var(--font); color: var(--text); font-size: 1.4rem; margin-bottom: 6px; }
+    h2 { font-family: var(--font); color: var(--text); font-size: 1rem; margin: 28px 0 10px; }
+    .note { color: var(--muted); font-size: .85rem; margin-bottom: 28px; }
+    button {
+      margin: 4px 8px 4px 0; padding: 10px 18px; background: var(--teal);
+      color: #041313; border: none; border-radius: 6px; font-family: var(--font);
+      font-weight: 600; cursor: pointer; font-size: .85rem;
+    }
+    button.secondary { background: var(--surface); color: var(--text); border: 1px solid rgba(255,255,255,.15); }
+    button:hover { opacity: .85; }
+    pre {
+      background: var(--surface); border: 1px solid rgba(255,255,255,.08); border-radius: 6px;
+      padding: 12px 14px; color: var(--text); font-family: var(--font2); font-size: .82rem;
+      overflow-x: auto; white-space: pre-wrap; word-break: break-word;
+    }
+    .ok  { color: #4ade80; }
+    .err { color: #ff6b6b; }
+    .section { border-top: 1px solid rgba(255,255,255,.08); padding-top: 18px; margin-top: 18px; }
+  </style>
+</head>
+<body style="background: var(--bg);">
+  <h1>Auth test harness</h1>
+  <p class="note">
+    Not linked from the site nav. Exercises the whole login → profiles trigger →
+    RLS chain before any production login button exists. Safe to delete once
+    you trust the flow.
+  </p>
+
+  <div>
+    <button id="sign-in">Sign in with Google</button>
+    <button id="sign-out" class="secondary">Sign out</button>
+  </div>
+
+  <div class="section">
+    <h2>1. Session</h2>
+    <pre id="session-out">not checked yet</pre>
+  </div>
+
+  <div class="section">
+    <h2>2. My profile row (tests: trigger fired, display_name correct, RLS read)</h2>
+    <button id="fetch-profile" class="secondary">Fetch my profile</button>
+    <pre id="profile-out">not checked yet</pre>
+  </div>
+
+  <div class="section">
+    <h2>3. Try writing a score (tests: officer-only RLS policy)</h2>
+    <p class="note" style="margin-bottom:10px;">
+      Expected: fails with an RLS error if your role is still 'member'.
+      Succeeds only after you manually set role='officer' for this account
+      in the Table Editor.
+    </p>
+    <button id="try-insert" class="secondary">Attempt test score insert</button>
+    <pre id="insert-out">not attempted yet</pre>
+  </div>
+
+  <div class="section">
+    <h2>4. Try editing my own display_name vs. my own role</h2>
+    <p class="note" style="margin-bottom:10px;">
+      Expected: display_name update succeeds, role update fails
+      (column-level grant only allows display_name).
+    </p>
+    <button id="try-name-update" class="secondary">Update display_name (should work)</button>
+    <button id="try-role-update" class="secondary">Update role to officer (should fail)</button>
+    <pre id="update-out">not attempted yet</pre>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+  <script src="../js/supabase-client.js"></script>
+  <script>
+    const sessionOut  = document.getElementById('session-out');
+    const profileOut  = document.getElementById('profile-out');
+    const insertOut   = document.getElementById('insert-out');
+    const updateOut   = document.getElementById('update-out');
+
+    function show(el, obj, isError = false) {
+      el.textContent = typeof obj === 'string' ? obj : JSON.stringify(obj, null, 2);
+      el.className = isError ? 'err' : 'ok';
+    }
+
+    async function refreshSession() {
+      const { data, error } = await window.sb.auth.getSession();
+      if (error) return show(sessionOut, error.message, true);
+      show(sessionOut, data.session
+        ? { user_id: data.session.user.id, email: data.session.user.email }
+        : 'No active session — click "Sign in with Google".'
+      );
+    }
+
+    document.getElementById('sign-in').addEventListener('click', () => {
+      window.sb.auth.signInWithOAuth({ provider: 'google' });
+    });
+
+    document.getElementById('sign-out').addEventListener('click', async () => {
+      await window.sb.auth.signOut();
+      refreshSession();
+    });
+
+    document.getElementById('fetch-profile').addEventListener('click', async () => {
+      const { data: session } = await window.sb.auth.getSession();
+      if (!session.session) return show(profileOut, 'Not signed in.', true);
+
+      const { data, error } = await window.sb
+        .from('profiles')
+        .select('*')
+        .eq('id', session.session.user.id)
+        .single();
+
+      if (error) return show(profileOut, error.message, true);
+      show(profileOut, data);
+    });
+
+    document.getElementById('try-insert').addEventListener('click', async () => {
+      const { data: session } = await window.sb.auth.getSession();
+      if (!session.session) return show(insertOut, 'Not signed in.', true);
+
+      // uses your own member_id so the FK doesn't reject the row outright
+      const { data: profile } = await window.sb
+        .from('profiles').select('member_id').eq('id', session.session.user.id).single();
+
+      const { data, error } = await window.sb
+        .from('scores')
+        .insert({ badge_id: 'auth-test-badge', member_id: profile.member_id, value: 1 })
+        .select();
+
+      if (error) return show(insertOut, `Blocked (expected if not officer): ${error.message}`, true);
+      show(insertOut, data);
+    });
+
+    document.getElementById('try-name-update').addEventListener('click', async () => {
+      const { data: session } = await window.sb.auth.getSession();
+      if (!session.session) return show(updateOut, 'Not signed in.', true);
+
+      const { data, error } = await window.sb
+        .from('profiles')
+        .update({ display_name: 'Test Name ' + Date.now() })
+        .eq('id', session.session.user.id)
+        .select();
+
+      if (error) return show(updateOut, error.message, true);
+      show(updateOut, data);
+    });
+
+    document.getElementById('try-role-update').addEventListener('click', async () => {
+      const { data: session } = await window.sb.auth.getSession();
+      if (!session.session) return show(updateOut, 'Not signed in.', true);
+
+      const { data, error } = await window.sb
+        .from('profiles')
+        .update({ role: 'officer' })
+        .eq('id', session.session.user.id)
+        .select();
+
+      if (error) return show(updateOut, `Blocked (expected): ${error.message}`, true);
+      show(updateOut, data, true); // if this ever succeeds, that's the actual bug
+    });
+
+    refreshSession();
+  </script>
+</body>
+</html>
