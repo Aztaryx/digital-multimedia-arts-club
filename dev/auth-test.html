@@ -70,8 +70,9 @@
       (column-level grant only allows display_name).
     </p>
     <button id="try-name-update" class="secondary">Update display_name (should work)</button>
+    <pre id="name-update-out">not attempted yet</pre>
     <button id="try-role-update" class="secondary">Update role to officer (should fail)</button>
-    <pre id="update-out">not attempted yet</pre>
+    <pre id="role-update-out">not attempted yet</pre>
   </div>
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
@@ -80,7 +81,8 @@
     const sessionOut  = document.getElementById('session-out');
     const profileOut  = document.getElementById('profile-out');
     const insertOut   = document.getElementById('insert-out');
-    const updateOut   = document.getElementById('update-out');
+    const nameUpdateOut = document.getElementById('name-update-out');
+    const roleUpdateOut = document.getElementById('role-update-out');
 
     function show(el, obj, isError = false) {
       el.textContent = typeof obj === 'string' ? obj : JSON.stringify(obj, null, 2);
@@ -143,7 +145,7 @@
 
     document.getElementById('try-name-update').addEventListener('click', async () => {
       const { data: session } = await window.sb.auth.getSession();
-      if (!session.session) return show(updateOut, 'Not signed in.', true);
+      if (!session.session) return show(nameUpdateOut, 'Not signed in.', true);
 
       const { data, error } = await window.sb
         .from('profiles')
@@ -151,13 +153,13 @@
         .eq('id', session.session.user.id)
         .select();
 
-      if (error) return show(updateOut, error.message, true);
-      show(updateOut, data);
+      if (error) return show(nameUpdateOut, error.message, true);
+      show(nameUpdateOut, data);
     });
 
     document.getElementById('try-role-update').addEventListener('click', async () => {
       const { data: session } = await window.sb.auth.getSession();
-      if (!session.session) return show(updateOut, 'Not signed in.', true);
+      if (!session.session) return show(roleUpdateOut, 'Not signed in.', true);
 
       const { data, error } = await window.sb
         .from('profiles')
@@ -165,8 +167,8 @@
         .eq('id', session.session.user.id)
         .select();
 
-      if (error) return show(updateOut, `Blocked (expected): ${error.message}`, true);
-      show(updateOut, data, true); // if this ever succeeds, that's the actual bug
+      if (error) return show(roleUpdateOut, `Blocked (expected): ${error.message}`, true);
+      show(roleUpdateOut, data, true); // if this ever succeeds, that's the actual bug
     });
 
     refreshSession();
