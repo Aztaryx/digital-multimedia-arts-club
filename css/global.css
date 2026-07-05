@@ -9,8 +9,7 @@
   --bg:        #0d0d0d;
   --surface:   #1a1a1a;
   --orange:    #f97316;
-  --teal:      #22d3ee;
-  --magenta:   #e879f9;
+  --purple:    #4c1d95; /* slightly darker purple */
   --text:      #f0f0f0;
   --muted:     #888888;
   --font:      'Chakra Petch', sans-serif;
@@ -51,7 +50,7 @@ a     { color: inherit; text-decoration: none; }
 #preloader.hidden { opacity: 0; visibility: hidden; pointer-events: none; }
 .pre-logo { width: 100px; height: 100px; object-fit: contain; animation: pre-pulse 1.4s ease-in-out infinite; }
 .pre-bar  { width: 180px; height: 2px; background: rgba(255,255,255,0.08); border-radius: 2px; overflow: hidden; }
-.pre-fill { height: 100%; width: 45%; background: linear-gradient(90deg, var(--orange), var(--teal), var(--magenta)); border-radius: 2px; animation: pre-scan 1.1s ease-in-out infinite; }
+  .pre-fill { height: 100%; width: 45%; background: linear-gradient(90deg, var(--orange), var(--purple)); border-radius: 2px; animation: pre-scan 1.1s ease-in-out infinite; }
 .pre-status {
   font-family: var(--font); font-size: .68rem;
   letter-spacing: .14em; text-transform: uppercase;
@@ -92,8 +91,8 @@ a     { color: inherit; text-decoration: none; }
   display: inline-block;
 }
 .nav-links a[data-icon="down"]::before { content: '▼'; font-size: .5rem; }
-.nav-links a:hover          { color: var(--teal); }
-.nav-links a:hover::before  { color: var(--teal); }
+.nav-links a:hover          { color: var(--purple); }
+.nav-links a:hover::before  { color: var(--purple); }
 .nav-links a.active::before { color: var(--orange); }
 
 /* ── DROPDOWNS ─────────────────────────────────────── */
@@ -157,7 +156,7 @@ a     { color: inherit; text-decoration: none; }
   transition: color .2s;
 }
 #mobile-nav > a::before { content: '◆'; font-size: .48rem; color: var(--orange); }
-#mobile-nav > a:hover { color: var(--teal); }
+#mobile-nav > a:hover { color: var(--purple); }
 
 .mobile-group {
   border-bottom: 1px solid rgba(255,255,255,.04);
@@ -191,13 +190,13 @@ a     { color: inherit; text-decoration: none; }
 .grad-base  { color: #fff; }
 .grad-layer {
   position: absolute; inset: 0;
-  background: linear-gradient(to right, var(--orange), var(--teal), var(--magenta), var(--orange));
+  background: linear-gradient(to right, var(--orange), var(--purple), var(--orange));
   background-size: 200% 100%;
   -webkit-background-clip: text; background-clip: text;
   -webkit-text-fill-color: transparent; color: transparent;
 }
 /* Diamond (first .grad-wrap in .sec-head) is solid cyan — no wave */
-.sec-head .grad-wrap:first-child .grad-base  { color: var(--teal); -webkit-text-fill-color: var(--teal); }
+.sec-head .grad-wrap:first-child .grad-base  { color: var(--purple); -webkit-text-fill-color: var(--purple); }
 .sec-head .grad-wrap:first-child .grad-layer { display: none; }
 
 /* ── SECTION HEADING ────────────────────────────────── */

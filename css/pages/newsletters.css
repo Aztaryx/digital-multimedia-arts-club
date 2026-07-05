@@ -9,7 +9,7 @@
 .news-divider {
   height: 1px;
   border: none;
-  background: linear-gradient(to right, var(--orange), var(--teal), var(--magenta), transparent);
+  background: linear-gradient(to right, var(--orange), var(--purple), transparent);
   opacity: .3;
 }
 

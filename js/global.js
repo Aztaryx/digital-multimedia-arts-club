@@ -313,13 +313,14 @@
   });
 
   /* ── SFX: PROTECTED CLICKS (empty/stub content) ──
-     .stub-body (projects/socials/update-log) and .news-empty
-     (newsletters — announcements & events before any are added)
-     are placeholders with nothing behind them yet. Picks one of
-     three "protected" stings at random each click so it doesn't
-     feel like a broken button repeating the exact same sound. */
+     .news-empty (newsletters — announcements & events before any
+     are added) is a placeholder with nothing behind it yet. Picks
+     one of three "protected" stings at random each click so it
+     doesn't feel like a broken button repeating the exact same
+     sound. Projects/Socials used to share this via .stub-body —
+     both now have real content, so that class no longer exists. */
   const PROTECTED_SOUNDS = ['protectedsmall', 'protectedmedium', 'protectedlarge'];
-  document.querySelectorAll('.stub-body, .news-empty').forEach(stub => {
+  document.querySelectorAll('.news-empty').forEach(stub => {
     stub.addEventListener('click', () => {
       const pick = PROTECTED_SOUNDS[Math.floor(Math.random() * PROTECTED_SOUNDS.length)];
       playSfx(pick);

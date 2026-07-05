@@ -62,7 +62,7 @@
   gap: 14px;
   transition: border-color .3s var(--ease-out);
 }
-.req-card:hover { border-color: rgba(34,211,238,.3); }
+.req-card:hover { border-color: rgba(76,29,149,.3); }
 
 .req-card-label {
   font-family: var(--font);
@@ -70,7 +70,7 @@
   font-weight: 700;
   letter-spacing: .12em;
   text-transform: uppercase;
-  color: var(--teal);
+  color: var(--purple);
 }
 
 .req-list {
@@ -156,7 +156,7 @@
 /* ── DIVIDER ───────────────────────────────────────── */
 .join-divider {
   height: 1px;
-  background: linear-gradient(to right, var(--orange), var(--teal), transparent);
+  background: linear-gradient(to right, var(--orange), var(--purple), transparent);
   opacity: .25;
 }
 
@@ -197,7 +197,7 @@
 
 .club-req-list li::before {
   content: '◆';
-  color: var(--teal);
+  color: var(--purple);
   font-size: .55rem;
   margin-top: 5px;
   flex-shrink: 0;

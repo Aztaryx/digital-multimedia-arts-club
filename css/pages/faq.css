@@ -32,7 +32,7 @@
 
 .faq-q::before {
   content: '◆';
-  color: var(--teal);
+  color: var(--purple);
   font-size: .62rem;
   margin-top: 4px;
   flex-shrink: 0;
@@ -47,7 +47,7 @@
 }
 
 .faq-a a {
-  color: var(--teal);
+  color: var(--purple);
   text-decoration: underline;
   text-underline-offset: 3px;
   transition: color .2s;
