@@ -54,21 +54,27 @@ export const vSfxTap = {
    Once revealed, also fires scrambleGradWrap on any child
    .grad-wrap elements, same as the original. */
 let revealObs = null;
+function revealElement(el) {
+  if (el.classList.contains('visible')) return;
+  el.classList.add('visible');
+  setTimeout(() => {
+    el.querySelectorAll('.grad-wrap').forEach((wrap) => {
+      const layer = wrap.querySelector('.grad-layer');
+      if (layer && getComputedStyle(layer).display !== 'none') {
+        scrambleGradWrap(wrap);
+      }
+    });
+  }, 150);
+}
+
 function getRevealObserver() {
   if (revealObs) return revealObs;
+  if (typeof IntersectionObserver === 'undefined') return null;
   revealObs = new IntersectionObserver((entries) => {
     entries.forEach((entry) => {
       if (entry.isIntersecting) {
-        entry.target.classList.add('visible');
+        revealElement(entry.target);
         revealObs.unobserve(entry.target);
-        setTimeout(() => {
-          entry.target.querySelectorAll('.grad-wrap').forEach((wrap) => {
-            const layer = wrap.querySelector('.grad-layer');
-            if (layer && getComputedStyle(layer).display !== 'none') {
-              scrambleGradWrap(wrap);
-            }
-          });
-        }, 150);
       }
     });
   }, { threshold: 0.12 });
@@ -78,10 +84,26 @@ function getRevealObserver() {
 export const vReveal = {
   mounted(el) {
     el.classList.add('reveal');
-    getRevealObserver().observe(el);
+    const observer = getRevealObserver();
+    if (!observer) {
+      requestAnimationFrame(() => revealElement(el));
+      return;
+    }
+
+    observer.observe(el);
+
+    requestAnimationFrame(() => {
+      const rect = el.getBoundingClientRect();
+      const inView = rect.top < window.innerHeight * 0.88 && rect.bottom > 0;
+      if (inView) {
+        observer.unobserve(el);
+        revealElement(el);
+      }
+    });
   },
   unmounted(el) {
-    getRevealObserver().unobserve(el);
+    const observer = getRevealObserver();
+    if (observer) observer.unobserve(el);
   },
 };
 
