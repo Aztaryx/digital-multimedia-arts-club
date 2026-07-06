@@ -162,6 +162,42 @@ done yet" at the bottom for the honest list.
   visual QA in an actual browser, no test against a live Supabase
   project. See below.
 
+## Deployment (GitHub Pages)
+
+Added this pass, since the SPA is now what's live on `main`:
+
+- **`.github/workflows/deploy.yml`** — builds on every push to `main`
+  (and on manual trigger) and deploys via `actions/deploy-pages`. This
+  assumes the SPA's `package.json`/`src`/etc. sit at the **repo root**
+  (matching the old flattened-structure convention from the static
+  site). If it's actually nested in a subfolder in the real repo, add
+  `working-directory: <folder>` to the install/build steps and change
+  the `upload-pages-artifact` `path` to `<folder>/dist`.
+- **One manual step you still need to do**: in the repo, go to
+  Settings → Pages → Build and deployment → Source → select
+  **"GitHub Actions"**. This has to be clicked once before the
+  workflow's first run will actually deploy (the `github-pages`
+  environment doesn't exist until you do).
+- **`vite.config.js`** now sets `base: '/digital-multimedia-arts-club/'`
+  — needed because this is a project page
+  (`username.github.io/digital-multimedia-arts-club`), not a custom
+  domain or a `username.github.io` root repo. Verified the built
+  `index.html` correctly emits `/digital-multimedia-arts-club/assets/...`
+  paths. **Side effect**: `npm run dev` now also serves from
+  `http://localhost:5173/digital-multimedia-arts-club/` instead of the
+  root — that's expected, not a bug. If a custom domain gets set up
+  later (there's CNAME history for one), change `base` back to `'/'`
+  and drop a `CNAME` file in `public/` so Vite copies it into `dist/`.
+- **SPA routing fix**: the workflow copies `dist/index.html` to
+  `dist/404.html` after build. Router stays on `createWebHistory()`
+  (clean URLs) — no code change there. GitHub Pages serves that
+  404.html (still with a 404 status, but the right content) for any
+  path it doesn't recognize as a real file, so a direct visit or
+  refresh on something like `/about/members` still boots the SPA,
+  which then reads the real path from the URL and renders correctly.
+  Confirmed locally that the copied file is byte-identical to
+  `index.html`.
+
 ## Not done yet / needs real verification
 
 - **Visual QA.** Nothing in this pass was checked in an actual
