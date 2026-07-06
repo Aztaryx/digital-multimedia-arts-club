@@ -1,6 +1,6 @@
 <template>
   <main>
-    <div class="page-section reveal">
+    <div class="page-section reveal" v-reveal>
       <SecHead>Socials</SecHead>
       <div class="socials-list">
         <a class="social-link" href="https://www.facebook.com/profile.php?id=61590594809333" target="_blank" rel="noopener">

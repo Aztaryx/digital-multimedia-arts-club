@@ -1,6 +1,6 @@
 <template>
   <main>
-    <div class="page-section reveal">
+    <div class="page-section reveal" v-reveal>
       <SecHead>Update Log</SecHead>
       <div class="update-log-intro">
         <p>

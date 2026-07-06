@@ -1,6 +1,6 @@
 <template>
   <main>
-    <div class="page-section reveal">
+    <div class="page-section reveal" v-reveal>
       <SecHead>Projects</SecHead>
       <div class="notice-box">
         <p class="notice-text">Projects linked to this website soon! For now, check our <a href="https://www.facebook.com/profile.php?id=61590594809333" target="_blank" rel="noopener">Facebook page</a>.</p>

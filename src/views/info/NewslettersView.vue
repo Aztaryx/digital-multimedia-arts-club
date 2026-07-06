@@ -1,6 +1,6 @@
 <template>
   <main>
-    <div class="page-section reveal">
+    <div class="page-section reveal" v-reveal>
       <SecHead>Announcements</SecHead>
       <hr class="news-divider" />
 
@@ -22,7 +22,7 @@
       </div>
     </div>
 
-    <div class="page-section reveal">
+    <div class="page-section reveal" v-reveal>
       <SecHead>Events</SecHead>
       <hr class="news-divider" />
 

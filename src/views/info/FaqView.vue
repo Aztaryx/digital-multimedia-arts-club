@@ -1,6 +1,6 @@
 <template>
   <main>
-    <div class="page-section reveal">
+    <div class="page-section reveal" v-reveal>
       <SecHead>FAQ</SecHead>
       <div class="faq-list">
 

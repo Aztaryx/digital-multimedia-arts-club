@@ -3,14 +3,14 @@
     <!-- Two-column body -->
     <div class="about-body">
 
-      <div class="about-img-frame reveal" v-sfx-hover>
+      <div class="about-img-frame reveal" v-sfx-hover v-reveal>
         <img class="about-img" src="https://aztaryx.github.io/dmac-assets/images/misc/groupphoto1.jpg" alt="Group Photo 1" />
       </div>
-      <div class="about-img-frame reveal" v-sfx-hover>
+      <div class="about-img-frame reveal" v-sfx-hover v-reveal>
         <img class="about-img" src="https://aztaryx.github.io/dmac-assets/images/misc/groupphoto2.jpg" alt="Group Photo 2" />
       </div>
 
-      <div class="about-text reveal">
+      <div class="about-text reveal" v-reveal>
         <SecHead>About Us</SecHead>
         <p class="about-paragraph">
           DMAC — the Digital Multimedia Arts Club — is a student-run community watched over by Sir Richmond Causaren and the Head of TLE for anyone into digital creation: editing video, designing graphics, building websites, taking photos, or tinkering with tech and computers.

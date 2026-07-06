@@ -1,6 +1,6 @@
 <template>
   <main>
-    <div class="page-section reveal">
+    <div class="page-section reveal" v-reveal>
       <SecHead>Mission</SecHead>
       <div class="mission-content">
         <p class="mission-lead">
