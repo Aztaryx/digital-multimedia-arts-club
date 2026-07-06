@@ -1,4 +1,5 @@
 import { createRouter, createWebHistory } from 'vue-router';
+import MemberAuth from '../lib/member-auth.js';
 
 const routes = [
   {
@@ -71,6 +72,12 @@ const routes = [
     // for this route instead of double-stacking headers.
     meta: { title: 'DMAC — Log In', hideChrome: true },
   },
+  {
+    path: '/profile',
+    name: 'profile',
+    component: () => import('../views/ProfileView.vue'),
+    meta: { title: 'DMAC — Your Profile', requiresAuth: true },
+  },
 ];
 
 const router = createRouter({
@@ -80,6 +87,18 @@ const router = createRouter({
     if (savedPosition) return savedPosition;
     return { top: 0 };
   },
+});
+
+// Guards any route with meta.requiresAuth (currently just /profile).
+// On a hard refresh, MemberAuth's in-memory cache is empty even for a
+// genuinely logged-in member — restoreSession() re-checks the stored
+// token against the server before we decide to bounce anyone to /login.
+router.beforeEach(async (to) => {
+  if (!to.meta?.requiresAuth) return true;
+  if (MemberAuth.current()) return true;
+
+  const member = await MemberAuth.restoreSession();
+  return member ? true : '/login';
 });
 
 router.afterEach((to) => {

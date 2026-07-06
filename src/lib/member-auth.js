@@ -29,14 +29,34 @@
                                          'moderator' or 'admin'.
    MemberAuth.current()               → cached member object, or null
    MemberAuth.hasRole('admin')        → convenience check off the cached member
+   MemberAuth.sessionMember           → reactive (Vue ref) mirror of current(),
+                                         for components like NavBar that need
+                                         to react to login/logout without a
+                                         full page navigation happening.
+   MemberAuth.getSessionToken()       → raw token string, or null. Exported so
+                                         sibling modules (member-profile.js)
+                                         can attach it to their own RPC calls
+                                         without duplicating localStorage logic.
    ═══════════════════════════════════════════════════ */
 
+import { ref } from 'vue';
 import { sb } from './supabase-client.js';
 
 const MemberAuth = (() => {
 
   const STORAGE_KEY = 'dmac_session_token';
   let cachedMember = null; // { slug, display_name, club_role, site_role }
+
+  // Reactive mirror of cachedMember. Plain closure variables don't trigger
+  // Vue re-renders on their own — components that need to know "is someone
+  // logged in right now" (NavBar's profile link, route guards) watch this
+  // ref instead of polling current().
+  const sessionMember = ref(null);
+
+  function setMember(member) {
+    cachedMember = member;
+    sessionMember.value = member;
+  }
 
   function getToken() {
     return localStorage.getItem(STORAGE_KEY);
@@ -54,10 +74,10 @@ const MemberAuth = (() => {
     const { data, error } = await sb.rpc('member_session_check', { p_session_token: token });
     if (error || !data || !data.success) {
       setToken(null);
-      cachedMember = null;
+      setMember(null);
       return null;
     }
-    cachedMember = data.member;
+    setMember(data.member);
     return cachedMember;
   }
 
@@ -67,7 +87,7 @@ const MemberAuth = (() => {
     if (!data.success) return data; // { success: false, message: '...' }
 
     setToken(data.session_token);
-    cachedMember = data.member;
+    setMember(data.member);
     return data;
   }
 
@@ -75,7 +95,7 @@ const MemberAuth = (() => {
     const token = getToken();
     if (token) await sb.rpc('member_logout', { p_session_token: token });
     setToken(null);
-    cachedMember = null;
+    setMember(null);
   }
 
   async function linkGoogle() {
@@ -122,7 +142,11 @@ const MemberAuth = (() => {
     return cachedMember.site_role === role;
   }
 
-  return { restoreSession, login, logout, linkGoogle, changeOwnPassword, fetchRoster, current, hasRole };
+  return {
+    restoreSession, login, logout, linkGoogle, changeOwnPassword, fetchRoster, current, hasRole,
+    sessionMember,
+    getSessionToken: getToken,
+  };
 })();
 
 export default MemberAuth;

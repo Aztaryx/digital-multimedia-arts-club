@@ -36,6 +36,13 @@
           <li><a href="https://www.facebook.com/profile.php?id=61590594809333" target="_blank" rel="noopener">facebook</a></li>
         </ul>
       </li>
+
+      <!-- Only shown once logged in — sessionMember is the reactive
+           mirror in member-auth.js, so this appears/disappears right
+           after login/logout without needing a page reload. -->
+      <li v-if="MemberAuth.sessionMember.value">
+        <router-link to="/profile" :class="{ active: isSection('/profile') }">profile</router-link>
+      </li>
     </ul>
     <button id="hamburger" :class="{ open: mobileOpen }" aria-label="Open navigation menu" @click="toggleMobile">
       <span></span><span></span><span></span>
@@ -67,16 +74,26 @@
       <span class="mobile-group-label">◆ socials</span>
       <a href="https://www.facebook.com/profile.php?id=61590594809333" target="_blank" rel="noopener">facebook</a>
     </div>
+
+    <router-link v-if="MemberAuth.sessionMember.value" to="/profile" @click="closeMobile">profile</router-link>
   </nav>
 </template>
 
 <script setup>
-import { ref } from 'vue';
+import { ref, onMounted } from 'vue';
 import { useRoute } from 'vue-router';
 import { playSfx } from '../composables/useSfx.js';
+import MemberAuth from '../lib/member-auth.js';
 
 const route = useRoute();
 const mobileOpen = ref(false);
+
+// Populate the reactive session mirror on first paint so the "profile"
+// link is correct immediately after a hard refresh, not just after the
+// next login/logout call. Cheap no-op if nobody's logged in.
+onMounted(() => {
+  if (!MemberAuth.current()) MemberAuth.restoreSession();
+});
 
 /* Top-level section links stay highlighted while browsing any
    sub-page in that section (mirrors resolvePath()/startsWith()
