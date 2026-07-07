@@ -34,14 +34,13 @@
    MemberProfile.updateProfile({ bio, socialLinks })
      → { success, message? }         (socialLinks: [{ label, url }, ...], max 3)
 
-   MemberProfile.uploadAvatar(file, authUid)
-   MemberProfile.uploadBanner(file, authUid)
+   MemberProfile.uploadAvatar(file)
+   MemberProfile.uploadBanner(file)
      → { success, url?, message? }
-     authUid is auth.uid() from a Google-linked Supabase session (sb.auth.getUser()).
-     STILL PENDING: whether uploads stay gated to Google-linked sessions
-     (current behavior, direct-to-Storage) or move to the Edge Function
-     proxy your own schema's TODO hints at (works for either login tier).
-     This function assumes the former until that's decided.
+     Goes through the upload-profile-image Edge Function rather than
+     writing to Storage directly — that's what lets this work for
+     password-only members too, not just Google-linked ones. No
+     auth.uid()/Google session required.
    ═══════════════════════════════════════════════════ */
 
 import { sb } from './supabase-client.js';
@@ -102,39 +101,30 @@ const MemberProfile = (() => {
     return saveFields({ bio, socialLinks });
   }
 
-  function uploadAvatar(file, authUid) {
-    return uploadImage({ bucket: 'avatars', file, authUid, field: 'avatarUrl' });
+  function uploadAvatar(file) {
+    return uploadImage('avatar', file);
   }
 
-  function uploadBanner(file, authUid) {
-    return uploadImage({ bucket: 'banners', file, authUid, field: 'bannerUrl' });
+  function uploadBanner(file) {
+    return uploadImage('banner', file);
   }
 
-  /* Shared upload path for avatar/banner. Two steps: (1) file goes
-     straight to Storage using the Google-linked auth.uid() session,
-     since that's the only thing Storage RLS can check; (2) the
-     resulting public URL is saved through the normal RPC, same as
-     every other field. The check constraint on avatar_url/banner_url
-     in the SQL already restricts these to your own Storage project's
-     domain, so a query-string cache-buster on the URL is fine — it
-     doesn't break the `like 'prefix%'` match. */
-  async function uploadImage({ bucket, file, authUid, field }) {
-    if (!authUid) {
-      return { success: false, message: 'Link your Google account first — image uploads need it.' };
-    }
+  /* Both avatar and banner go through the same Edge Function — it
+     figures out identity from the session token itself (works for
+     either login tier) and writes to Storage with the service-role
+     key, so no client-side Storage permissions are involved at all. */
+  async function uploadImage(kind, file) {
+    const token = MemberAuth.getSessionToken();
+    if (!token) return { success: false, message: 'Not logged in.' };
 
-    const ext = (file.name.split('.').pop() || 'png').toLowerCase();
-    const path = `${authUid}/${bucket === 'avatars' ? 'avatar' : 'banner'}.${ext}`;
+    const formData = new FormData();
+    formData.append('session_token', token);
+    formData.append('kind', kind);
+    formData.append('file', file);
 
-    const { error: uploadError } = await sb.storage.from(bucket).upload(path, file, { upsert: true });
-    if (uploadError) return { success: false, message: `Upload failed — ${uploadError.message}` };
-
-    const { data: urlData } = sb.storage.from(bucket).getPublicUrl(path);
-    const bustedUrl = `${urlData.publicUrl}?t=${Date.now()}`; // path is stable across re-uploads, so bust the cache
-
-    const result = await saveFields({ [field]: bustedUrl });
-    if (!result.success) return { success: false, message: 'Uploaded, but saving it failed — try again.' };
-    return { success: true, url: bustedUrl };
+    const { data, error } = await sb.functions.invoke('upload-profile-image', { body: formData });
+    if (error) return { success: false, message: 'Upload failed — try again.' };
+    return data; // { success, url } or { success: false, message }
   }
 
   return { fetchProfile, updateNickname, updateProfile, uploadAvatar, uploadBanner };

@@ -47,23 +47,16 @@
         <section class="profile-block">
           <h3>Avatar &amp; Banner</h3>
 
-          <div v-if="!googleLinked" class="profile-google-gate">
-            <p>Avatar and banner uploads need a linked Google account.</p>
-            <router-link to="/login" class="profile-btn">link Google account</router-link>
+          <div class="profile-image-row">
+            <img v-if="avatarUrl" :src="avatarUrl" class="profile-avatar-preview" alt="Avatar preview" />
+            <span v-else class="profile-empty-preview">◆</span>
+            <input class="profile-file" type="file" accept="image/*" @change="onAvatarChosen" />
           </div>
 
-          <div v-else>
-            <div class="profile-image-row">
-              <img v-if="avatarUrl" :src="avatarUrl" class="profile-avatar-preview" alt="Avatar preview" />
-              <span v-else class="profile-empty-preview">◆</span>
-              <input class="profile-file" type="file" accept="image/*" @change="onAvatarChosen" />
-            </div>
-
-            <div class="profile-image-row">
-              <img v-if="bannerUrl" :src="bannerUrl" class="profile-banner-preview" alt="Banner preview" />
-              <span v-else class="profile-empty-preview profile-empty-preview--banner">no banner</span>
-              <input class="profile-file" type="file" accept="image/*,.gif" @change="onBannerChosen" />
-            </div>
+          <div class="profile-image-row">
+            <img v-if="bannerUrl" :src="bannerUrl" class="profile-banner-preview" alt="Banner preview" />
+            <span v-else class="profile-empty-preview profile-empty-preview--banner">no banner</span>
+            <input class="profile-file" type="file" accept="image/*,.gif" @change="onBannerChosen" />
           </div>
         </section>
 
@@ -90,14 +83,11 @@ import { useRouter } from 'vue-router';
 import SecHead from '../components/SecHead.vue';
 import MemberAuth from '../lib/member-auth.js';
 import MemberProfile from '../lib/member-profile.js';
-import { sb } from '../lib/supabase-client.js';
 import { playSfx } from '../composables/useSfx.js';
 
 const router = useRouter();
 
 const member = ref(null);
-const googleLinked = ref(false);
-const authUid = ref(null); // auth.uid() from a Google-linked Supabase Auth session — required for storage uploads
 
 const nickname = ref('');
 const oldPassword = ref('');
@@ -127,15 +117,6 @@ onMounted(async () => {
     router.replace('/login');
     return;
   }
-
-  // Google-session check: no stored "is this account linked" flag
-  // exists in the schema, and honestly a live check is more correct
-  // anyway — Storage RLS needs an ACTIVE auth.uid() session, not just
-  // "linked at some point." So this reflects "can I upload right now
-  // in this tab," not the account's permanent link status.
-  const { data } = await sb.auth.getUser();
-  authUid.value = data?.user?.id || null;
-  googleLinked.value = !!authUid.value;
 
   const profile = await MemberProfile.fetchProfile(member.value.id);
   // nickname falls back to the official display_name until the member
@@ -209,7 +190,7 @@ async function onAvatarChosen(e) {
   const file = e.target.files[0];
   if (!file) return;
   status('Uploading avatar…', 'info');
-  const result = await MemberProfile.uploadAvatar(file, authUid.value);
+  const result = await MemberProfile.uploadAvatar(file);
   if (result.success) {
     avatarUrl.value = result.url;
     status('Avatar updated.', 'success');
@@ -222,7 +203,7 @@ async function onBannerChosen(e) {
   const file = e.target.files[0];
   if (!file) return;
   status('Uploading banner…', 'info');
-  const result = await MemberProfile.uploadBanner(file, authUid.value);
+  const result = await MemberProfile.uploadBanner(file);
   if (result.success) {
     bannerUrl.value = result.url;
     status('Banner updated.', 'success');
@@ -296,12 +277,6 @@ async function onBannerChosen(e) {
 .profile-status.success { background: #143d1f; color: #7fe89a; }
 .profile-status.error { background: #3d1414; color: #f88; }
 .profile-status.info { background: #1a2a3d; color: #8ac6f8; }
-.profile-google-gate {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  align-items: flex-start;
-}
 .profile-image-row {
   display: flex;
   align-items: center;
