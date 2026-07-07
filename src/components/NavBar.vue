@@ -1,11 +1,11 @@
 <template>
   <nav id="navbar">
-    <router-link to="/" class="nav-logo">
+    <router-link to="/home" class="nav-logo">
       <img src="https://aztaryx.github.io/dmac-assets/logo.png" alt="DMAC" height="38" />
     </router-link>
     <ul class="nav-links">
       <li>
-        <router-link to="/" :class="{ active: isExact('/') }">home</router-link>
+        <router-link to="/home" :class="{ active: isExact('/home') }">home</router-link>
       </li>
 
       <li class="has-dropdown">
@@ -50,7 +50,7 @@
   </nav>
 
   <nav id="mobile-nav" :class="{ open: mobileOpen }" aria-label="Mobile navigation">
-    <router-link to="/" @click="closeMobile">home</router-link>
+    <router-link to="/home" @click="closeMobile">home</router-link>
 
     <div class="mobile-group">
       <span class="mobile-group-label">◆ about</span>

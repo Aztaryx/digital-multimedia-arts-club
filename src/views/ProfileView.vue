@@ -1,65 +1,172 @@
 <template>
   <main class="profile-page">
-    <div class="page-section reveal" v-reveal>
+    <div class="page-section profile-shell reveal" v-reveal>
       <SecHead>Your Profile</SecHead>
+
+      <p class="profile-intro">
+        Keep your DMAC profile ready for recording, posting, and editing school events. Update the name members see, add a short bio, and shape the public card that represents your work.
+      </p>
 
       <div v-if="!member" class="profile-loading">Loading…</div>
 
-      <div v-else class="profile-content">
+      <div v-else class="profile-layout">
+        <aside class="profile-viewer">
+          <section class="profile-card profile-card--viewer">
+            <div class="profile-banner" :style="bannerStyle">
+              <div class="profile-banner-overlay"></div>
+              <div class="profile-avatar-badge">
+                <img v-if="avatarUrl" :src="avatarUrl" class="profile-avatar-preview" alt="Avatar preview" />
+                <span v-else class="profile-avatar-fallback">{{ avatarInitials }}</span>
+              </div>
+            </div>
 
-        <p v-if="statusMsg" class="profile-status" :class="statusType">{{ statusMsg }}</p>
+            <div class="profile-card-body">
+              <p class="profile-kicker">Public preview</p>
+              <h3>{{ publicName }}</h3>
+              <p class="profile-role">{{ member.club_role || 'DMAC member' }} · {{ member.site_role || 'member' }}</p>
+              <p class="profile-bio-preview">
+                {{ bio.trim() || 'Write a short bio about the events you cover, the edits you handle, or the tools you are best at using.' }}
+              </p>
 
-        <!-- ── NICKNAME ── -->
-        <section class="profile-block">
-          <h3>Nickname</h3>
-          <input class="profile-input" v-model="nickname" maxlength="40" />
-          <button class="profile-btn" v-sfx-hover @click="saveNickname">save</button>
-        </section>
+              <div class="profile-link-chips">
+                <a
+                  v-for="(link, i) in previewLinks"
+                  :key="i"
+                  class="profile-chip"
+                  :href="link.url"
+                  target="_blank"
+                  rel="noopener"
+                >
+                  {{ link.label }}
+                </a>
+                <span v-if="!previewLinks.length" class="profile-chip profile-chip--ghost">No social links yet.</span>
+              </div>
 
-        <!-- ── PASSWORD ── -->
-        <section class="profile-block">
-          <h3>Change Password</h3>
-          <input class="profile-input" type="password" v-model="oldPassword" placeholder="current password" />
-          <input class="profile-input" type="password" v-model="newPassword" placeholder="new password" />
-          <input class="profile-input" type="password" v-model="confirmPassword" placeholder="confirm new password" />
-          <button class="profile-btn" v-sfx-hover @click="savePassword">save</button>
-        </section>
+              <div class="profile-stat-grid">
+                <div class="profile-stat">
+                  <span class="profile-stat-label">Nickname</span>
+                  <strong>{{ nickname.trim() || 'Not set' }}</strong>
+                </div>
+                <div class="profile-stat">
+                  <span class="profile-stat-label">Links</span>
+                  <strong>{{ previewLinks.length }}/3</strong>
+                </div>
+                <div class="profile-stat">
+                  <span class="profile-stat-label">Bio</span>
+                  <strong>{{ bioLength }} chars</strong>
+                </div>
+                <div class="profile-stat">
+                  <span class="profile-stat-label">Complete</span>
+                  <strong>{{ profileScore }}</strong>
+                </div>
+              </div>
+            </div>
+          </section>
 
-        <!-- ── BIO + SOCIAL LINKS ── -->
-        <section class="profile-block">
-          <h3>Bio</h3>
-          <textarea class="profile-textarea" v-model="bio" maxlength="500" rows="4"></textarea>
+          <p class="profile-viewer-note">
+            This is the public-facing card people will use when checking who is available to cover school events.
+          </p>
+        </aside>
 
-          <h3>Social Links <span class="profile-hint">(max 3)</span></h3>
-          <div v-for="(link, i) in socialLinks" :key="i" class="profile-link-row">
-            <input class="profile-input" v-model="link.label" placeholder="label (e.g. Instagram)" />
-            <input class="profile-input" v-model="link.url" placeholder="https://..." />
-            <button class="profile-btn profile-btn--danger" v-sfx-hover @click="removeLink(i)">✕</button>
+        <section class="profile-editor">
+          <p v-if="statusMsg" class="profile-status" :class="statusType">{{ statusMsg }}</p>
+
+          <div class="profile-grid">
+            <section class="profile-panel">
+              <div class="profile-panel-head">
+                <h3>Identity</h3>
+                <span>What your club sees first</span>
+              </div>
+              <label class="profile-field">
+                <span>Nickname</span>
+                <input class="profile-input" v-model="nickname" maxlength="40" placeholder="Choose a display nickname" />
+              </label>
+              <button class="profile-btn" v-sfx-hover @click="saveNickname">Save nickname</button>
+            </section>
+
+            <section class="profile-panel">
+              <div class="profile-panel-head">
+                <h3>Bio and links</h3>
+                <span>Brief, clear, and public-facing</span>
+              </div>
+              <label class="profile-field">
+                <span>Bio</span>
+                <textarea class="profile-textarea" v-model="bio" maxlength="500" rows="6" placeholder="Share what you do for DMAC, what events you like covering, and what tools you use."></textarea>
+              </label>
+
+              <div class="profile-links-head">
+                <h4>Social links</h4>
+                <span>Max 3 links</span>
+              </div>
+
+              <div class="profile-link-stack">
+                <div v-for="(link, i) in socialLinks" :key="i" class="profile-link-row">
+                  <input class="profile-input" v-model="link.label" placeholder="Label (e.g. Instagram)" />
+                  <input class="profile-input" v-model="link.url" placeholder="https://..." />
+                  <button class="profile-btn profile-btn--danger" v-sfx-hover @click="removeLink(i)">Remove</button>
+                </div>
+              </div>
+
+              <div class="profile-actions">
+                <button v-if="socialLinks.length < 3" class="profile-btn profile-btn--ghost" v-sfx-hover @click="addLink">Add link</button>
+                <button class="profile-btn" v-sfx-hover @click="saveBioAndLinks">Save bio and links</button>
+              </div>
+            </section>
+
+            <section class="profile-panel">
+              <div class="profile-panel-head">
+                <h3>Media</h3>
+                <span>Avatar and banner used on the public card</span>
+              </div>
+
+              <label class="profile-media-row">
+                <span class="profile-media-preview profile-media-preview--avatar">
+                  <img v-if="avatarUrl" :src="avatarUrl" alt="Avatar preview" />
+                  <strong v-else>{{ avatarInitials }}</strong>
+                </span>
+                <span class="profile-media-copy">
+                  <strong>Avatar</strong>
+                  <small>Square image for the profile badge.</small>
+                </span>
+                <input class="profile-file" type="file" accept="image/*" @change="onAvatarChosen" />
+              </label>
+
+              <label class="profile-media-row profile-media-row--banner">
+                <span class="profile-media-preview profile-media-preview--banner">
+                  <img v-if="bannerUrl" :src="bannerUrl" alt="Banner preview" />
+                  <strong v-else>Banner</strong>
+                </span>
+                <span class="profile-media-copy">
+                  <strong>Banner</strong>
+                  <small>Wide image for the top of your profile.</small>
+                </span>
+                <input class="profile-file" type="file" accept="image/*,.gif" @change="onBannerChosen" />
+              </label>
+            </section>
+
+            <section class="profile-panel profile-panel--full">
+              <div class="profile-panel-head">
+                <h3>Password</h3>
+                <span>Keep access current</span>
+              </div>
+              <div class="profile-password-grid">
+                <label class="profile-field">
+                  <span>Current password</span>
+                  <input class="profile-input" type="password" v-model="oldPassword" placeholder="Current password" />
+                </label>
+                <label class="profile-field">
+                  <span>New password</span>
+                  <input class="profile-input" type="password" v-model="newPassword" placeholder="New password" />
+                </label>
+                <label class="profile-field">
+                  <span>Confirm new password</span>
+                  <input class="profile-input" type="password" v-model="confirmPassword" placeholder="Confirm new password" />
+                </label>
+              </div>
+              <button class="profile-btn" v-sfx-hover @click="savePassword">Change password</button>
+            </section>
           </div>
-          <button v-if="socialLinks.length < 3" class="profile-btn" v-sfx-hover @click="addLink">+ add link</button>
-
-          <div>
-            <button class="profile-btn" v-sfx-hover @click="saveBioAndLinks">save</button>
-          </div>
         </section>
-
-        <!-- ── AVATAR / BANNER ── -->
-        <section class="profile-block">
-          <h3>Avatar &amp; Banner</h3>
-
-          <div class="profile-image-row">
-            <img v-if="avatarUrl" :src="avatarUrl" class="profile-avatar-preview" alt="Avatar preview" />
-            <span v-else class="profile-empty-preview">◆</span>
-            <input class="profile-file" type="file" accept="image/*" @change="onAvatarChosen" />
-          </div>
-
-          <div class="profile-image-row">
-            <img v-if="bannerUrl" :src="bannerUrl" class="profile-banner-preview" alt="Banner preview" />
-            <span v-else class="profile-empty-preview profile-empty-preview--banner">no banner</span>
-            <input class="profile-file" type="file" accept="image/*,.gif" @change="onBannerChosen" />
-          </div>
-        </section>
-
       </div>
     </div>
   </main>
@@ -68,17 +175,15 @@
 <script setup>
 /* ProfileView.vue — private self-service profile editor at /profile.
    Reachable only when logged in (see the requiresAuth guard in
-   router/index.js). Deliberately undesigned — plain stacked sections,
-   no attempt made yet to match the rest of the site's visual language.
-   Wire up assets/css/pages/profile.css later if/when this needs a
-   real look.
+   router/index.js). This page mirrors the public profile card and
+   gives members a cleaner place to maintain the name, bio, links, and
+   media used when they are assigned to cover school events.
 
    Google-linking itself is NOT reimplemented here — that OAuth
    redirect/callback dance already lives in LoginView.vue. If someone
    isn't Google-linked yet, this page just points them back to /login
-   to do it there, rather than duplicating that flow. (Worth factoring
-   into a shared composable later if you want in-page linking.) */
-import { ref, onMounted } from 'vue';
+   to do it there, rather than duplicating that flow. */
+import { ref, onMounted, computed } from 'vue';
 import { useRouter } from 'vue-router';
 import SecHead from '../components/SecHead.vue';
 import MemberAuth from '../lib/member-auth.js';
@@ -97,6 +202,33 @@ const bio = ref('');
 const socialLinks = ref([]); // [{ label, url }]
 const avatarUrl = ref(null);
 const bannerUrl = ref(null);
+
+const publicName = computed(() => nickname.value.trim() || member.value?.display_name || 'DMAC member');
+const avatarInitials = computed(() => {
+  const source = publicName.value || member.value?.display_name || 'DMAC';
+  return source
+    .split(/\s+/)
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((part) => part[0]?.toUpperCase() || '')
+    .join('') || 'DMAC';
+});
+const previewLinks = computed(() => socialLinks.value.filter((link) => link.label.trim() && link.url.trim()).slice(0, 3));
+const bioLength = computed(() => bio.value.trim().length);
+const profileScore = computed(() => {
+  let score = 0;
+  if (nickname.value.trim()) score += 1;
+  if (bio.value.trim()) score += 1;
+  if (previewLinks.value.length) score += 1;
+  if (avatarUrl.value) score += 1;
+  if (bannerUrl.value) score += 1;
+  return `${score}/5`;
+});
+const bannerStyle = computed(() => ({
+  backgroundImage: bannerUrl.value
+    ? `linear-gradient(180deg, rgba(10, 10, 16, 0.08), rgba(10, 10, 16, 0.72)), url("${bannerUrl.value}")`
+    : 'linear-gradient(135deg, rgba(249, 115, 22, 0.95), rgba(76, 29, 149, 0.95))',
+}));
 
 const statusMsg = ref('');
 const statusType = ref('info'); // 'info' | 'success' | 'error'
@@ -123,7 +255,9 @@ onMounted(async () => {
   // picks their own — editing this field never touches display_name.
   nickname.value = profile.nickname || member.value.display_name || '';
   bio.value = profile.bio || '';
-  socialLinks.value = Array.isArray(profile.social_links) ? profile.social_links.map(l => ({ ...l })) : [];
+  socialLinks.value = Array.isArray(profile.social_links)
+    ? profile.social_links.map((link) => ({ label: link?.label || '', url: link?.url || '' }))
+    : [];
   avatarUrl.value = profile.avatar_url;
   bannerUrl.value = profile.banner_url;
 });
@@ -214,100 +348,443 @@ async function onBannerChosen(e) {
 </script>
 
 <style scoped>
-/* Intentionally plain — functional layout only, per "undesigned/very
-   simple" scope. Replace with a real assets/css/pages/profile.css
-   pass whenever the visual design is ready. */
-.profile-content {
+.profile-shell {
+  gap: 22px;
+}
+
+.profile-intro {
+  max-width: 820px;
+  color: rgba(240, 240, 240, 0.72);
+  line-height: 1.7;
+  font-size: 1rem;
+}
+
+.profile-loading {
+  min-height: 180px;
+  display: grid;
+  place-items: center;
+  border-radius: 20px;
+  border: 1px solid rgba(255, 255, 255, 0.07);
+  background: rgba(255, 255, 255, 0.03);
+  color: rgba(240, 240, 240, 0.68);
+}
+
+.profile-layout {
+  display: grid;
+  grid-template-columns: minmax(290px, 390px) minmax(0, 1fr);
+  gap: 24px;
+  align-items: start;
+}
+
+.profile-viewer {
   display: flex;
   flex-direction: column;
-  gap: 28px;
-  max-width: 560px;
+  gap: 12px;
 }
-.profile-block {
+
+.profile-card {
+  overflow: hidden;
+  border-radius: 28px;
+  border: 1px solid rgba(255, 255, 255, 0.09);
+  background: rgba(13, 13, 13, 0.78);
+  box-shadow: 0 20px 48px rgba(0, 0, 0, 0.34);
+}
+
+.profile-banner {
+  position: relative;
+  min-height: 260px;
+  padding: 20px;
+  background-size: cover;
+  background-position: center;
+  display: flex;
+  align-items: flex-end;
+  justify-content: flex-start;
+}
+
+.profile-banner-overlay {
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(circle at 18% 18%, rgba(255, 255, 255, 0.18), transparent 34%),
+    radial-gradient(circle at 78% 12%, rgba(255, 255, 255, 0.1), transparent 22%),
+    linear-gradient(180deg, rgba(9, 9, 15, 0.14), rgba(9, 9, 15, 0.76));
+}
+
+.profile-avatar-badge {
+  position: relative;
+  z-index: 1;
+  width: 108px;
+  height: 108px;
+  border-radius: 28px;
+  padding: 6px;
+  background: linear-gradient(135deg, rgba(249, 115, 22, 0.9), rgba(76, 29, 149, 0.9));
+  box-shadow: 0 14px 30px rgba(0, 0, 0, 0.34);
+}
+
+.profile-avatar-preview,
+.profile-media-preview img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.profile-avatar-preview {
+  border-radius: 22px;
+}
+
+.profile-avatar-fallback {
+  width: 100%;
+  height: 100%;
+  border-radius: 22px;
+  display: grid;
+  place-items: center;
+  background: rgba(13, 13, 13, 0.7);
+  color: #fff;
+  font-size: 1.4rem;
+  letter-spacing: 0.12em;
+}
+
+.profile-card-body {
+  padding: 22px 22px 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.profile-kicker,
+.profile-role,
+.profile-viewer-note,
+.profile-panel-head span,
+.profile-media-copy small,
+.profile-links-head span,
+.profile-stat-label {
+  color: rgba(240, 240, 240, 0.58);
+}
+
+.profile-card-body h3,
+.profile-panel-head h3,
+.profile-links-head h4 {
+  margin: 0;
+  line-height: 1.1;
+}
+
+.profile-role {
+  font-size: 0.82rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.profile-bio-preview {
+  color: rgba(240, 240, 240, 0.82);
+  line-height: 1.65;
+}
+
+.profile-link-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.profile-chip {
+  padding: 7px 11px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  font-size: 0.78rem;
+  letter-spacing: 0.05em;
+}
+
+.profile-chip--ghost {
+  color: rgba(240, 240, 240, 0.56);
+}
+
+.profile-stat-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.profile-stat {
+  padding: 12px 13px;
+  border-radius: 18px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.profile-stat strong {
+  font-size: 1rem;
+}
+
+.profile-viewer-note {
+  padding: 0 6px;
+  line-height: 1.5;
+  font-size: 0.88rem;
+}
+
+.profile-editor {
+  min-width: 0;
+}
+
+.profile-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 18px;
+}
+
+.profile-panel,
+.profile-panel--full {
+  border-radius: 24px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(255, 255, 255, 0.04);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.03);
+  padding: 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.profile-panel--full {
+  grid-column: 1 / -1;
+}
+
+.profile-panel-head,
+.profile-links-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 12px;
+}
+
+.profile-panel-head h3,
+.profile-links-head h4 {
+  font-size: 1rem;
+}
+
+.profile-field {
   display: flex;
   flex-direction: column;
   gap: 8px;
 }
-.profile-block h3 {
-  margin: 0;
-  font-size: 0.95rem;
-  opacity: 0.85;
+
+.profile-field span {
+  font-size: 0.76rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: rgba(240, 240, 240, 0.55);
 }
-.profile-hint {
-  font-weight: normal;
-  opacity: 0.6;
-  font-size: 0.8rem;
-}
+
 .profile-input,
 .profile-textarea {
+  width: 100%;
   font: inherit;
-  padding: 8px 10px;
-  border: 1px solid #444;
-  background: #111;
-  color: #eee;
-  border-radius: 4px;
+  color: #f7f4ee;
+  border-radius: 16px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: rgba(8, 8, 12, 0.58);
+  padding: 12px 14px;
+  outline: none;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease, transform 0.2s ease;
 }
-.profile-link-row {
+
+.profile-textarea {
+  resize: vertical;
+  min-height: 156px;
+}
+
+.profile-input:focus,
+.profile-textarea:focus {
+  border-color: rgba(249, 115, 22, 0.7);
+  box-shadow: 0 0 0 3px rgba(249, 115, 22, 0.18);
+}
+
+.profile-link-stack {
   display: flex;
-  gap: 8px;
+  flex-direction: column;
+  gap: 10px;
 }
-.profile-link-row .profile-input {
-  flex: 1;
+
+.profile-link-row {
+  display: grid;
+  grid-template-columns: minmax(0, 0.8fr) minmax(0, 1.2fr) auto;
+  gap: 10px;
+  align-items: start;
 }
+
+.profile-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 12px;
+  margin-top: 2px;
+}
+
 .profile-btn {
   align-self: flex-start;
   font: inherit;
-  padding: 6px 14px;
-  border: 1px solid #666;
-  background: #1a1a1a;
-  color: #eee;
-  border-radius: 4px;
+  border: none;
   cursor: pointer;
+  color: #fff;
+  border-radius: 999px;
+  padding: 11px 18px;
+  background: linear-gradient(135deg, var(--orange), var(--purple));
+  box-shadow: 0 10px 24px rgba(76, 29, 149, 0.22);
   text-decoration: none;
 }
+
+.profile-btn--ghost {
+  background: rgba(255, 255, 255, 0.06);
+  box-shadow: none;
+}
+
 .profile-btn--danger {
-  border-color: #a33;
-  color: #f88;
+  background: rgba(184, 61, 61, 0.16);
+  color: #ffb0b0;
+  border: 1px solid rgba(255, 130, 130, 0.2);
 }
+
 .profile-status {
-  padding: 8px 12px;
-  border-radius: 4px;
+  padding: 11px 14px;
+  border-radius: 18px;
   font-size: 0.9rem;
+  border: 1px solid transparent;
 }
-.profile-status.success { background: #143d1f; color: #7fe89a; }
-.profile-status.error { background: #3d1414; color: #f88; }
-.profile-status.info { background: #1a2a3d; color: #8ac6f8; }
-.profile-image-row {
-  display: flex;
-  align-items: center;
+
+.profile-status.success {
+  background: rgba(20, 61, 31, 0.76);
+  color: #9ff0b4;
+  border-color: rgba(159, 240, 180, 0.16);
+}
+
+.profile-status.error {
+  background: rgba(61, 20, 20, 0.78);
+  color: #ffb0b0;
+  border-color: rgba(255, 176, 176, 0.16);
+}
+
+.profile-status.info {
+  background: rgba(26, 42, 61, 0.78);
+  color: #aed7ff;
+  border-color: rgba(174, 215, 255, 0.16);
+}
+
+.profile-media-row {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
   gap: 14px;
-}
-.profile-avatar-preview {
-  width: 64px;
-  height: 64px;
-  border-radius: 50%;
-  object-fit: cover;
-}
-.profile-banner-preview {
-  width: 200px;
-  height: 60px;
-  object-fit: cover;
-  border-radius: 4px;
-}
-.profile-empty-preview {
-  width: 64px;
-  height: 64px;
-  display: flex;
   align-items: center;
-  justify-content: center;
-  border: 1px dashed #555;
-  border-radius: 50%;
-  opacity: 0.6;
+  padding: 14px;
+  border-radius: 20px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.06);
 }
-.profile-empty-preview--banner {
-  width: 200px;
-  height: 60px;
-  border-radius: 4px;
-  font-size: 0.75rem;
+
+.profile-media-row--banner {
+  align-items: stretch;
+}
+
+.profile-media-preview {
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+  background: rgba(8, 8, 12, 0.58);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.profile-media-preview--avatar {
+  width: 72px;
+  height: 72px;
+  border-radius: 20px;
+}
+
+.profile-media-preview--banner {
+  width: 180px;
+  min-height: 72px;
+  border-radius: 16px;
+}
+
+.profile-media-preview strong {
+  color: rgba(240, 240, 240, 0.55);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  font-size: 0.72rem;
+}
+
+.profile-media-copy {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.profile-media-copy strong {
+  font-size: 0.92rem;
+}
+
+.profile-media-copy small {
+  line-height: 1.45;
+}
+
+.profile-file {
+  max-width: 220px;
+  font: inherit;
+  color: rgba(240, 240, 240, 0.8);
+}
+
+.profile-password-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.profile-panel--full .profile-btn {
+  margin-top: 2px;
+}
+
+@media (max-width: 1040px) {
+  .profile-layout {
+    grid-template-columns: 1fr;
+  }
+
+  .profile-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .profile-password-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 640px) {
+  .profile-banner {
+    min-height: 220px;
+  }
+
+  .profile-avatar-badge {
+    width: 92px;
+    height: 92px;
+  }
+
+  .profile-stat-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .profile-link-row {
+    grid-template-columns: 1fr;
+  }
+
+  .profile-media-row {
+    grid-template-columns: 1fr;
+    justify-items: start;
+  }
+
+  .profile-media-preview--banner {
+    width: 100%;
+  }
+
+  .profile-actions {
+    flex-direction: column;
+  }
 }
 </style>

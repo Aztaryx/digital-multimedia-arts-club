@@ -4,6 +4,10 @@ import MemberAuth from '../lib/member-auth.js';
 const routes = [
   {
     path: '/',
+    redirect: '/login',
+  },
+  {
+    path: '/home',
     name: 'home',
     component: () => import('../views/HomeView.vue'),
     meta: { title: 'DMAC — Home' },

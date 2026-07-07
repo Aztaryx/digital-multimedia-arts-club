@@ -7,7 +7,7 @@
 
     <!-- ──────── HEADER: DMAC + logo + socials ──────── -->
     <header class="login-header">
-      <router-link to="/" class="login-header-left">
+      <router-link to="/home" class="login-header-left">
         <span class="login-dmac-title">DMAC</span>
         <img class="login-header-logo" src="https://aztaryx.github.io/dmac-assets/logo.png" alt="DMAC Logo" />
       </router-link>
@@ -180,7 +180,7 @@ async function selectRole(role, autoRestore = false) {
     setTimeout(() => {
       status('Welcome, guest! Redirecting…', 'success');
       setLoadingText('redirecting…');
-      setTimeout(() => { router.push('/'); }, 800);
+      setTimeout(() => { router.push('/home'); }, 800);
     }, 400);
     return;
   }
@@ -249,7 +249,7 @@ async function handleSubmit() {
   if (isReturning && MemberAuth.current()) {
     status('Welcome back! Redirecting…', 'success');
     setLoadingText('redirecting…');
-    setTimeout(() => { router.push('/'); }, 600);
+    setTimeout(() => { router.push('/home'); }, 600);
     return;
   }
 
@@ -275,7 +275,7 @@ async function handleSubmit() {
       status(`Welcome, ${result.member.display_name}!`, 'success');
       setLoadingText('redirecting…');
       playSfx('menuback');
-      setTimeout(() => { router.push('/'); }, 900);
+      setTimeout(() => { router.push('/home'); }, 900);
     } else {
       status(result.message || 'Wrong password — try again.', 'error');
       submitDisabled.value = false;
@@ -354,7 +354,7 @@ async function handleOAuthCallback() {
         if (linkResult.success) {
           status('Google account linked successfully! Redirecting…', 'success');
           setLoadingText('redirecting…');
-          setTimeout(() => { router.push('/'); }, 1000);
+            setTimeout(() => { router.push('/home'); }, 1000);
         } else {
           status(linkResult.message || 'Failed to link Google account.', 'error');
           setLoadingText('ready');
@@ -364,7 +364,7 @@ async function handleOAuthCallback() {
       } else {
         status('Signed in with Google! Redirecting…', 'success');
         setLoadingText('redirecting…');
-        setTimeout(() => { router.push('/'); }, 1000);
+        setTimeout(() => { router.push('/home'); }, 1000);
       }
     } catch (e) {
       status('Something went wrong with Google sign-in.', 'error');
