@@ -7,13 +7,13 @@
 
     <!-- ──────── HEADER: DMAC + logo + socials ──────── -->
     <header class="login-header">
-      <router-link to="/" class="login-header-left">
+      <router-link to="/home" class="login-header-left">
         <span class="login-dmac-title">DMAC</span>
         <img class="login-header-logo" src="https://aztaryx.github.io/dmac-assets/logo.png" alt="DMAC Logo" />
       </router-link>
       <div class="login-header-ribbons">
-        <a href="https://www.facebook.com/profile.php?id=61590594809333" target="_blank" rel="noopener" class="login-ribbon">facebook</a>
-        <a href="https://github.com/Aztaryx/digital-multimedia-arts-club" target="_blank" rel="noopener" class="login-ribbon">github</a>
+        <a href="https://www.facebook.com/profile.php?id=61590594809333" target="_blank" rel="noopener" class="login-ribbon">Facebook</a>
+        <a href="https://github.com/Aztaryx/digital-multimedia-arts-club" target="_blank" rel="noopener" class="login-ribbon">GitHub</a>
       </div>
     </header>
 
@@ -27,23 +27,23 @@
 
           <!-- ──────── STEP 1: ROLE SELECTION ──────── -->
           <div class="login-panel login-step1">
-            <h2 class="panel-title">welcome</h2>
+            <h2 class="panel-title">Welcome</h2>
 
-            <h3 class="step-label" style="margin-top: 24px;">Logging in as?</h3>
+            <h3 class="step-label" style="margin-top: 24px;">Select your account type</h3>
 
-            <button class="role-btn role-btn--guest" :class="{ selected: chosenRole === 'guest' }" @click="selectRole('guest')">guest</button>
+            <button class="role-btn role-btn--guest" :class="{ selected: chosenRole === 'guest' }" @click="selectRole('guest')">Guest</button>
 
-            <button class="role-btn role-btn--member" :class="{ selected: chosenRole === 'member' }" @click="selectRole('member')">member/officer</button>
+            <button class="role-btn role-btn--member" :class="{ selected: chosenRole === 'member' }" @click="selectRole('member')">Member / Officer</button>
 
-            <button class="role-btn role-btn--moderator" :class="{ selected: chosenRole === 'moderator' }" @click="selectRole('moderator')">moderator</button>
+            <button class="role-btn role-btn--moderator" :class="{ selected: chosenRole === 'moderator' }" @click="selectRole('moderator')">Moderator</button>
           </div>
 
           <!-- ──────── STEP 2: CREDENTIALS ──────── -->
           <div class="login-panel login-step2" :class="{ disabled: step2Disabled }">
             <h2 class="panel-title">{{ step2Title }}</h2>
-            <h3 class="panel-title-sub">who are ya?</h3>
+            <h3 class="panel-title-sub">Please identify yourself</h3>
 
-            <button class="login-signout" @click="signOut">sign out</button>
+            <button class="login-signout" @click="signOut">Sign Out</button>
 
             <!-- Name dropdown -->
             <select class="login-select" v-model="selectedSlug" :disabled="nameDisabled">
@@ -53,17 +53,17 @@
 
             <!-- Password -->
             <div id="pass-row" v-show="showPasswordField">
-              <label class="login-field-label" for="login-password">password</label>
+              <label class="login-field-label" for="login-password">Password</label>
               <input class="login-input" type="password" id="login-password" v-model="password" @keydown="onPasswordKeydown" />
             </div>
 
             <!-- OR divider -->
-            <div class="login-or">or..</div>
+            <div class="login-or">Or</div>
 
             <!-- Google sign-in -->
             <div>
               <button class="login-google-btn" :disabled="googleDisabled" @click="handleGoogleLink">
-                link google
+                Link Google
               </button>
             </div>
 
@@ -112,19 +112,19 @@ const router = useRouter();
 
 const chosenRole = ref(null);
 const step2Disabled = ref(true);
-const step2Title = ref('welcome back!');
+const step2Title = ref('Welcome Back');
 const rosterCache = ref([]);
-const namePlaceholder = ref('— select your name —');
+const namePlaceholder = ref('— Select Your Name —');
 const selectedSlug = ref('');
 const nameDisabled = ref(false);
 const password = ref('');
 const showPasswordField = ref(true);
-const submitText = ref('log in');
+const submitText = ref('Log In');
 const submitDisabled = ref(false);
 const googleDisabled = ref(false);
 const statusMsg = ref('');
 const statusType = ref('info');
-const loadingText = ref('loading _');
+const loadingText = ref('Loading _');
 
 let isReturning = false;
 let pendingLinkSlug = null;
@@ -145,7 +145,7 @@ function clearSelection() {
 
 /* ── RESTORE SESSION ON LOAD ────────────────── */
 async function init() {
-  setLoadingText('checking session…');
+  setLoadingText('Checking session…');
 
   try {
     const member = await MemberAuth.restoreSession();
@@ -157,14 +157,14 @@ async function init() {
       } else {
         await selectRole('member', true);
       }
-      setLoadingText('ready');
+      setLoadingText('Ready');
       return;
     }
   } catch (_) {
     // no session — continue
   }
 
-  setLoadingText('ready');
+  setLoadingText('Ready');
 }
 
 /* ── ROLE SELECTION (Step 1) ────────────────── */
@@ -175,12 +175,12 @@ async function selectRole(role, autoRestore = false) {
 
   if (role === 'guest') {
     step2Disabled.value = true;
-    status('Entering as guest…', 'success');
+    status('Entering as Guest…', 'success');
 
     setTimeout(() => {
-      status('Welcome, guest! Redirecting…', 'success');
-      setLoadingText('redirecting…');
-      setTimeout(() => { router.push('/'); }, 800);
+      status('Welcome, Guest. Redirecting…', 'success');
+      setLoadingText('Redirecting…');
+      setTimeout(() => { router.push('/home'); }, 800);
     }, 400);
     return;
   }
@@ -189,67 +189,67 @@ async function selectRole(role, autoRestore = false) {
   if (autoRestore && isReturning) {
     const member = MemberAuth.current();
     step2Disabled.value = false;
-    step2Title.value = 'welcome back!';
+    step2Title.value = 'Welcome Back';
     status(`Signed in as ${member.display_name}`, 'success');
     rosterCache.value = [{ slug: member.slug, display_name: member.display_name }];
     selectedSlug.value = member.slug;
     nameDisabled.value = true;
     showPasswordField.value = false;
-    submitText.value = 'continue';
+    submitText.value = 'Continue';
     submitDisabled.value = false;
     return;
   }
 
   // Load roster for dropdown
   step2Disabled.value = false;
-  step2Title.value = 'who are ya?';
+  step2Title.value = 'Please Identify Yourself';
   showPasswordField.value = true;
   nameDisabled.value = false;
-  submitText.value = 'log in';
+  submitText.value = 'Log In';
   status('');
 
-  setLoadingText('loading roster…');
+  setLoadingText('Loading roster…');
   try {
     const bucket = role === 'moderator' ? 'moderator' : 'member';
     rosterCache.value = await MemberAuth.fetchRoster(bucket);
     selectedSlug.value = '';
     namePlaceholder.value = rosterCache.value.length === 0
-      ? 'no members found'
-      : '— select your name —';
+      ? 'No Members Found'
+      : '— Select Your Name —';
   } catch (e) {
-    status('Could not load names — try again.', 'error');
+    status('Could not load names. Please try again.', 'error');
   }
-  setLoadingText('ready');
+  setLoadingText('Ready');
 }
 
 /* ── SIGN OUT ───────────────────────────────── */
 async function signOut() {
-  setLoadingText('signing out…');
+  setLoadingText('Signing out…');
   try { await MemberAuth.logout(); } catch (_) {}
   try { await sb.auth.signOut(); } catch (_) {}
   isReturning = false;
   chosenRole.value = null;
   step2Disabled.value = true;
-  step2Title.value = 'who are ya?';
+  step2Title.value = 'Please Identify Yourself';
   rosterCache.value = [];
-  namePlaceholder.value = '— select your name —';
+  namePlaceholder.value = '— Select Your Name —';
   selectedSlug.value = '';
   nameDisabled.value = false;
   password.value = '';
   showPasswordField.value = true;
-  submitText.value = 'log in';
+  submitText.value = 'Log In';
   submitDisabled.value = false;
   status('Signed out.', 'info');
-  setLoadingText('ready');
+  setLoadingText('Ready');
   playSfx('menuback');
 }
 
 /* ── PASSWORD LOGIN (submit) ────────────────── */
 async function handleSubmit() {
   if (isReturning && MemberAuth.current()) {
-    status('Welcome back! Redirecting…', 'success');
-    setLoadingText('redirecting…');
-    setTimeout(() => { router.push('/'); }, 600);
+    status('Welcome back. Redirecting…', 'success');
+    setLoadingText('Redirecting…');
+    setTimeout(() => { router.push('/home'); }, 600);
     return;
   }
 
@@ -257,34 +257,34 @@ async function handleSubmit() {
   const pass = password.value.trim();
 
   if (!slug) {
-    status('Pick your name first.', 'error');
+    status('Please select your name first.', 'error');
     return;
   }
   if (!pass) {
-    status('Enter your password.', 'error');
+    status('Please enter your password.', 'error');
     return;
   }
 
   submitDisabled.value = true;
-  setLoadingText('logging in…');
+  setLoadingText('Logging in…');
   status('');
 
   try {
     const result = await MemberAuth.login(slug, pass);
     if (result.success) {
       status(`Welcome, ${result.member.display_name}!`, 'success');
-      setLoadingText('redirecting…');
+      setLoadingText('Redirecting…');
       playSfx('menuback');
-      setTimeout(() => { router.push('/'); }, 900);
+      setTimeout(() => { router.push('/home'); }, 900);
     } else {
-      status(result.message || 'Wrong password — try again.', 'error');
+      status(result.message || 'Incorrect password. Please try again.', 'error');
       submitDisabled.value = false;
-      setLoadingText('ready');
+      setLoadingText('Ready');
     }
   } catch (e) {
-    status('Something went wrong — try again.', 'error');
+    status('Something went wrong. Please try again.', 'error');
     submitDisabled.value = false;
-    setLoadingText('ready');
+    setLoadingText('Ready');
   }
 }
 
@@ -296,28 +296,28 @@ async function handleGoogleLink() {
   const pass = password.value.trim();
 
   if (!slug) {
-    status('Select your name first before linking Google.', 'error');
+    status('Please select your name before linking Google.', 'error');
     return;
   }
   if (!pass) {
-    status('Enter your password first before linking Google.', 'error');
+    status('Please enter your password before linking Google.', 'error');
     return;
   }
 
-  setLoadingText('verifying credentials…');
+  setLoadingText('Verifying credentials…');
   googleDisabled.value = true;
 
   try {
     const result = await MemberAuth.login(slug, pass);
     if (!result.success) {
-      status(result.message || 'Incorrect password — cannot link Google.', 'error');
-      setLoadingText('ready');
+      status(result.message || 'Incorrect password. Google cannot be linked.', 'error');
+      setLoadingText('Ready');
       googleDisabled.value = false;
       return;
     }
 
     pendingLinkSlug = slug;
-    setLoadingText('redirecting to Google…');
+    setLoadingText('Redirecting to Google…');
     status('Credentials verified. Connecting to Google…', 'info');
 
     sb.auth.signInWithOAuth({
@@ -325,8 +325,8 @@ async function handleGoogleLink() {
       options: { redirectTo: window.location.href },
     });
   } catch (e) {
-    status('Something went wrong — try again.', 'error');
-    setLoadingText('ready');
+    status('Something went wrong. Please try again.', 'error');
+    setLoadingText('Ready');
     googleDisabled.value = false;
   }
 }
@@ -339,36 +339,36 @@ function onPasswordKeydown(e) {
 async function handleOAuthCallback() {
   const hashParams = new URLSearchParams(window.location.hash.substring(1));
   if (hashParams.has('access_token')) {
-    setLoadingText('processing Google sign-in…');
+    setLoadingText('Processing Google sign-in…');
 
     try {
       const { data: { session }, error } = await sb.auth.getSession();
       if (error || !session) {
         status('Google sign-in failed.', 'error');
-        setLoadingText('ready');
+        setLoadingText('Ready');
         return;
       }
 
       if (pendingLinkSlug) {
         const linkResult = await MemberAuth.linkGoogle();
         if (linkResult.success) {
-          status('Google account linked successfully! Redirecting…', 'success');
-          setLoadingText('redirecting…');
-          setTimeout(() => { router.push('/'); }, 1000);
+          status('Google account linked successfully. Redirecting…', 'success');
+          setLoadingText('Redirecting…');
+            setTimeout(() => { router.push('/home'); }, 1000);
         } else {
-          status(linkResult.message || 'Failed to link Google account.', 'error');
-          setLoadingText('ready');
+          status(linkResult.message || 'Unable to link Google account.', 'error');
+          setLoadingText('Ready');
           await sb.auth.signOut();
         }
         pendingLinkSlug = null;
       } else {
-        status('Signed in with Google! Redirecting…', 'success');
-        setLoadingText('redirecting…');
-        setTimeout(() => { router.push('/'); }, 1000);
+        status('Signed in with Google. Redirecting…', 'success');
+        setLoadingText('Redirecting…');
+        setTimeout(() => { router.push('/home'); }, 1000);
       }
     } catch (e) {
       status('Something went wrong with Google sign-in.', 'error');
-      setLoadingText('ready');
+      setLoadingText('Ready');
     }
   }
 }

@@ -1,25 +1,41 @@
 <template>
   <div class="zigzag-row" aria-hidden="true">
     <svg id="zigzag-svg" ref="svgRef" xmlns="http://www.w3.org/2000/svg">
+      <defs>
+        <filter id="triangle-shadow" x="-20%" y="-20%" width="160%" height="220%">
+          <feDropShadow dx="0" dy="8" stdDeviation="7" flood-color="#1b1028" flood-opacity="0.52" />
+        </filter>
+      </defs>
+      <polyline
+        id="zigzag-shadow"
+        ref="shadowRef"
+        fill="none"
+        stroke="rgba(15, 9, 24, .45)"
+        stroke-width="8"
+        stroke-linejoin="miter"
+        stroke-linecap="round"
+        filter="url(#triangle-shadow)"
+      />
       <polyline
         id="zigzag-poly"
         ref="polyRef"
         fill="none"
-        stroke="rgba(255,255,255,.85)"
-        stroke-width="1.5"
+        stroke="rgba(255,255,255,.9)"
+        stroke-width="1.75"
         stroke-linejoin="miter"
+        stroke-linecap="round"
       />
     </svg>
   </div>
 
-  <footer id="footer" ref="footerRef" class="tile-dark">
+  <footer id="footer" ref="footerRef">
     <div class="footer-inner">
       <div class="footer-logo-row">
         <img src="https://aztaryx.github.io/dmac-assets/logo.png" alt="DMAC" height="48" />
         <span class="footer-club-name">Digital Multimedia Arts Club</span>
       </div>
       <nav class="footer-nav" aria-label="Footer navigation">
-        <router-link to="/">Home</router-link>
+        <router-link to="/home">Home</router-link>
         <router-link to="/about">About</router-link>
         <router-link to="/projects">Projects</router-link>
         <router-link to="/info/newsletters">Newsletters</router-link>
@@ -35,6 +51,7 @@
 import { ref, onMounted, onBeforeUnmount } from 'vue';
 
 const svgRef = ref(null);
+const shadowRef = ref(null);
 const polyRef = ref(null);
 const footerRef = ref(null);
 
@@ -46,9 +63,10 @@ onMounted(() => {
   const SPEED = 0.4; // px per frame at 60fps
 
   const svg = svgRef.value;
+  const shadow = shadowRef.value;
   const poly = polyRef.value;
   const footer = footerRef.value;
-  if (!svg || !poly || !footer) return;
+  if (!svg || !shadow || !poly || !footer) return;
 
   let offset = 0;
 
@@ -71,6 +89,7 @@ onMounted(() => {
     clipPts.push(`${farRight}px 100%`, `${startX}px 100%`);
 
     svg.setAttribute('viewBox', `0 0 ${W} ${DEPTH}`);
+    shadow.setAttribute('points', svgPts.join(' '));
     poly.setAttribute('points', svgPts.join(' '));
     footer.style.clipPath = `polygon(${clipPts.join(', ')})`;
   }

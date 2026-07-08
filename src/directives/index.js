@@ -1,5 +1,4 @@
 import SFX from '../lib/sfx.js';
-import { scrambleGradWrap } from '../lib/animations.js';
 
 /* ── v-sfx-hover ─────────────────────────────────
    Elements with a real visual hover effect (lift, glow, scale,
@@ -50,21 +49,11 @@ export const vSfxTap = {
 /* ── v-reveal ─────────────────────────────────────
    Scroll-triggered fade/slide-in, same IntersectionObserver logic
    as global.js's REVEAL section, but scoped as a directive so it
-   naturally re-applies to each view's elements as routes change.
-   Once revealed, also fires scrambleGradWrap on any child
-   .grad-wrap elements, same as the original. */
+   naturally re-applies to each view's elements as routes change. */
 let revealObs = null;
 function revealElement(el) {
   if (el.classList.contains('visible')) return;
   el.classList.add('visible');
-  setTimeout(() => {
-    el.querySelectorAll('.grad-wrap').forEach((wrap) => {
-      const layer = wrap.querySelector('.grad-layer');
-      if (layer && getComputedStyle(layer).display !== 'none') {
-        scrambleGradWrap(wrap);
-      }
-    });
-  }, 150);
 }
 
 function getRevealObserver() {

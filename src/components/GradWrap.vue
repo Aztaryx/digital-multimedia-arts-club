@@ -6,16 +6,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue';
-import { initGradText } from '../lib/animations.js';
+import { ref } from 'vue';
 
 const wrapRef = ref(null);
-
-onMounted(() => {
-  const wrap = wrapRef.value;
-  if (!wrap) return;
-  const layer = wrap.querySelector('.grad-layer');
-  if (!layer || getComputedStyle(layer).display === 'none') return;
-  initGradText(wrap, layer);
-});
 </script>
