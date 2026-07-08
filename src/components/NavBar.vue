@@ -1,11 +1,11 @@
 <template>
   <nav id="navbar">
-    <router-link to="/" class="nav-logo">
+    <router-link to="/home" class="nav-logo">
       <img src="https://aztaryx.github.io/dmac-assets/logo.png" alt="DMAC" height="38" />
     </router-link>
     <ul class="nav-links">
       <li>
-        <router-link to="/" :class="{ active: isExact('/') }">home</router-link>
+        <router-link to="/home" :class="{ active: isExact('/home') }">home</router-link>
       </li>
 
       <li class="has-dropdown">
@@ -44,13 +44,94 @@
         <router-link to="/profile" :class="{ active: isSection('/profile') }">profile</router-link>
       </li>
     </ul>
+
+    <!-- ──────── NAV ACTIONS: forums / notifications / profile ────────
+         Always visible (desktop AND mobile) — these sit next to the
+         hamburger rather than collapsing into it, since they're
+         account-state controls, not page navigation. -->
+    <div class="nav-actions">
+      <!-- Forums: open to everyone, including guests (read-only —
+           enforced inside ForumsView, not here). -->
+      <router-link
+        to="/forums"
+        class="nav-icon-btn"
+        :class="{ active: isSection('/forums') }"
+        aria-label="Open forums"
+        v-sfx-tap
+      >
+        <svg viewBox="0 0 24 24" aria-hidden="true">
+          <path d="M4 5.5h16a1 1 0 0 1 1 1V15a1 1 0 0 1-1 1H9l-4 4v-4H4a1 1 0 0 1-1-1V6.5a1 1 0 0 1 1-1Z" stroke-width="1.6" stroke-linejoin="round" />
+        </svg>
+      </router-link>
+
+      <!-- Notifications: only meaningful once logged in. -->
+      <div
+        v-if="MemberAuth.sessionMember.value"
+        class="nav-icon-btn nav-notif"
+        :class="{ active: notifOpen }"
+        role="button"
+        tabindex="0"
+        aria-label="Notifications"
+        v-sfx-tap
+        @click.stop="toggleNotif"
+        @keydown.enter="toggleNotif"
+      >
+        <svg viewBox="0 0 24 24" aria-hidden="true">
+          <path d="M6 9a6 6 0 1 1 12 0c0 4 1.5 5.5 2 6H4c.5-.5 2-2 2-6Z" stroke-width="1.6" stroke-linejoin="round" />
+          <path d="M9.5 18a2.5 2.5 0 0 0 5 0" stroke-width="1.6" stroke-linecap="round" />
+        </svg>
+
+        <div class="nav-dropdown nav-dropdown--notif" v-show="notifOpen" @click.stop>
+          <div class="nav-dropdown-head">
+            <strong>Notifications</strong>
+          </div>
+          <p class="nav-dropdown-empty">You're all caught up — no new notifications.</p>
+        </div>
+      </div>
+
+      <!-- Profile circle: guest / member / moderator / admin. -->
+      <div
+        class="nav-profile"
+        role="button"
+        tabindex="0"
+        aria-label="Account menu"
+        v-sfx-tap
+        @click.stop="toggleProfile"
+        @keydown.enter="toggleProfile"
+      >
+        <div class="nav-avatar" :class="roleClass">
+          <svg v-if="!MemberAuth.sessionMember.value" viewBox="0 0 24 24" aria-hidden="true">
+            <circle cx="12" cy="8.5" r="3.4" stroke-width="1.6" />
+            <path d="M5 19c1.2-3.4 4-5 7-5s5.8 1.6 7 5" stroke-width="1.6" stroke-linecap="round" />
+          </svg>
+          <span v-else>{{ avatarLabel }}</span>
+        </div>
+
+        <div class="nav-dropdown nav-dropdown--profile" v-show="profileOpen" @click.stop>
+          <div class="nav-dropdown-head">
+            <strong>{{ MemberAuth.sessionMember.value?.display_name || 'Guest' }}</strong>
+            <span class="nav-role-pill" :class="roleClass">{{ roleLabel }}</span>
+          </div>
+
+          <template v-if="MemberAuth.sessionMember.value">
+            <router-link to="/profile" class="nav-dropdown-item" @click="closeDropdowns">Edit profile</router-link>
+            <button class="nav-dropdown-item nav-dropdown-item--danger" @click="signOut">Sign out</button>
+          </template>
+          <template v-else>
+            <p class="nav-dropdown-note">Log in to edit your profile and unlock member features.</p>
+            <router-link to="/login" class="nav-dropdown-item" @click="closeDropdowns">Log in</router-link>
+          </template>
+        </div>
+      </div>
+    </div>
+
     <button id="hamburger" :class="{ open: mobileOpen }" aria-label="Open navigation menu" @click="toggleMobile">
       <span></span><span></span><span></span>
     </button>
   </nav>
 
   <nav id="mobile-nav" :class="{ open: mobileOpen }" aria-label="Mobile navigation">
-    <router-link to="/" @click="closeMobile">home</router-link>
+    <router-link to="/home" @click="closeMobile">home</router-link>
 
     <div class="mobile-group">
       <span class="mobile-group-label">◆ about</span>
@@ -75,25 +156,96 @@
       <a href="https://www.facebook.com/profile.php?id=61590594809333" target="_blank" rel="noopener">facebook</a>
     </div>
 
+    <router-link to="/forums" @click="closeMobile">forums</router-link>
+
     <router-link v-if="MemberAuth.sessionMember.value" to="/profile" @click="closeMobile">profile</router-link>
   </nav>
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue';
-import { useRoute } from 'vue-router';
+import { ref, computed, onMounted, onBeforeUnmount } from 'vue';
+import { useRoute, useRouter } from 'vue-router';
 import { playSfx } from '../composables/useSfx.js';
 import MemberAuth from '../lib/member-auth.js';
+import { sb } from '../lib/supabase-client.js';
 
 const route = useRoute();
+const router = useRouter();
 const mobileOpen = ref(false);
 
 // Populate the reactive session mirror on first paint so the "profile"
-// link is correct immediately after a hard refresh, not just after the
-// next login/logout call. Cheap no-op if nobody's logged in.
+// link (and the account-circle role state) is correct immediately after
+// a hard refresh, not just after the next login/logout call. Cheap
+// no-op if nobody's logged in.
 onMounted(() => {
   if (!MemberAuth.current()) MemberAuth.restoreSession();
+  document.addEventListener('click', onDocumentClick);
 });
+onBeforeUnmount(() => {
+  document.removeEventListener('click', onDocumentClick);
+});
+
+/* ── PROFILE / NOTIFICATION DROPDOWNS ─────────────────
+   Both are simple open/closed refs — only one open at a time, and a
+   document-level click listener closes whichever is open when the
+   click lands outside the two trigger elements (their own @click.stop
+   handlers keep clicks *inside* the dropdowns from bubbling up first). */
+const profileOpen = ref(false);
+const notifOpen = ref(false);
+
+function toggleProfile() {
+  notifOpen.value = false;
+  profileOpen.value = !profileOpen.value;
+}
+function toggleNotif() {
+  profileOpen.value = false;
+  notifOpen.value = !notifOpen.value;
+}
+function closeDropdowns() {
+  profileOpen.value = false;
+  notifOpen.value = false;
+}
+function onDocumentClick(e) {
+  if (!e.target.closest('.nav-profile') && !e.target.closest('.nav-notif')) {
+    closeDropdowns();
+  }
+}
+
+/* ── ROLE DISPLAY ──────────────────────────────────────
+   site_role is the only permission tier this project actually tracks
+   ('member' | 'moderator' | 'admin' — see dmac-member-auth-schema.sql).
+   Not-logged-in is treated as "Guest" throughout. */
+const roleLabel = computed(() => {
+  const m = MemberAuth.sessionMember.value;
+  if (!m) return 'Guest';
+  if (m.site_role === 'admin') return 'Admin';
+  if (m.site_role === 'moderator') return 'Moderator';
+  return 'Member / Officer';
+});
+const roleClass = computed(() => {
+  const m = MemberAuth.sessionMember.value;
+  if (!m) return 'nav-avatar--guest';
+  if (m.site_role === 'admin') return 'nav-avatar--admin';
+  if (m.site_role === 'moderator') return 'nav-avatar--moderator';
+  return 'nav-avatar--member';
+});
+// Initials only, not a real avatar image — MemberAuth's cached member
+// object (from member_login / member_session_check) doesn't include
+// the member's uuid id, and that id is what MemberProfile.fetchProfile()
+// needs to look up avatar_url. Swap this for a real <img> once those
+// RPCs are extended to return it.
+const avatarLabel = computed(() => {
+  const name = MemberAuth.sessionMember.value?.display_name;
+  if (!name) return '?';
+  return name.trim().split(/\s+/).slice(0, 2).map((w) => w[0]).join('').toUpperCase();
+});
+
+async function signOut() {
+  closeDropdowns();
+  try { await MemberAuth.logout(); } catch (_) {}
+  try { await sb.auth.signOut(); } catch (_) {}
+  router.push('/login');
+}
 
 /* Top-level section links stay highlighted while browsing any
    sub-page in that section (mirrors resolvePath()/startsWith()

@@ -4,6 +4,10 @@ import MemberAuth from '../lib/member-auth.js';
 const routes = [
   {
     path: '/',
+    redirect: '/login',
+  },
+  {
+    path: '/home',
     name: 'home',
     component: () => import('../views/HomeView.vue'),
     meta: { title: 'DMAC — Home' },
@@ -77,6 +81,15 @@ const routes = [
     name: 'profile',
     component: () => import('../views/ProfileView.vue'),
     meta: { title: 'DMAC — Your Profile', requiresAuth: true },
+  },
+  {
+    path: '/forums',
+    name: 'forums',
+    component: () => import('../views/ForumsView.vue'),
+    // Open to guests on purpose — read access has no auth gate; the
+    // "guests can't start a thread" rule is enforced inside the view
+    // (hiding the composer), not at the router level.
+    meta: { title: 'DMAC — Forums' },
   },
 ];
 
