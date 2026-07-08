@@ -250,7 +250,7 @@ onMounted(async () => {
     return;
   }
 
-  const profile = await MemberProfile.fetchProfile(member.value.id);
+  const profile = await MemberProfile.fetchProfile(member.value.slug);
   // nickname falls back to the official display_name until the member
   // picks their own — editing this field never touches display_name.
   nickname.value = profile.nickname || member.value.display_name || '';

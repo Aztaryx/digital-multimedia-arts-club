@@ -222,11 +222,10 @@ const roleClass = computed(() => {
   if (m.site_role === 'moderator') return 'nav-avatar--moderator';
   return 'nav-avatar--member';
 });
-// Initials only, not a real avatar image — MemberAuth's cached member
-// object (from member_login / member_session_check) doesn't include
-// the member's uuid id, and that id is what MemberProfile.fetchProfile()
-// needs to look up avatar_url. Swap this for a real <img> once those
-// RPCs are extended to return it.
+// Initials only, not a real avatar image — swap this for a real <img>
+// using MemberProfile.fetchProfile(MemberAuth.sessionMember.value?.slug)
+// if a NavBar avatar is wanted later (avatar_url is looked up by slug,
+// same as ProfileView does — no RPC changes needed for that).
 const avatarLabel = computed(() => {
   const name = MemberAuth.sessionMember.value?.display_name;
   if (!name) return '?';

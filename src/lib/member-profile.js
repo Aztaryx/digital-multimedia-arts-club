@@ -25,7 +25,7 @@
 
    USAGE
    ------------------------------------------------------
-   MemberProfile.fetchProfile(memberId)
+   MemberProfile.fetchProfile(memberSlug)
      → { nickname, bio, social_links, avatar_url, banner_url }
 
    MemberProfile.updateNickname(newNickname)
@@ -50,11 +50,11 @@ const MemberProfile = (() => {
 
   const EMPTY_PROFILE = { nickname: '', bio: '', social_links: [], avatar_url: null, banner_url: null };
 
-  async function fetchProfile(memberId) {
+  async function fetchProfile(memberSlug) {
     const { data, error } = await sb
       .from('members')
       .select('nickname, bio, social_links, avatar_url, banner_url')
-      .eq('id', memberId)
+      .eq('slug', memberSlug)
       .maybeSingle();
 
     if (error) {
