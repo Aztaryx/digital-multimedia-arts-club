@@ -672,17 +672,36 @@ async function onBannerChosen(e) {
 
 .profile-media-row {
   display: grid;
-  grid-template-columns: auto minmax(0, 1fr) auto;
-  gap: 14px;
-  align-items: center;
+  grid-template-columns: auto minmax(0, 1fr);
+  grid-template-areas:
+    "preview copy"
+    "file    file";
+  gap: 6px 14px;
   padding: 14px;
   border-radius: 20px;
   background: rgba(255, 255, 255, 0.03);
   border: 1px solid rgba(255, 255, 255, 0.06);
 }
 
-.profile-media-row--banner {
-  align-items: stretch;
+/* The file input gets its own full-width row instead of sharing a
+   column with the copy text. A native <input type="file">'s button +
+   filename renders at whatever width the browser/OS gives it (this
+   varies a lot and can be quite wide) — if it shares an `auto` grid
+   column next to a `minmax(0, 1fr)` text column, that text column gets
+   squeezed toward 0 on narrower viewports, wrapping one word per line.
+   Giving it its own row sidesteps that entirely, on any screen size. */
+.profile-media-row .profile-file {
+  grid-area: file;
+  width: 100%;
+  max-width: 100%;
+}
+
+.profile-media-row .profile-media-preview {
+  grid-area: preview;
+}
+
+.profile-media-row .profile-media-copy {
+  grid-area: copy;
 }
 
 .profile-media-preview {
@@ -727,7 +746,6 @@ async function onBannerChosen(e) {
 }
 
 .profile-file {
-  max-width: 220px;
   font: inherit;
   color: rgba(240, 240, 240, 0.8);
 }
@@ -776,6 +794,10 @@ async function onBannerChosen(e) {
 
   .profile-media-row {
     grid-template-columns: 1fr;
+    grid-template-areas:
+      "preview"
+      "copy"
+      "file";
     justify-items: start;
   }
 
