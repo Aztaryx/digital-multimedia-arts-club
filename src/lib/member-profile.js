@@ -123,7 +123,24 @@ const MemberProfile = (() => {
     formData.append('file', file);
 
     const { data, error } = await sb.functions.invoke('upload-profile-image', { body: formData });
-    if (error) return { success: false, message: 'Upload failed — try again.' };
+
+    if (error) {
+      // supabase-js only fills in `data` on a 2xx response — every
+      // documented failure case in upload-profile-image responds with
+      // 401/400/500 instead, so the real { success:false, message }
+      // body lands in error.context (a Response object) rather than
+      // in `data`. Unwrap it so the person actually sees "File too
+      // large", "Not logged in", etc. instead of a generic catch-all
+      // that hides which of those it actually was.
+      try {
+        const body = await error.context.json();
+        if (body?.message) return { success: false, message: body.message };
+      } catch (_) {
+        // response wasn't JSON (network failure, function not deployed,
+        // etc.) — fall through to the generic message below
+      }
+      return { success: false, message: 'Upload failed — try again.' };
+    }
     return data; // { success, url } or { success: false, message }
   }
 
