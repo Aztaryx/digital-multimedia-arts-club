@@ -6,6 +6,8 @@
   </div>
 
   <NavBar v-if="showChrome" />
+  <LeftPanel v-if="showChrome" />
+  <RightPanel v-if="showChrome" />
   <router-view />
   <FooterSection v-if="showChrome" />
 </template>
@@ -14,6 +16,8 @@
 import { ref, computed, onMounted } from 'vue';
 import { useRoute } from 'vue-router';
 import NavBar from './components/NavBar.vue';
+import LeftPanel from './components/panels/LeftPanel.vue';
+import RightPanel from './components/panels/RightPanel.vue';
 import FooterSection from './components/FooterSection.vue';
 import SFX from './lib/sfx.js';
 import { SFX_DATA } from './lib/sfx-data.js';

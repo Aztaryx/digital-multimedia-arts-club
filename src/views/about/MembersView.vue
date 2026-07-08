@@ -93,7 +93,7 @@
         <div class="card-banner-content">
           <div
             class="card-avatar"
-            :style="openedMember?.avatar ? { backgroundImage: `url(https://aztaryx.github.io/dmac-assets/avatars/${openedMember.avatar})` } : {}"
+            :style="avatarStyle"
           ></div>
           <div class="card-header-text">
             <h2 class="card-name">{{ openedMember?.name }}</h2>
@@ -136,7 +136,18 @@
           <div class="card-socials-container">
             <span class="card-socials-label">socials (max 3)</span>
             <div class="card-socials">
-              <template v-if="openedMember?.socials?.length">
+              <template v-if="openedMember?.liveSocials?.length">
+                <a
+                  v-for="(soc, i) in openedMember.liveSocials.slice(0, 3)"
+                  :key="i"
+                  :href="soc.url"
+                  target="_blank"
+                  rel="noopener"
+                  class="card-social-link card-social-link--text"
+                  v-sfx-hover
+                >{{ soc.label }}</a>
+              </template>
+              <template v-else-if="openedMember?.socials?.length">
                 <a
                   v-for="soc in openedMember.socials.slice(0, 3)"
                   :key="soc.icon"
@@ -231,6 +242,7 @@ import SecHead from '../../components/SecHead.vue';
 import Leaderboard from '../../lib/leaderboard.js';
 import { BADGE_URLS } from '../../lib/badges.js';
 import { playSfx } from '../../composables/useSfx.js';
+import { sb } from '../../lib/supabase-client.js';
 import '../../assets/css/pages/members.css';
 
 /* Ported from about/members.html + js/pages/members.js. The roster
@@ -239,7 +251,16 @@ import '../../assets/css/pages/members.css';
    classes as the original, just generated. The profile-popup data
    (MEMBERS) is kept as a plain object exactly like the original,
    since that's genuinely one-record-per-person content, not a
-   layout concern. */
+   layout concern.
+
+   LIVE PROFILE OVERLAY — nickname/bio/avatar_url/social_links are
+   editable per-person via ProfileView (member_update_profile RPC),
+   and stored on public.members, not in this hardcoded object. Those
+   fields get fetched once here and merged on top of MEMBERS by slug,
+   so an edited nickname/bio/avatar shows up here without needing to
+   duplicate anything by hand. Requires dmac-profile-sync-fix.sql to
+   have been run — that's what makes these columns actually readable
+   (and makes member_update_profile itself work at all). */
 
 /* ── TIER COLOURS ─────────────────────────────────── */
 const TIER_COLORS = {
@@ -395,7 +416,64 @@ const panelRef = ref(null);
 const zigzagViewBox = ref('0 0 760 28');
 const zigzagPoints = ref('');
 
-const openedMember = computed(() => (selectedId.value ? MEMBERS[selectedId.value] : null));
+/* ── LIVE PROFILE DATA ──────────────────────────────
+   Fetched once for every known slug, keyed by slug → { nickname,
+   bio, avatar_url, social_links }. A failed fetch (RLS/grant not
+   applied yet, network hiccup, etc.) just leaves this empty and
+   every card silently falls back to the static MEMBERS data below —
+   never a hard error the visitor would see. */
+const liveProfiles = ref({});
+
+async function loadLiveProfiles() {
+  const { data, error } = await sb
+    .from('members')
+    .select('slug, nickname, bio, avatar_url, social_links')
+    .in('slug', Object.keys(MEMBERS));
+
+  if (error) {
+    console.error('MembersView: could not load live profile data —', error.message);
+    return;
+  }
+
+  const map = {};
+  for (const row of data || []) map[row.slug] = row;
+  liveProfiles.value = map;
+}
+
+const openedMember = computed(() => {
+  if (!selectedId.value) return null;
+  const base = MEMBERS[selectedId.value];
+  if (!base) return null;
+
+  const live = liveProfiles.value[selectedId.value];
+  if (!live) return base;
+
+  // Same precedence ProfileView already uses for itself: a member's
+  // own nickname/bio override the static roster copy when set, and
+  // fall back to it when not — never a blank card just because
+  // someone hasn't gotten around to filling their profile in yet.
+  const liveSocials = Array.isArray(live.social_links) && live.social_links.length
+    ? live.social_links
+    : null;
+
+  return {
+    ...base,
+    name: live.nickname?.trim() || base.name,
+    tagline: live.bio?.trim() || base.tagline,
+    about: live.bio?.trim() || base.about,
+    liveAvatarUrl: live.avatar_url || null,
+    liveSocials,
+  };
+});
+
+const avatarStyle = computed(() => {
+  const m = openedMember.value;
+  if (!m) return {};
+  if (m.liveAvatarUrl) return { backgroundImage: `url(${m.liveAvatarUrl})` };
+  if (m.avatar) return { backgroundImage: `url(https://aztaryx.github.io/dmac-assets/avatars/${m.avatar})` };
+  return {};
+});
+
 const founderFirstName = computed(() => openedMember.value?.name?.split(' ')[0]?.toLowerCase() || '');
 const badgePercent = computed(() => {
   const n = openedMember.value?.badges?.length || 0;
@@ -480,6 +558,7 @@ function onResize() {
 onMounted(() => {
   document.addEventListener('keydown', onGlobalKeydown);
   window.addEventListener('resize', onResize);
+  loadLiveProfiles();
 });
 
 onBeforeUnmount(() => {

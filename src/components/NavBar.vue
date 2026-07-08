@@ -50,43 +50,41 @@
          hamburger rather than collapsing into it, since they're
          account-state controls, not page navigation. -->
     <div class="nav-actions">
-      <!-- Forums: open to everyone, including guests (read-only —
-           enforced inside ForumsView, not here). -->
-      <router-link
-        to="/forums"
+      <!-- Forums: opens the left side panel (Forums + DMs tabs) rather
+           than navigating anywhere — open to guests too (read-only,
+           enforced inside LeftPanel, not here). -->
+      <div
         class="nav-icon-btn"
-        :class="{ active: isSection('/forums') }"
+        :class="{ active: Panels.leftOpen.value }"
+        role="button"
+        tabindex="0"
         aria-label="Open forums"
         v-sfx-tap
+        @click.stop="Panels.toggleLeft('forums')"
+        @keydown.enter="Panels.toggleLeft('forums')"
       >
         <svg viewBox="0 0 24 24" aria-hidden="true">
           <path d="M4 5.5h16a1 1 0 0 1 1 1V15a1 1 0 0 1-1 1H9l-4 4v-4H4a1 1 0 0 1-1-1V6.5a1 1 0 0 1 1-1Z" stroke-width="1.6" stroke-linejoin="round" />
         </svg>
-      </router-link>
+      </div>
 
-      <!-- Notifications: only meaningful once logged in. -->
+      <!-- Notifications: opens the right side panel — only meaningful
+           once logged in. -->
       <div
         v-if="MemberAuth.sessionMember.value"
-        class="nav-icon-btn nav-notif"
-        :class="{ active: notifOpen }"
+        class="nav-icon-btn"
+        :class="{ active: Panels.rightOpen.value }"
         role="button"
         tabindex="0"
         aria-label="Notifications"
         v-sfx-tap
-        @click.stop="toggleNotif"
-        @keydown.enter="toggleNotif"
+        @click.stop="Panels.toggleRight()"
+        @keydown.enter="Panels.toggleRight()"
       >
         <svg viewBox="0 0 24 24" aria-hidden="true">
           <path d="M6 9a6 6 0 1 1 12 0c0 4 1.5 5.5 2 6H4c.5-.5 2-2 2-6Z" stroke-width="1.6" stroke-linejoin="round" />
           <path d="M9.5 18a2.5 2.5 0 0 0 5 0" stroke-width="1.6" stroke-linecap="round" />
         </svg>
-
-        <div class="nav-dropdown nav-dropdown--notif" v-show="notifOpen" @click.stop>
-          <div class="nav-dropdown-head">
-            <strong>Notifications</strong>
-          </div>
-          <p class="nav-dropdown-empty">You're all caught up — no new notifications.</p>
-        </div>
       </div>
 
       <!-- Profile circle: guest / member / moderator / admin. -->
@@ -156,7 +154,7 @@
       <a href="https://www.facebook.com/profile.php?id=61590594809333" target="_blank" rel="noopener">facebook</a>
     </div>
 
-    <router-link to="/forums" @click="closeMobile">forums</router-link>
+    <a href="#" @click.prevent="Panels.toggleLeft('forums'); closeMobile()">forums</a>
 
     <router-link v-if="MemberAuth.sessionMember.value" to="/profile" @click="closeMobile">profile</router-link>
   </nav>
@@ -168,6 +166,7 @@ import { useRoute, useRouter } from 'vue-router';
 import { playSfx } from '../composables/useSfx.js';
 import MemberAuth from '../lib/member-auth.js';
 import { sb } from '../lib/supabase-client.js';
+import Panels from '../composables/usePanels.js';
 
 const route = useRoute();
 const router = useRouter();
@@ -185,28 +184,22 @@ onBeforeUnmount(() => {
   document.removeEventListener('click', onDocumentClick);
 });
 
-/* ── PROFILE / NOTIFICATION DROPDOWNS ─────────────────
-   Both are simple open/closed refs — only one open at a time, and a
-   document-level click listener closes whichever is open when the
-   click lands outside the two trigger elements (their own @click.stop
-   handlers keep clicks *inside* the dropdowns from bubbling up first). */
+/* ── PROFILE DROPDOWN ─────────────────────────────────
+   Forums/Notifications now open the full side panels (usePanels.js)
+   instead of a small dropdown — this is the only dropdown left in
+   the navbar itself. A document-level click listener closes it when
+   the click lands outside (@click.stop on the trigger + panel itself
+   keeps clicks *inside* from bubbling up first). */
 const profileOpen = ref(false);
-const notifOpen = ref(false);
 
 function toggleProfile() {
-  notifOpen.value = false;
   profileOpen.value = !profileOpen.value;
-}
-function toggleNotif() {
-  profileOpen.value = false;
-  notifOpen.value = !notifOpen.value;
 }
 function closeDropdowns() {
   profileOpen.value = false;
-  notifOpen.value = false;
 }
 function onDocumentClick(e) {
-  if (!e.target.closest('.nav-profile') && !e.target.closest('.nav-notif')) {
+  if (!e.target.closest('.nav-profile')) {
     closeDropdowns();
   }
 }
