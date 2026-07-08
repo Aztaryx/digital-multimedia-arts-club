@@ -7,7 +7,7 @@
    ═══════════════════════════════════════════════════════════════════ */
 
 -- ── TABLES ──────────────────────────────────────────────────────────
-create table public.forum_threads (
+create table if not exists public.forum_threads (
   id         bigint generated always as identity primary key,
   author_id  uuid not null references public.members(id) on delete cascade,
   title      text not null check (char_length(title) between 1 and 120),
@@ -15,7 +15,7 @@ create table public.forum_threads (
   created_at timestamptz not null default now()
 );
 
-create table public.forum_posts (
+create table if not exists public.forum_posts (
   id         bigint generated always as identity primary key,
   thread_id  bigint not null references public.forum_threads(id) on delete cascade,
   author_id  uuid not null references public.members(id) on delete cascade,
@@ -23,7 +23,7 @@ create table public.forum_posts (
   created_at timestamptz not null default now()
 );
 
-create index forum_posts_thread_idx on public.forum_posts (thread_id, created_at);
+create index if not exists forum_posts_thread_idx on public.forum_posts (thread_id, created_at);
 
 alter table public.forum_threads enable row level security;
 alter table public.forum_posts   enable row level security;
@@ -31,8 +31,10 @@ alter table public.forum_posts   enable row level security;
 -- Read access is fully public — guests can browse, same as the rest
 -- of the roster. Writing only ever happens through the RPCs further
 -- down, so there are deliberately no insert/update/delete grants here.
+drop policy if exists "forum threads are publicly readable" on public.forum_threads;
 create policy "forum threads are publicly readable" on public.forum_threads
   for select using (true);
+drop policy if exists "forum posts are publicly readable" on public.forum_posts;
 create policy "forum posts are publicly readable" on public.forum_posts
   for select using (true);
 
@@ -145,6 +147,92 @@ end;
 $$;
 
 grant execute on function public.create_forum_post(uuid, bigint, text) to anon, authenticated;
+
+create or replace function public.edit_forum_thread(p_session_token uuid, p_thread_id bigint, p_title text)
+returns json
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  v_me     uuid := public._resolve_member_id(p_session_token);
+  v_role   text;
+  v_author uuid;
+begin
+  if v_me is null then
+    return json_build_object('success', false, 'message', 'Not logged in.');
+  end if;
+
+  select author_id into v_author from public.forum_threads where id = p_thread_id;
+  if v_author is null then
+    return json_build_object('success', false, 'message', 'Thread not found.');
+  end if;
+
+  select site_role into v_role from public.members where id = v_me;
+
+  if v_author <> v_me and v_role not in ('moderator', 'admin') then
+    return json_build_object('success', false, 'message', 'You can only edit your own threads.');
+  end if;
+
+  if p_title is null or char_length(trim(p_title)) = 0 then
+    return json_build_object('success', false, 'message', 'Give the thread a title.');
+  end if;
+  if char_length(trim(p_title)) > 120 then
+    return json_build_object('success', false, 'message', 'Title is too long (120 characters max).');
+  end if;
+
+  update public.forum_threads
+     set title = trim(p_title)
+   where id = p_thread_id;
+
+  return json_build_object('success', true);
+end;
+$$;
+
+grant execute on function public.edit_forum_thread(uuid, bigint, text) to anon, authenticated;
+
+create or replace function public.edit_forum_post(p_session_token uuid, p_post_id bigint, p_body text)
+returns json
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  v_me     uuid := public._resolve_member_id(p_session_token);
+  v_role   text;
+  v_author uuid;
+begin
+  if v_me is null then
+    return json_build_object('success', false, 'message', 'Not logged in.');
+  end if;
+
+  select author_id into v_author from public.forum_posts where id = p_post_id;
+  if v_author is null then
+    return json_build_object('success', false, 'message', 'Post not found.');
+  end if;
+
+  select site_role into v_role from public.members where id = v_me;
+
+  if v_author <> v_me and v_role not in ('moderator', 'admin') then
+    return json_build_object('success', false, 'message', 'You can only edit your own posts.');
+  end if;
+
+  if p_body is null or char_length(trim(p_body)) = 0 then
+    return json_build_object('success', false, 'message', 'Message cannot be empty.');
+  end if;
+  if char_length(trim(p_body)) > 4000 then
+    return json_build_object('success', false, 'message', 'That post is too long (4000 characters max).');
+  end if;
+
+  update public.forum_posts
+     set body = trim(p_body)
+   where id = p_post_id;
+
+  return json_build_object('success', true);
+end;
+$$;
+
+grant execute on function public.edit_forum_post(uuid, bigint, text) to anon, authenticated;
 
 create or replace function public.set_forum_thread_pinned(p_session_token uuid, p_thread_id bigint, p_pinned boolean)
 returns json

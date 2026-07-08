@@ -32,13 +32,56 @@
                 <span>{{ selectedThread.author_name }}</span><span>·</span>
                 <span>{{ formatTime(selectedThread.created_at) }}</span>
               </div>
-              <div v-if="canModerate || isThreadOwner" class="forum-thread-actions">
+              <div v-if="threadEditId === selectedThread.id" class="forum-inline-editor">
+                <label class="forum-field">
+                  <span>Edit thread title</span>
+                  <input class="forum-input" v-model="threadEditDraft" maxlength="120" />
+                </label>
+                <div class="forum-composer-actions forum-composer-actions--compact">
+                  <button class="forum-btn forum-btn--primary" v-sfx-hover @click="saveThreadEdit">Save title</button>
+                  <button class="forum-btn" v-sfx-hover @click="cancelThreadEdit">Cancel</button>
+                </div>
+                <p v-if="threadEditStatus" class="forums-guest-note">{{ threadEditStatus }}</p>
+              </div>
+              <div v-else-if="canModerate || isThreadOwner" class="forum-thread-actions">
+                <button
+                  v-if="canEditThread"
+                  class="forum-link-btn"
+                  @click="beginThreadEdit"
+                >Edit title</button>
                 <button
                   v-if="canModerate"
                   class="forum-link-btn"
                   @click="togglePin"
                 >{{ selectedThread.pinned ? 'Unpin' : 'Pin' }}</button>
+                <button
+                  v-if="canModerate"
+                  class="forum-link-btn"
+                  @click="beginWarning(selectedThread.author_slug, selectedThread.author_name)"
+                >Warn author</button>
                 <button class="forum-link-btn forum-link-btn--danger" @click="removeThread">Delete thread</button>
+              </div>
+
+              <div v-if="warnTarget" class="forum-warning-composer">
+                <div class="forum-warning-head">
+                  <strong>Warn {{ warnTarget.displayName }}</strong>
+                  <button class="forum-link-btn" v-sfx-hover @click="clearWarning">Cancel</button>
+                </div>
+                <label class="forum-field">
+                  <span>Reason</span>
+                  <textarea
+                    class="forum-input forum-textarea"
+                    v-model="warningReason"
+                    rows="3"
+                    maxlength="500"
+                    placeholder="Optional note for the moderation log"
+                  ></textarea>
+                </label>
+                <div class="forum-composer-actions forum-composer-actions--compact">
+                  <button class="forum-btn forum-btn--primary" v-sfx-hover @click="sendWarning">Send warning</button>
+                  <button class="forum-btn" v-sfx-hover @click="clearWarning">Cancel</button>
+                </div>
+                <p v-if="warningStatus" class="forums-guest-note">{{ warningStatus }}</p>
               </div>
             </div>
 
@@ -48,13 +91,35 @@
                 <div class="forum-post-meta">
                   <strong>{{ post.author_name }}</strong>
                   <span>{{ formatTime(post.created_at) }}</span>
-                  <button
-                    v-if="canModerate || post.author_slug === myMoveSlug"
-                    class="forum-link-btn forum-link-btn--danger"
-                    @click="removePost(post.id)"
-                  >delete</button>
+                  <div v-if="canModerate || canEditPost(post)" class="forum-post-meta-actions">
+                    <button
+                      v-if="canEditPost(post)"
+                      class="forum-link-btn"
+                      @click="beginPostEdit(post)"
+                    >Edit</button>
+                    <button
+                      v-if="canModerate"
+                      class="forum-link-btn"
+                      @click="beginWarning(post.author_slug, post.author_name)"
+                    >Warn</button>
+                    <button
+                      class="forum-link-btn forum-link-btn--danger"
+                      @click="removePost(post.id)"
+                    >Delete</button>
+                  </div>
                 </div>
-                <p class="forum-post-body">{{ post.body }}</p>
+                <div v-if="editingPostId === post.id" class="forum-inline-editor">
+                  <label class="forum-field">
+                    <span>Edit post</span>
+                    <textarea class="forum-input forum-textarea" v-model="postEditDraft" rows="4" maxlength="4000"></textarea>
+                  </label>
+                  <div class="forum-composer-actions forum-composer-actions--compact">
+                    <button class="forum-btn forum-btn--primary" v-sfx-hover @click="savePostEdit(post.id)">Save post</button>
+                    <button class="forum-btn" v-sfx-hover @click="cancelPostEdit">Cancel</button>
+                  </div>
+                  <p v-if="postEditStatus" class="forums-guest-note">{{ postEditStatus }}</p>
+                </div>
+                <p v-else class="forum-post-body">{{ post.body }}</p>
               </article>
             </section>
 
@@ -197,6 +262,7 @@
 import { ref, computed, nextTick } from 'vue';
 import Panels from '../../composables/usePanels.js';
 import MemberAuth from '../../lib/member-auth.js';
+import { playSfx } from '../../composables/useSfx.js';
 import { sb } from '../../lib/supabase-client.js';
 
 const isLoggedIn = computed(() => !!MemberAuth.sessionMember.value);
@@ -243,6 +309,19 @@ const replyDraft = ref('');
 const replyStatus = ref('');
 
 const isThreadOwner = computed(() => selectedThread.value?.author_slug === myMoveSlug.value);
+const canEditThread = computed(() => !!selectedThread.value && (canModerate.value || isThreadOwner.value));
+
+const threadEditId = ref(null);
+const threadEditDraft = ref('');
+const threadEditStatus = ref('');
+
+const editingPostId = ref(null);
+const postEditDraft = ref('');
+const postEditStatus = ref('');
+
+const warnTarget = ref(null);
+const warningReason = ref('');
+const warningStatus = ref('');
 
 async function loadThreads() {
   threadsLoading.value = true;
@@ -261,6 +340,13 @@ async function loadThreads() {
 
 async function openThread(thread) {
   selectedThread.value = thread;
+  threadEditId.value = null;
+  threadEditDraft.value = '';
+  threadEditStatus.value = '';
+  editingPostId.value = null;
+  postEditDraft.value = '';
+  postEditStatus.value = '';
+  clearWarning();
   postsLoading.value = true;
   const { data, error } = await sb
     .from('forum_posts_feed')
@@ -281,6 +367,110 @@ function closeThread() {
   posts.value = [];
   replyDraft.value = '';
   replyStatus.value = '';
+  threadEditId.value = null;
+  threadEditDraft.value = '';
+  threadEditStatus.value = '';
+  editingPostId.value = null;
+  postEditDraft.value = '';
+  postEditStatus.value = '';
+  clearWarning();
+}
+
+function beginThreadEdit() {
+  if (!selectedThread.value) return;
+  threadEditId.value = selectedThread.value.id;
+  threadEditDraft.value = selectedThread.value.title;
+  threadEditStatus.value = '';
+}
+
+function cancelThreadEdit() {
+  threadEditId.value = null;
+  threadEditDraft.value = '';
+  threadEditStatus.value = '';
+}
+
+function beginPostEdit(post) {
+  editingPostId.value = post.id;
+  postEditDraft.value = post.body;
+  postEditStatus.value = '';
+}
+
+function cancelPostEdit() {
+  editingPostId.value = null;
+  postEditDraft.value = '';
+  postEditStatus.value = '';
+}
+
+function beginWarning(slug, displayName) {
+  warnTarget.value = { slug, displayName };
+  warningReason.value = '';
+  warningStatus.value = '';
+}
+
+function clearWarning() {
+  warnTarget.value = null;
+  warningReason.value = '';
+  warningStatus.value = '';
+}
+
+function canEditPost(post) {
+  return canModerate.value || post.author_slug === myMoveSlug.value;
+}
+
+async function saveThreadEdit() {
+  if (!selectedThread.value) return;
+  const token = MemberAuth.getSessionToken();
+  const { data, error } = await sb.rpc('edit_forum_thread', {
+    p_session_token: token,
+    p_thread_id: selectedThread.value.id,
+    p_title: threadEditDraft.value.trim(),
+  });
+  if (error || !data?.success) {
+    threadEditStatus.value = data?.message || 'Could not update that thread.';
+    return;
+  }
+  selectedThread.value = { ...selectedThread.value, title: threadEditDraft.value.trim() };
+  threadEditId.value = null;
+  threadEditDraft.value = '';
+  threadEditStatus.value = '';
+  playSfx('staffsilence');
+  await loadThreads();
+}
+
+async function savePostEdit(postId) {
+  const token = MemberAuth.getSessionToken();
+  const { data, error } = await sb.rpc('edit_forum_post', {
+    p_session_token: token,
+    p_post_id: postId,
+    p_body: postEditDraft.value.trim(),
+  });
+  if (error || !data?.success) {
+    postEditStatus.value = data?.message || 'Could not update that post.';
+    return;
+  }
+  editingPostId.value = null;
+  postEditDraft.value = '';
+  postEditStatus.value = '';
+  playSfx('staffsilence');
+  await openThread(selectedThread.value);
+  await loadThreads();
+}
+
+async function sendWarning() {
+  if (!warnTarget.value) return;
+  const token = MemberAuth.getSessionToken();
+  const { data, error } = await sb.rpc('member_moderate', {
+    p_session_token: token,
+    p_target_slug: warnTarget.value.slug,
+    p_action: 'warn',
+    p_reason: warningReason.value.trim() || null,
+  });
+  if (error || !data?.success) {
+    warningStatus.value = data?.message || 'Could not send that warning.';
+    return;
+  }
+  playSfx('staffwarning');
+  clearWarning();
 }
 
 async function submitDraft() {
@@ -331,6 +521,7 @@ async function togglePin() {
     p_pinned: !selectedThread.value.pinned,
   });
   if (error || !data?.success) return;
+  playSfx('staffsilence');
   selectedThread.value = { ...selectedThread.value, pinned: !selectedThread.value.pinned };
   await loadThreads();
 }
@@ -342,6 +533,7 @@ async function removeThread() {
     p_thread_id: selectedThread.value.id,
   });
   if (error || !data?.success) return;
+  playSfx('staffspam');
   closeThread();
   await loadThreads();
 }
@@ -350,6 +542,7 @@ async function removePost(postId) {
   const token = MemberAuth.getSessionToken();
   const { data, error } = await sb.rpc('delete_forum_post', { p_session_token: token, p_post_id: postId });
   if (error || !data?.success) return;
+  playSfx('staffspam');
   await openThread(selectedThread.value);
 }
 
