@@ -11,7 +11,8 @@
       exist" the moment it runs — meaning profile saves (and DMs) may
       be failing outright, not just failing to sync to the Members tab.
 
-   2. nickname / bio / avatar_url / banner_url are referenced by
+   2. nickname / bio / avatar_url / banner_url / banner_color /
+      year_joined are referenced by
       member_update_profile as if they're columns on public.members,
       but no SQL file here ever ADDs them or GRANTs SELECT on them —
       only social_links got that treatment, in social-schema-addendum.
@@ -53,6 +54,8 @@ alter table public.members add column if not exists nickname   text;
 alter table public.members add column if not exists bio        text;
 alter table public.members add column if not exists avatar_url text;
 alter table public.members add column if not exists banner_url text;
+alter table public.members add column if not exists banner_color text not null default '#f97316';
+alter table public.members add column if not exists year_joined  integer not null default 2026;
 
-grant select (nickname, bio, avatar_url, banner_url)
+grant select (nickname, bio, avatar_url, banner_url, banner_color, year_joined)
   on public.members to anon, authenticated;

@@ -82,6 +82,12 @@ const routes = [
     component: () => import('../views/ProfileView.vue'),
     meta: { title: 'DMAC — Your Profile', requiresAuth: true },
   },
+  {
+    path: '/admin',
+    name: 'admin',
+    component: () => import('../views/AdminView.vue'),
+    meta: { title: 'DMAC — Admin Panel', requiresAdmin: true },
+  },
 ];
 
 const router = createRouter({
@@ -98,6 +104,12 @@ const router = createRouter({
 // genuinely logged-in member — restoreSession() re-checks the stored
 // token against the server before we decide to bounce anyone to /login.
 router.beforeEach(async (to) => {
+  if (to.meta?.requiresAdmin) {
+    if (MemberAuth.hasRole('admin')) return true;
+    const member = MemberAuth.current() || await MemberAuth.restoreSession();
+    if (!member) return '/login';
+    return member.site_role === 'admin' ? true : '/home';
+  }
   if (!to.meta?.requiresAuth) return true;
   if (MemberAuth.current()) return true;
 

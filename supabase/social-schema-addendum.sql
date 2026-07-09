@@ -25,7 +25,7 @@ grant select (social_links) on public.members to anon, authenticated;
 -- Adding a parameter changes the function's signature, so the old
 -- 5-arg version needs to be dropped explicitly first — otherwise you
 -- end up with two overloaded member_update_profile()s coexisting.
-drop function if exists public.member_update_profile(uuid, text, text, text, text);
+drop function if exists public.member_update_profile(uuid, text, text, text, text, text, jsonb);
 
 create or replace function public.member_update_profile(
   p_session_token uuid default null,
@@ -33,6 +33,7 @@ create or replace function public.member_update_profile(
   p_bio           text default null,
   p_avatar_url    text default null,
   p_banner_url    text default null,
+  p_banner_color  text default null,
   p_social_links  jsonb default null
 )
 returns json
@@ -52,6 +53,7 @@ begin
          bio          = coalesce(p_bio, bio),
          avatar_url   = coalesce(p_avatar_url, avatar_url),
          banner_url   = coalesce(p_banner_url, banner_url),
+       banner_color = coalesce(p_banner_color, banner_color),
          social_links = coalesce(p_social_links, social_links)
    where id = v_me;
 
@@ -59,7 +61,7 @@ begin
 end;
 $$;
 
-grant execute on function public.member_update_profile(uuid, text, text, text, text, jsonb) to anon, authenticated;
+grant execute on function public.member_update_profile(uuid, text, text, text, text, text, jsonb) to anon, authenticated;
 
 -- ── NOTE ON GIF BANNERS ────────────────────────────────────────────
 -- The existing banner_url check constraint only restricts the DOMAIN

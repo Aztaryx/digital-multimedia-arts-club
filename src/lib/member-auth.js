@@ -69,6 +69,23 @@ const MemberAuth = (() => {
     sessionMember.value = member;
   }
 
+  async function hydrateMember(member) {
+    if (!member?.slug) return member;
+
+    const { data, error } = await sb
+      .from('members')
+      .select('nickname, avatar_url, banner_url, banner_color, year_joined')
+      .eq('slug', member.slug)
+      .maybeSingle();
+
+    if (error) {
+      console.error('MemberAuth.hydrateMember error:', error);
+      return member;
+    }
+
+    return { ...member, ...(data || {}) };
+  }
+
   // Temporary diagnostic helper — the UI has been showing a single generic
   // "Something went wrong" for every RPC failure, which makes it impossible
   // to tell a network problem from a CORS problem from an auth problem
@@ -114,7 +131,7 @@ const MemberAuth = (() => {
       setMember(null);
       return null;
     }
-    setMember(data.member);
+    setMember(await hydrateMember(data.member));
     return cachedMember;
   }
 
@@ -127,7 +144,7 @@ const MemberAuth = (() => {
     if (!data.success) return data; // { success: false, message: '...' }
 
     setToken(data.session_token);
-    setMember(data.member);
+    setMember(await hydrateMember(data.member));
     return data;
   }
 

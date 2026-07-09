@@ -30,6 +30,10 @@
 
       <li><router-link to="/join" :class="{ active: isSection('/join') }">how to join</router-link></li>
 
+      <li v-if="isAdmin">
+        <router-link to="/admin" class="nav-admin-link" :class="{ active: isExact('/admin') }">admin panel</router-link>
+      </li>
+
       <li class="has-dropdown">
         <router-link to="/socials" data-icon="down" :class="{ active: isSection('/socials') }" v-sfx-tap>socials</router-link>
         <ul class="dropdown">
@@ -102,6 +106,7 @@
             <circle cx="12" cy="8.5" r="3.4" stroke-width="1.6" />
             <path d="M5 19c1.2-3.4 4-5 7-5s5.8 1.6 7 5" stroke-width="1.6" stroke-linecap="round" />
           </svg>
+          <img v-else-if="avatarUrl" :src="avatarUrl" alt="" class="nav-avatar-image" />
           <span v-else>{{ avatarLabel }}</span>
         </div>
 
@@ -113,6 +118,7 @@
 
           <template v-if="MemberAuth.sessionMember.value">
             <router-link to="/profile" class="nav-dropdown-item" @click="closeDropdowns">Edit profile</router-link>
+            <router-link v-if="isAdmin" to="/admin" class="nav-dropdown-item" @click="closeDropdowns">Admin panel</router-link>
             <button class="nav-dropdown-item nav-dropdown-item--danger" @click="signOut">Sign out</button>
           </template>
           <template v-else>
@@ -148,6 +154,8 @@
     </div>
 
     <router-link to="/join" @click="closeMobile">how to join</router-link>
+
+    <router-link v-if="isAdmin" to="/admin" class="nav-admin-link" @click="closeMobile">admin panel</router-link>
 
     <div class="mobile-group">
       <span class="mobile-group-label">◆ socials</span>
@@ -215,6 +223,7 @@ const roleLabel = computed(() => {
   if (m.site_role === 'moderator') return 'Moderator';
   return 'Member / Officer';
 });
+const isAdmin = computed(() => MemberAuth.sessionMember.value?.site_role === 'admin');
 const roleClass = computed(() => {
   const m = MemberAuth.sessionMember.value;
   if (!m) return 'nav-avatar--guest';
@@ -222,6 +231,7 @@ const roleClass = computed(() => {
   if (m.site_role === 'moderator') return 'nav-avatar--moderator';
   return 'nav-avatar--member';
 });
+const avatarUrl = computed(() => MemberAuth.sessionMember.value?.avatar_url || null);
 // Initials only, not a real avatar image — swap this for a real <img>
 // using MemberProfile.fetchProfile(MemberAuth.sessionMember.value?.slug)
 // if a NavBar avatar is wanted later (avatar_url is looked up by slug,

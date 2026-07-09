@@ -8,11 +8,20 @@
         </div>
 
         <div class="side-panel-body">
-          <!-- No notifications backend exists yet (no table/RPCs) — this
-               is the categorized shape ready for it: badges awarded,
-               moderation warnings, and site/maintenance notices are the
-               three kinds called out, each its own section so they don't
-               all blur into one flat list once real data lands. -->
+          <!-- This is the categorized shape for future notification data:
+               global announcements, maintenance notices, badge awards,
+               and moderation warnings each get their own section so they
+               don't all blur into one flat list once real data lands. -->
+          <section class="notif-section">
+            <p class="notif-section-label">Global announcements</p>
+            <p class="forums-guest-note">No live announcements yet. Use the admin panel to post one when the feed is ready.</p>
+          </section>
+
+          <section class="notif-section">
+            <p class="notif-section-label">Maintenance updates</p>
+            <p class="forums-guest-note">No maintenance notices right now.</p>
+          </section>
+
           <section class="notif-section">
             <p class="notif-section-label">Badges</p>
             <p class="forums-guest-note">No new badges.</p>

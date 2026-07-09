@@ -44,20 +44,20 @@
 
               <div class="profile-stat-grid">
                 <div class="profile-stat">
-                  <span class="profile-stat-label">Nickname</span>
-                  <strong>{{ nickname.trim() || 'Not set' }}</strong>
+                  <span class="profile-stat-label">Year joined</span>
+                  <strong>{{ joinedYear }}</strong>
                 </div>
                 <div class="profile-stat">
-                  <span class="profile-stat-label">Links</span>
-                  <strong>{{ previewLinks.length }}/3</strong>
+                  <span class="profile-stat-label">Badges</span>
+                  <strong>Unknown</strong>
                 </div>
                 <div class="profile-stat">
-                  <span class="profile-stat-label">Bio</span>
-                  <strong>{{ bioLength }} chars</strong>
+                  <span class="profile-stat-label">Banner color</span>
+                  <strong>{{ bannerColor || '#f97316' }}</strong>
                 </div>
                 <div class="profile-stat">
-                  <span class="profile-stat-label">Complete</span>
-                  <strong>{{ profileScore }}</strong>
+                  <span class="profile-stat-label">Avatar</span>
+                  <strong>{{ avatarUrl ? 'Custom' : 'Default' }}</strong>
                 </div>
               </div>
             </div>
@@ -142,6 +142,13 @@
                 </span>
                 <input class="profile-file" type="file" accept="image/*,.gif" @change="onBannerChosen" />
               </label>
+
+              <label class="profile-field profile-field--color">
+                <span>Banner color</span>
+                <input class="profile-color-input" type="color" v-model="bannerColor" />
+              </label>
+
+              <button class="profile-btn" v-sfx-hover @click="saveAppearance">Save appearance</button>
             </section>
 
             <section class="profile-panel profile-panel--full">
@@ -202,6 +209,7 @@ const bio = ref('');
 const socialLinks = ref([]); // [{ label, url }]
 const avatarUrl = ref(null);
 const bannerUrl = ref(null);
+const bannerColor = ref('#f97316');
 
 const publicName = computed(() => nickname.value.trim() || member.value?.display_name || 'DMAC member');
 const avatarInitials = computed(() => {
@@ -215,6 +223,7 @@ const avatarInitials = computed(() => {
 });
 const previewLinks = computed(() => socialLinks.value.filter((link) => link.label.trim() && link.url.trim()).slice(0, 3));
 const bioLength = computed(() => bio.value.trim().length);
+const joinedYear = computed(() => member.value?.year_joined || '2026');
 const profileScore = computed(() => {
   let score = 0;
   if (nickname.value.trim()) score += 1;
@@ -226,8 +235,8 @@ const profileScore = computed(() => {
 });
 const bannerStyle = computed(() => ({
   backgroundImage: bannerUrl.value
-    ? `linear-gradient(180deg, rgba(10, 10, 16, 0.08), rgba(10, 10, 16, 0.72)), url("${bannerUrl.value}")`
-    : 'linear-gradient(135deg, rgba(249, 115, 22, 0.95), rgba(76, 29, 149, 0.95))',
+    ? `linear-gradient(180deg, ${bannerColor.value}33, rgba(10, 10, 16, 0.72)), url("${bannerUrl.value}")`
+    : `linear-gradient(135deg, ${bannerColor.value}, rgba(76, 29, 149, 0.95))`,
 }));
 
 const statusMsg = ref('');
@@ -260,6 +269,7 @@ onMounted(async () => {
     : [];
   avatarUrl.value = profile.avatar_url;
   bannerUrl.value = profile.banner_url;
+  bannerColor.value = profile.banner_color || '#f97316';
 });
 
 async function saveNickname() {
@@ -317,6 +327,16 @@ async function saveBioAndLinks() {
     socialLinks.value = cleanedLinks;
   } else {
     status(result.message || 'Could not update profile.', 'error');
+  }
+}
+
+async function saveAppearance() {
+  playSfx('menuclick');
+  const result = await MemberProfile.updateAppearance({ bannerColor: bannerColor.value });
+  if (result.success) {
+    status('Appearance updated.', 'success');
+  } else {
+    status(result.message || 'Could not update appearance.', 'error');
   }
 }
 
@@ -808,5 +828,20 @@ async function onBannerChosen(e) {
   .profile-actions {
     flex-direction: column;
   }
+}
+</style>
+
+<style scoped>
+.profile-field--color {
+  max-width: 240px;
+}
+
+.profile-color-input {
+  width: 100%;
+  min-height: 44px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 14px;
+  background: transparent;
+  padding: 4px;
 }
 </style>

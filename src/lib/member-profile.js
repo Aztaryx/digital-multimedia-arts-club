@@ -26,7 +26,7 @@
    USAGE
    ------------------------------------------------------
    MemberProfile.fetchProfile(memberSlug)
-     → { nickname, bio, social_links, avatar_url, banner_url }
+     → { nickname, bio, social_links, avatar_url, banner_url, banner_color, year_joined }
 
    MemberProfile.updateNickname(newNickname)
      → { success, message? }
@@ -48,12 +48,12 @@ import MemberAuth from './member-auth.js';
 
 const MemberProfile = (() => {
 
-  const EMPTY_PROFILE = { nickname: '', bio: '', social_links: [], avatar_url: null, banner_url: null };
+  const EMPTY_PROFILE = { nickname: '', bio: '', social_links: [], avatar_url: null, banner_url: null, banner_color: null, year_joined: null };
 
   async function fetchProfile(memberSlug) {
     const { data, error } = await sb
       .from('members')
-      .select('nickname, bio, social_links, avatar_url, banner_url')
+      .select('nickname, bio, social_links, avatar_url, banner_url, banner_color, year_joined')
       .eq('slug', memberSlug)
       .maybeSingle();
 
@@ -68,7 +68,7 @@ const MemberProfile = (() => {
      param defaults to null server-side, and the function's coalesce()
      leaves anything you don't pass untouched — so callers only ever
      need to send what actually changed. */
-  async function saveFields({ nickname, bio, socialLinks, avatarUrl, bannerUrl } = {}) {
+  async function saveFields({ nickname, bio, socialLinks, avatarUrl, bannerUrl, bannerColor } = {}) {
     const token = MemberAuth.getSessionToken();
     if (!token) return { success: false, message: 'Not logged in.' };
 
@@ -78,6 +78,7 @@ const MemberProfile = (() => {
       p_bio: bio ?? null,
       p_avatar_url: avatarUrl ?? null,
       p_banner_url: bannerUrl ?? null,
+      p_banner_color: bannerColor ?? null,
       p_social_links: socialLinks ?? null,
     });
 
@@ -100,6 +101,10 @@ const MemberProfile = (() => {
 
   function updateProfile({ bio, socialLinks }) {
     return saveFields({ bio, socialLinks });
+  }
+
+  function updateAppearance({ bannerUrl, bannerColor } = {}) {
+    return saveFields({ bannerUrl, bannerColor });
   }
 
   function uploadAvatar(file) {
@@ -145,7 +150,7 @@ const MemberProfile = (() => {
     return data; // { success, url } or { success: false, message }
   }
 
-  return { fetchProfile, updateNickname, updateProfile, uploadAvatar, uploadBanner };
+  return { fetchProfile, updateNickname, updateProfile, updateAppearance, uploadAvatar, uploadBanner };
 })();
 
 export default MemberProfile;

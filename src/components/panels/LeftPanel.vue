@@ -34,7 +34,7 @@
               <span v-if="selectedThread.pinned" class="forum-pin">Pinned</span>
               <h3 class="forum-thread-title">{{ selectedThread.title }}</h3>
               <div class="forum-thread-meta">
-                <span>{{ selectedThread.author_name }}</span><span>·</span>
+                <span :class="authorClass(selectedThread.author_slug)">{{ selectedThread.author_name }}</span><span>·</span>
                 <span>{{ formatTime(selectedThread.created_at) }}</span>
               </div>
               <div v-if="threadEditId === selectedThread.id" class="forum-inline-editor">
@@ -114,7 +114,7 @@
             <section v-else class="forum-post-list">
               <article v-for="post in posts" :key="post.id" class="forum-post-card">
                 <div class="forum-post-meta">
-                  <strong>{{ post.author_name }}</strong>
+                  <strong :class="authorClass(post.author_slug)">{{ post.author_name }}</strong>
                   <span>{{ formatTime(post.created_at) }}</span>
                   <div v-if="canModerate || canEditPost(post)" class="forum-post-meta-actions">
                     <button
@@ -210,7 +210,7 @@
                   <h3 class="forum-thread-title">{{ thread.title }}</h3>
                 </div>
                 <div class="forum-thread-meta">
-                  <span>{{ thread.author_name }}</span><span>·</span>
+                  <span :class="authorClass(thread.author_slug)">{{ thread.author_name }}</span><span>·</span>
                   <span>{{ thread.reply_count }} {{ thread.reply_count === 1 ? 'reply' : 'replies' }}</span><span>·</span>
                   <span>{{ formatTime(thread.last_activity || thread.created_at) }}</span>
                 </div>
@@ -355,7 +355,7 @@
 </template>
 
 <script setup>
-import { ref, computed, nextTick } from 'vue';
+import { ref, computed, nextTick, onMounted } from 'vue';
 import Panels from '../../composables/usePanels.js';
 import MemberAuth from '../../lib/member-auth.js';
 import { playSfx } from '../../composables/useSfx.js';
@@ -364,6 +364,7 @@ import { sb } from '../../lib/supabase-client.js';
 const isLoggedIn = computed(() => !!MemberAuth.sessionMember.value);
 const myMoveSlug = computed(() => MemberAuth.sessionMember.value?.slug || null);
 const canModerate = computed(() => MemberAuth.hasRole('moderator'));
+const memberMeta = ref({});
 
 function onOverlayClick(e) {
   if (e.target === e.currentTarget) Panels.closeAll();
@@ -442,6 +443,27 @@ async function loadThreads() {
     return;
   }
   threads.value = data || [];
+}
+
+async function loadMemberMeta() {
+  const { data, error } = await sb.from('members').select('slug, site_role, club_role');
+  if (error) {
+    console.error('LeftPanel: could not load member metadata —', error.message);
+    return;
+  }
+  const map = {};
+  for (const row of data || []) map[row.slug] = row;
+  memberMeta.value = map;
+}
+
+function authorClass(slug) {
+  const row = memberMeta.value?.[slug];
+  if (!row) return '';
+  if (row.site_role === 'admin') return 'forum-member-name--admin';
+  if (row.site_role === 'moderator') return 'forum-member-name--moderator';
+  const clubRole = `${row.club_role || ''}`.toLowerCase();
+  if (clubRole.includes('adviser') || clubRole.includes('advisor')) return 'forum-member-name--advisor';
+  return '';
 }
 
 async function openThread(thread) {
@@ -763,5 +785,8 @@ async function sendDm() {
 // Threads are public — load them right away regardless of tab/login
 // state. DM-related data only matters once logged in, and only gets
 // fetched when the DMs tab is actually opened (see switchTab()).
+onMounted(() => {
+  loadMemberMeta();
+});
 loadThreads();
 </script>

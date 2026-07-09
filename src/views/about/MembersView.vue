@@ -179,17 +179,19 @@
         <!-- Badges -->
         <div class="card-badges-section">
           <div class="card-badges-header">
-            <div class="card-badge-count">
+            <div class="card-badge-count card-badge-count--unknown">
               <span class="card-badge-percent">{{ badgePercent }}%</span>
-              <span class="card-badge-text">or<br />{{ openedMember?.badges?.length || 0 }} / {{ TOTAL_POSSIBLE_BADGES }} badges</span>
+              <span class="card-badge-text">or<br />Unknown badge count for now</span>
             </div>
             <div class="card-badges-scrollable">
               <div
                 v-for="(badge, i) in openedMember?.badges || []"
                 :key="i"
                 class="badge-slot"
-                :style="{ '--tier-color': tierColor(badge.tierKey) }"
+                :style="badgeTiltStyle[i] || { '--tier-color': tierColor(badge.tierKey) }"
                 :title="badgeLabel(badge)"
+                @mousemove="tiltBadge(i, $event)"
+                @mouseleave="resetBadgeTilt(i)"
                 @mouseenter="playSfx('menuhover')"
                 @click="playSfx('no')"
               >
@@ -218,8 +220,8 @@
             <span class="card-stat-value">{{ openedMember?.yearJoined || '--' }}</span>
           </div>
           <div class="card-stat">
-            <span class="card-stat-label">ar score</span>
-            <span class="card-stat-value">{{ openedMember?.arScore || '--' }}</span>
+            <span class="card-stat-label">badge count</span>
+            <span class="card-stat-value">Unknown</span>
           </div>
           <div class="card-stat">
             <span class="card-stat-label">specializes in..</span>
@@ -320,7 +322,7 @@ function profileLabel(name) {
 }
 
 /* ── MEMBER PROFILE DATA (card overlay content) ───── */
-const EMPTY = { tagline: '', about: '', bannerKey: '', badges: [], gradeSection: '', socials: [], timeWorking: [], yearJoined: '', arScore: '', specialization: '', randomStat: '', avatar: null };
+const EMPTY = { tagline: '', about: '', bannerKey: '', badges: [], gradeSection: '', socials: [], timeWorking: [], yearJoined: '2026', specialization: '', randomStat: '', avatar: null };
 
 const MEMBERS = {
   'richmond-causaren': {
@@ -331,7 +333,6 @@ const MEMBERS = {
     isFounder: true,
     founderTitle: 'DMAC FOUNDER',
     founderRoles: 'Club Adviser · Founder',
-    badges: [{ level: null, name: 'Founder', file: 'founder.png', tierKey: 'founder' }],
   },
   'marie-asuncion': { name: 'Marie Aldron G. Asuncion', role: 'Co-Adviser', ...EMPTY },
   'rhocell-luteria': { name: 'Rhocell C. Luteria', role: 'Co-Adviser', ...EMPTY },
@@ -351,12 +352,6 @@ const MEMBERS = {
     /* Lead Developer isn't in this grid — it lives in the card's
        "Special stuff" section instead, rendered separately from the
        regular badge slots (that section is on you to build/wire up). */
-    badges: [
-      { level: 'Prism', name: 'Contributor', file: 'quartzcontributor.png', tierKey: 'prism' },
-      { level: 'Prism', name: 'Builder', file: 'quartzbuilder.png', tierKey: 'prism' },
-      { level: 'Prism', name: 'Secret', file: 'quartzsecret.png', tierKey: 'prism' },
-      { level: 'Copper', name: 'larper', file: 'copperlarper.png', tierKey: 'copper' },
-    ],
   },
   'jezrylle-andres': { name: 'Jezrylle D. Andres', role: 'Public Information Officer', ...EMPTY },
 
@@ -479,6 +474,31 @@ const badgePercent = computed(() => {
   const n = openedMember.value?.badges?.length || 0;
   return n > 0 ? Math.floor((n / TOTAL_POSSIBLE_BADGES) * 100) : 0;
 });
+
+const badgeTiltStyle = ref({});
+
+function tiltBadge(index, event) {
+  const target = event.currentTarget;
+  const rect = target.getBoundingClientRect();
+  const x = (event.clientX - rect.left) / rect.width - 0.5;
+  const y = (event.clientY - rect.top) / rect.height - 0.5;
+  badgeTiltStyle.value = {
+    ...badgeTiltStyle.value,
+    [index]: {
+      '--tilt-x': `${x * 10}`,
+      '--tilt-y': `${y * 10}`,
+      '--tilt-rotate': `${x * 8}`,
+      '--tier-color': tierColor(openedMember.value?.badges?.[index]?.tierKey),
+    },
+  };
+}
+
+function resetBadgeTilt(index) {
+  badgeTiltStyle.value = {
+    ...badgeTiltStyle.value,
+    [index]: { '--tilt-x': '0', '--tilt-y': '0', '--tilt-rotate': '0', '--tier-color': tierColor(openedMember.value?.badges?.[index]?.tierKey) },
+  };
+}
 
 /* ── MINI ZIGZAG ────────────────────────────────────
    Same triangle-strip math as the original drawCardZigzag(), just
