@@ -22,57 +22,74 @@
 
     <!-- ──────── LOGIN CARD ──────── -->
     <div class="login-body">
-      <div>
+      <div class="login-card-wrap">
         <div class="login-card">
 
-          <!-- ──────── STEP 1: ROLE SELECTION ──────── -->
-          <div class="login-panel login-step1">
-            <h2 class="panel-title">Welcome</h2>
-
-            <h3 class="step-label" style="margin-top: 24px;">Select your account type</h3>
-
-            <button class="role-btn role-btn--guest" :class="{ selected: chosenRole === 'guest' }" @click="selectRole('guest')">Guest</button>
-
-            <button class="role-btn role-btn--member" :class="{ selected: chosenRole === 'member' }" @click="selectRole('member')">Member / Officer</button>
-
-            <button class="role-btn role-btn--moderator" :class="{ selected: chosenRole === 'moderator' }" @click="selectRole('moderator')">Moderator</button>
-          </div>
-
-          <!-- ──────── STEP 2: CREDENTIALS ──────── -->
-          <div class="login-panel login-step2" :class="{ disabled: step2Disabled }">
-            <h2 class="panel-title">{{ step2Title }}</h2>
-            <h3 class="panel-title-sub">Please identify yourself</h3>
-
-            <button class="login-signout" @click="signOut">Sign Out</button>
-
-            <!-- Name dropdown -->
-            <select class="login-select" v-model="selectedSlug" :disabled="nameDisabled">
-              <option value="" disabled>{{ namePlaceholder }}</option>
-              <option v-for="m in rosterCache" :key="m.slug" :value="m.slug">{{ m.display_name }}</option>
-            </select>
-
-            <!-- Password -->
-            <div id="pass-row" v-show="showPasswordField">
-              <label class="login-field-label" for="login-password">Password</label>
-              <input class="login-input" type="password" id="login-password" v-model="password" @keydown="onPasswordKeydown" />
-            </div>
-
-            <!-- OR divider -->
-            <div class="login-or">Or</div>
-
-            <!-- Google sign-in -->
-            <div>
-              <button class="login-google-btn" :disabled="googleDisabled" @click="handleGoogleLink">
-                Link Google
-              </button>
-            </div>
-
-            <!-- Submit -->
-            <button class="login-submit" :disabled="submitDisabled" @click="handleSubmit">{{ submitText }}</button>
-
-            <!-- Status message -->
+          <!-- ──────── ALREADY LOGGED IN: WELCOME BACK ──────── -->
+          <div v-if="isReturning" class="login-panel login-welcome">
+            <h2 class="panel-title">Welcome back,</h2>
+            <h1 class="login-welcome-name">{{ welcomeName }}!</h1>
+            <p class="login-notyou">
+              Not you?
+              <button class="login-notyou-btn" @click="signOut">Sign out</button>
+            </p>
+            <button class="login-submit login-open-btn" @click="openSite">Open</button>
             <p class="login-status" :class="statusType">{{ statusMsg }}</p>
           </div>
+
+          <template v-else>
+            <!-- ──────── STEP 1: ROLE SELECTION ──────── -->
+            <div class="login-panel login-step1" :class="{ minimized: step === 2 }">
+              <template v-if="step === 1">
+                <h2 class="panel-title">Welcome</h2>
+                <h3 class="step-label" style="margin-top: 24px;">Step 1 — Select your account type</h3>
+
+                <button class="role-btn role-btn--guest" :class="{ selected: chosenRole === 'guest' }" @click="selectRole('guest')">Guest</button>
+
+                <button class="role-btn role-btn--member" :class="{ selected: chosenRole === 'member' }" @click="selectRole('member')">Member / Officer</button>
+
+                <button class="role-btn role-btn--moderator" :class="{ selected: chosenRole === 'moderator' }" @click="selectRole('moderator')">Moderator</button>
+              </template>
+
+              <div v-else class="login-step1-summary">
+                <span class="login-step1-summary-label">Step 1 — {{ chosenRoleLabel }}</span>
+                <button class="login-change-btn" @click="backToStep1">Change</button>
+              </div>
+            </div>
+
+            <!-- ──────── STEP 2: CREDENTIALS ──────── -->
+            <div v-if="step === 2" class="login-panel login-step2">
+              <h2 class="panel-title">Step 2 — Identify yourself</h2>
+
+              <!-- Name dropdown -->
+              <select class="login-select" v-model="selectedSlug" :disabled="nameDisabled">
+                <option value="" disabled>{{ namePlaceholder }}</option>
+                <option v-for="m in rosterCache" :key="m.slug" :value="m.slug">{{ m.display_name }}</option>
+              </select>
+
+              <!-- Password -->
+              <div id="pass-row" v-show="showPasswordField">
+                <label class="login-field-label" for="login-password">Password</label>
+                <input class="login-input" type="password" id="login-password" v-model="password" @keydown="onPasswordKeydown" />
+              </div>
+
+              <!-- OR divider -->
+              <div class="login-or">Or</div>
+
+              <!-- Google sign-in -->
+              <div>
+                <button class="login-google-btn" :disabled="googleDisabled" @click="handleGoogleLink">
+                  Link Google
+                </button>
+              </div>
+
+              <!-- Submit -->
+              <button class="login-submit" :disabled="submitDisabled" @click="handleSubmit">{{ submitText }}</button>
+
+              <!-- Status message -->
+              <p class="login-status" :class="statusType">{{ statusMsg }}</p>
+            </div>
+          </template>
 
         </div>
 
@@ -95,24 +112,25 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue';
+import { ref, computed, onMounted } from 'vue';
 import { useRouter } from 'vue-router';
 import MemberAuth from '../lib/member-auth.js';
 import { sb } from '../lib/supabase-client.js';
 import { playSfx } from '../composables/useSfx.js';
 import '../assets/css/pages/login.css';
 
-/* Ported from login/index.html + js/pages/login.js. Two-step flow
-   (pick a role, then credentials) — same as the original, just
-   driven by refs/v-model instead of getElementById + classList.
-   This is a standalone route (see router meta.hideChrome / App.vue)
-   so it doesn't get the shared NavBar/FooterSection. */
+/* Sequential two-step flow: Step 1 (pick a role) shows alone first;
+   choosing a role minimizes it to a summary strip and reveals Step 2
+   (credentials). A restored session skips both steps and shows the
+   "Welcome back" panel instead. This is a standalone route (see
+   router meta.hideChrome / App.vue) so it doesn't get the shared
+   NavBar/FooterSection. */
 
 const router = useRouter();
 
 const chosenRole = ref(null);
-const step2Disabled = ref(true);
-const step2Title = ref('Welcome Back');
+const step = ref(1);
+const isReturning = ref(false);
 const rosterCache = ref([]);
 const namePlaceholder = ref('— Select Your Name —');
 const selectedSlug = ref('');
@@ -126,8 +144,22 @@ const statusMsg = ref('');
 const statusType = ref('info');
 const loadingText = ref('Loading _');
 
-let isReturning = false;
 let pendingLinkSlug = null;
+
+const ROLE_LABELS = { guest: 'Guest', member: 'Member / Officer', moderator: 'Moderator' };
+const chosenRoleLabel = computed(() => ROLE_LABELS[chosenRole.value] || '');
+
+/* Proper capitalization for the big welcome name — each word starts
+   uppercase, rest lowercase (handles ALL-CAPS or lowercase roster
+   entries the same way). */
+const welcomeName = computed(() => {
+  const name = MemberAuth.sessionMember.value?.display_name || '';
+  return name
+    .trim()
+    .split(/\s+/)
+    .map((w) => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase())
+    .join(' ');
+});
 
 function status(msg, type = 'info') {
   statusMsg.value = msg;
@@ -138,11 +170,6 @@ function setLoadingText(text) {
   loadingText.value = text;
 }
 
-function clearSelection() {
-  // chosenRole itself drives the .selected class via template
-  // binding, so "clearing" it just means selectRole() overwrites it.
-}
-
 /* ── RESTORE SESSION ON LOAD ────────────────── */
 async function init() {
   setLoadingText('Checking session…');
@@ -150,13 +177,7 @@ async function init() {
   try {
     const member = await MemberAuth.restoreSession();
     if (member) {
-      isReturning = true;
-      const r = member.site_role;
-      if (r === 'moderator' || r === 'admin') {
-        await selectRole('moderator', true);
-      } else {
-        await selectRole('member', true);
-      }
+      isReturning.value = true;
       setLoadingText('Ready');
       return;
     }
@@ -168,13 +189,11 @@ async function init() {
 }
 
 /* ── ROLE SELECTION (Step 1) ────────────────── */
-async function selectRole(role, autoRestore = false) {
+async function selectRole(role) {
   chosenRole.value = role;
-  clearSelection();
   playSfx('menutap');
 
   if (role === 'guest') {
-    step2Disabled.value = true;
     status('Entering as Guest…', 'success');
 
     setTimeout(() => {
@@ -185,24 +204,8 @@ async function selectRole(role, autoRestore = false) {
     return;
   }
 
-  // If returning user from restoreSession, skip straight to logged-in
-  if (autoRestore && isReturning) {
-    const member = MemberAuth.current();
-    step2Disabled.value = false;
-    step2Title.value = 'Welcome Back';
-    status(`Signed in as ${member.display_name}`, 'success');
-    rosterCache.value = [{ slug: member.slug, display_name: member.display_name }];
-    selectedSlug.value = member.slug;
-    nameDisabled.value = true;
-    showPasswordField.value = false;
-    submitText.value = 'Continue';
-    submitDisabled.value = false;
-    return;
-  }
-
-  // Load roster for dropdown
-  step2Disabled.value = false;
-  step2Title.value = 'Please Identify Yourself';
+  // Minimize Step 1 and reveal Step 2
+  step.value = 2;
   showPasswordField.value = true;
   nameDisabled.value = false;
   submitText.value = 'Log In';
@@ -222,15 +225,30 @@ async function selectRole(role, autoRestore = false) {
   setLoadingText('Ready');
 }
 
+function backToStep1() {
+  playSfx('menuback');
+  step.value = 1;
+  chosenRole.value = null;
+  selectedSlug.value = '';
+  password.value = '';
+  status('');
+}
+
+function openSite() {
+  playSfx('menuconfirm');
+  status('Welcome back. Redirecting…', 'success');
+  setLoadingText('Redirecting…');
+  setTimeout(() => { router.push('/home'); }, 400);
+}
+
 /* ── SIGN OUT ───────────────────────────────── */
 async function signOut() {
   setLoadingText('Signing out…');
   try { await MemberAuth.logout(); } catch (_) {}
   try { await sb.auth.signOut(); } catch (_) {}
-  isReturning = false;
+  isReturning.value = false;
+  step.value = 1;
   chosenRole.value = null;
-  step2Disabled.value = true;
-  step2Title.value = 'Please Identify Yourself';
   rosterCache.value = [];
   namePlaceholder.value = '— Select Your Name —';
   selectedSlug.value = '';
@@ -246,13 +264,6 @@ async function signOut() {
 
 /* ── PASSWORD LOGIN (submit) ────────────────── */
 async function handleSubmit() {
-  if (isReturning && MemberAuth.current()) {
-    status('Welcome back. Redirecting…', 'success');
-    setLoadingText('Redirecting…');
-    setTimeout(() => { router.push('/home'); }, 600);
-    return;
-  }
-
   const slug = selectedSlug.value;
   const pass = password.value.trim();
 

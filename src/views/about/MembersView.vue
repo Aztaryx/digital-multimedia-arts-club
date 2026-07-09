@@ -89,7 +89,7 @@
     <div class="card-panel" :class="{ open: panelOpen, 'is-founder': openedMember?.isFounder }" ref="panelRef">
 
       <!-- Banner -->
-      <div class="card-banner" :class="`card-banner--${openedMember?.bannerKey || 'default'}`">
+      <div class="card-banner" :class="`card-banner--${openedMember?.bannerKey || 'default'}`" :style="bannerStyle">
         <div class="card-banner-content">
           <div
             class="card-avatar"
@@ -115,22 +115,22 @@
       <!-- Body -->
       <div class="card-body">
 
+        <!-- Founder banner — spans the full card width -->
+        <div v-if="openedMember?.isFounder" class="founder-title-bar founder-title-bar--full">
+          <div class="founder-title-bg"></div>
+          <div class="founder-title-main">
+            <span class="founder-title-name">{{ founderFirstName }}</span>
+            <span class="founder-title-slash">/</span>
+            <span class="founder-title-label">{{ openedMember.founderTitle }}</span>
+          </div>
+          <span class="founder-title-roles">{{ openedMember.founderRoles }}</span>
+        </div>
+
         <!-- Header Info (Position & Socials) -->
         <div class="card-header-info">
           <div class="card-identity">
             <span class="card-role">{{ openedMember?.role }}</span>
-            <div>
-              <div v-if="openedMember?.isFounder" class="founder-title-bar">
-                <div class="founder-title-bg"></div>
-                <div class="founder-title-main">
-                  <span class="founder-title-name">{{ founderFirstName }}</span>
-                  <span class="founder-title-slash">/</span>
-                  <span class="founder-title-label">{{ openedMember.founderTitle }}</span>
-                </div>
-                <span class="founder-title-roles">{{ openedMember.founderRoles }}</span>
-              </div>
-              <span v-else-if="openedMember?.tagline" class="card-tagline">{{ openedMember.tagline }}</span>
-            </div>
+            <span v-if="!openedMember?.isFounder && openedMember?.tagline" class="card-tagline">{{ openedMember.tagline }}</span>
           </div>
 
           <div class="card-socials-container">
@@ -180,8 +180,8 @@
         <div class="card-badges-section">
           <div class="card-badges-header">
             <div class="card-badge-count">
-              <span class="card-badge-percent">{{ badgePercent }}%</span>
-              <span class="card-badge-text">or<br />{{ openedMember?.badges?.length || 0 }} / {{ TOTAL_POSSIBLE_BADGES }} badges</span>
+              <span class="card-badge-percent">?</span>
+              <span class="card-badge-text">badge count<br />Unknown</span>
             </div>
             <div class="card-badges-scrollable">
               <div
@@ -191,6 +191,8 @@
                 :style="{ '--tier-color': tierColor(badge.tierKey) }"
                 :title="badgeLabel(badge)"
                 @mouseenter="playSfx('menuhover')"
+                @mousemove="onBadgeTilt"
+                @mouseleave="resetBadgeTilt"
                 @click="playSfx('no')"
               >
                 <img v-if="badgeBgUrl(badge.tierKey)" :src="badgeBgUrl(badge.tierKey)" alt="" class="badge-bg" />
@@ -320,7 +322,7 @@ function profileLabel(name) {
 }
 
 /* ── MEMBER PROFILE DATA (card overlay content) ───── */
-const EMPTY = { tagline: '', about: '', bannerKey: '', badges: [], gradeSection: '', socials: [], timeWorking: [], yearJoined: '', arScore: '', specialization: '', randomStat: '', avatar: null };
+const EMPTY = { tagline: '', about: '', bannerKey: '', badges: [], gradeSection: '', socials: [], timeWorking: [], yearJoined: '2026', arScore: '', specialization: '', randomStat: '', avatar: null };
 
 const MEMBERS = {
   'richmond-causaren': {
@@ -331,7 +333,6 @@ const MEMBERS = {
     isFounder: true,
     founderTitle: 'DMAC FOUNDER',
     founderRoles: 'Club Adviser · Founder',
-    badges: [{ level: null, name: 'Founder', file: 'founder.png', tierKey: 'founder' }],
   },
   'marie-asuncion': { name: 'Marie Aldron G. Asuncion', role: 'Co-Adviser', ...EMPTY },
   'rhocell-luteria': { name: 'Rhocell C. Luteria', role: 'Co-Adviser', ...EMPTY },
@@ -348,15 +349,6 @@ const MEMBERS = {
     tagline: 'Lead Developer · Web & Systems',
     about: "The guy who actually builds stuff around here. If it's on the site, I probably made it.",
     bannerKey: 'mark',
-    /* Lead Developer isn't in this grid — it lives in the card's
-       "Special stuff" section instead, rendered separately from the
-       regular badge slots (that section is on you to build/wire up). */
-    badges: [
-      { level: 'Prism', name: 'Contributor', file: 'quartzcontributor.png', tierKey: 'prism' },
-      { level: 'Prism', name: 'Builder', file: 'quartzbuilder.png', tierKey: 'prism' },
-      { level: 'Prism', name: 'Secret', file: 'quartzsecret.png', tierKey: 'prism' },
-      { level: 'Copper', name: 'larper', file: 'copperlarper.png', tierKey: 'copper' },
-    ],
   },
   'jezrylle-andres': { name: 'Jezrylle D. Andres', role: 'Public Information Officer', ...EMPTY },
 
@@ -402,8 +394,6 @@ function badgeIconUrl(file) {
   return BADGE_URLS[base] || null;
 }
 
-const TOTAL_POSSIBLE_BADGES = 42;
-
 /* ── CARD OPEN/CLOSE STATE ─────────────────────────
    selectedId is the source of truth; cardOpen/panelOpen mirror the
    old overlay/panel classList toggles (panelOpen lags one frame
@@ -425,10 +415,20 @@ const zigzagPoints = ref('');
 const liveProfiles = ref({});
 
 async function loadLiveProfiles() {
-  const { data, error } = await sb
+  // year_joined / banner_color / banner_url only exist after
+  // dmac-site-polish-schema.sql has been run — retry without them so
+  // the page still works against the older schema.
+  let { data, error } = await sb
     .from('members')
-    .select('slug, nickname, bio, avatar_url, social_links')
+    .select('slug, nickname, bio, avatar_url, social_links, banner_url, banner_color, year_joined')
     .in('slug', Object.keys(MEMBERS));
+
+  if (error) {
+    ({ data, error } = await sb
+      .from('members')
+      .select('slug, nickname, bio, avatar_url, social_links')
+      .in('slug', Object.keys(MEMBERS)));
+  }
 
   if (error) {
     console.error('MembersView: could not load live profile data —', error.message);
@@ -461,9 +461,20 @@ const openedMember = computed(() => {
     name: live.nickname?.trim() || base.name,
     tagline: live.bio?.trim() || base.tagline,
     about: live.bio?.trim() || base.about,
+    yearJoined: live.year_joined || base.yearJoined,
     liveAvatarUrl: live.avatar_url || null,
+    liveBannerUrl: live.banner_url || null,
+    liveBannerColor: live.banner_color || null,
     liveSocials,
   };
+});
+
+const bannerStyle = computed(() => {
+  const m = openedMember.value;
+  if (!m) return {};
+  if (m.liveBannerUrl) return { backgroundImage: `url(${m.liveBannerUrl})`, backgroundSize: 'cover', backgroundPosition: 'center' };
+  if (m.liveBannerColor) return { background: m.liveBannerColor };
+  return {};
 });
 
 const avatarStyle = computed(() => {
@@ -475,10 +486,23 @@ const avatarStyle = computed(() => {
 });
 
 const founderFirstName = computed(() => openedMember.value?.name?.split(' ')[0]?.toLowerCase() || '');
-const badgePercent = computed(() => {
-  const n = openedMember.value?.badges?.length || 0;
-  return n > 0 ? Math.floor((n / TOTAL_POSSIBLE_BADGES) * 100) : 0;
-});
+
+/* ── BADGE TILT ──────────────────────────────────
+   The badge tilts away from the cursor as if it's being pressed
+   down where the pointer sits — rotation axes follow the cursor's
+   offset from the slot's centre. */
+function onBadgeTilt(e) {
+  const el = e.currentTarget;
+  const rect = el.getBoundingClientRect();
+  const px = (e.clientX - rect.left) / rect.width - 0.5;  // -0.5 .. 0.5
+  const py = (e.clientY - rect.top) / rect.height - 0.5;
+  const MAX_DEG = 18;
+  el.style.transform = `perspective(240px) rotateX(${(-py * MAX_DEG).toFixed(2)}deg) rotateY(${(px * MAX_DEG).toFixed(2)}deg) scale(1.06)`;
+}
+
+function resetBadgeTilt(e) {
+  e.currentTarget.style.transform = '';
+}
 
 /* ── MINI ZIGZAG ────────────────────────────────────
    Same triangle-strip math as the original drawCardZigzag(), just

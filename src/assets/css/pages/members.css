@@ -443,6 +443,13 @@
   margin-top: 2px;
 }
 
+/* Full-card variant — bleeds through the card-body padding so the
+   bar runs edge to edge across the whole card. */
+.founder-title-bar--full {
+  margin: -6px -28px 0;
+  width: calc(100% + 56px);
+}
+
 /* ── CLOSE BUTTON ─────────────────────────────────── */
 .card-close {
   position: absolute;
@@ -695,11 +702,10 @@
   position: relative;
   overflow: visible;
   cursor: default;
-  transition: transform .2s var(--ease-out);
+  transition: transform .15s var(--ease-out);
   flex-shrink: 0;
-}
-.badge-slot:hover {
-  transform: translateY(-4px) scale(1.06);
+  transform-style: preserve-3d;
+  will-change: transform;
 }
 
 /* Tier gem — fills the slot, sits behind the icon. */

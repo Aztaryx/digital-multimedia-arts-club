@@ -34,7 +34,7 @@
               <span v-if="selectedThread.pinned" class="forum-pin">Pinned</span>
               <h3 class="forum-thread-title">{{ selectedThread.title }}</h3>
               <div class="forum-thread-meta">
-                <span>{{ selectedThread.author_name }}</span><span>·</span>
+                <span :class="authorRoleClass(selectedThread)">{{ selectedThread.author_name }}</span><span>·</span>
                 <span>{{ formatTime(selectedThread.created_at) }}</span>
               </div>
               <div v-if="threadEditId === selectedThread.id" class="forum-inline-editor">
@@ -114,7 +114,7 @@
             <section v-else class="forum-post-list">
               <article v-for="post in posts" :key="post.id" class="forum-post-card">
                 <div class="forum-post-meta">
-                  <strong>{{ post.author_name }}</strong>
+                  <strong :class="authorRoleClass(post)">{{ post.author_name }}</strong>
                   <span>{{ formatTime(post.created_at) }}</span>
                   <div v-if="canModerate || canEditPost(post)" class="forum-post-meta-actions">
                     <button
@@ -210,7 +210,7 @@
                   <h3 class="forum-thread-title">{{ thread.title }}</h3>
                 </div>
                 <div class="forum-thread-meta">
-                  <span>{{ thread.author_name }}</span><span>·</span>
+                  <span :class="authorRoleClass(thread)">{{ thread.author_name }}</span><span>·</span>
                   <span>{{ thread.reply_count }} {{ thread.reply_count === 1 ? 'reply' : 'replies' }}</span><span>·</span>
                   <span>{{ formatTime(thread.last_activity || thread.created_at) }}</span>
                 </div>
@@ -367,6 +367,17 @@ const canModerate = computed(() => MemberAuth.hasRole('moderator'));
 
 function onOverlayClick(e) {
   if (e.target === e.currentTarget) Panels.closeAll();
+}
+
+/* Role colour for forum author names — admins red, mods purple,
+   advisers orange. The feed views only expose author_site_role /
+   author_club_role after dmac-site-polish-schema.sql; missing fields
+   just mean no colour class. */
+function authorRoleClass(row) {
+  if (row?.author_site_role === 'admin') return 'forum-author--admin';
+  if (row?.author_site_role === 'moderator') return 'forum-author--mod';
+  if (/advis/i.test(row?.author_club_role || '')) return 'forum-author--adviser';
+  return '';
 }
 
 function formatTime(iso) {
