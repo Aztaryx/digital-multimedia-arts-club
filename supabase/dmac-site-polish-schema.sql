@@ -62,7 +62,11 @@ $$;
 grant execute on function public.member_update_profile(uuid, text, text, text, text, jsonb, text) to anon, authenticated, service_role;
 
 -- ── 4. FORUM FEEDS WITH AUTHOR ROLES ────────────────────────────────
-create or replace view public.forum_threads_feed as
+-- These views must be dropped first: the new columns land in the
+-- middle of the column list, and `create or replace view` refuses to
+-- rename/reorder existing view columns (error 42P16).
+drop view if exists public.forum_threads_feed;
+create view public.forum_threads_feed as
 select
   t.id,
   t.title,
@@ -79,7 +83,8 @@ join public.members m on m.id = t.author_id;
 
 grant select on public.forum_threads_feed to anon, authenticated;
 
-create or replace view public.forum_posts_feed as
+drop view if exists public.forum_posts_feed;
+create view public.forum_posts_feed as
 select
   p.id,
   p.thread_id,
