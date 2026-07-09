@@ -48,10 +48,6 @@
         <router-link to="/profile" :class="{ active: isSection('/profile') }">profile</router-link>
       </li>
 
-      <!-- Admin panel — admins only. -->
-      <li v-if="isAdmin">
-        <router-link to="/admin" class="nav-admin-link" :class="{ active: isSection('/admin') }">admin</router-link>
-      </li>
     </ul>
 
     <!-- ──────── NAV ACTIONS: forums / notifications / profile ────────
@@ -112,7 +108,6 @@
             <path d="M5 19c1.2-3.4 4-5 7-5s5.8 1.6 7 5" stroke-width="1.6" stroke-linecap="round" />
           </svg>
           <img v-else-if="avatarUrl" class="nav-avatar-img" :src="avatarUrl" alt="" />
-          <img v-else-if="avatarUrl" :src="avatarUrl" alt="" class="nav-avatar-image" />
           <span v-else>{{ avatarLabel }}</span>
         </div>
 
@@ -124,7 +119,6 @@
 
           <template v-if="MemberAuth.sessionMember.value">
             <router-link to="/profile" class="nav-dropdown-item" @click="closeDropdowns">Edit profile</router-link>
-            <router-link v-if="isAdmin" to="/admin" class="nav-dropdown-item" @click="closeDropdowns">Admin panel</router-link>
             <router-link v-if="isAdmin" to="/admin" class="nav-dropdown-item" @click="closeDropdowns">Admin panel</router-link>
             <button class="nav-dropdown-item nav-dropdown-item--danger" @click="signOut">Sign out</button>
           </template>
@@ -172,7 +166,6 @@
     <a href="#" @click.prevent="Panels.toggleLeft('forums'); closeMobile()">forums</a>
 
     <router-link v-if="MemberAuth.sessionMember.value" to="/profile" @click="closeMobile">profile</router-link>
-    <router-link v-if="isAdmin" to="/admin" @click="closeMobile">admin panel</router-link>
   </nav>
 </template>
 
@@ -232,7 +225,6 @@ const roleLabel = computed(() => {
   if (m.site_role === 'moderator') return 'Moderator';
   return 'Member / Officer';
 });
-const isAdmin = computed(() => MemberAuth.sessionMember.value?.site_role === 'admin');
 const roleClass = computed(() => {
   const m = MemberAuth.sessionMember.value;
   if (!m) return 'nav-avatar--guest';
@@ -240,11 +232,6 @@ const roleClass = computed(() => {
   if (m.site_role === 'moderator') return 'nav-avatar--moderator';
   return 'nav-avatar--member';
 });
-const avatarUrl = computed(() => MemberAuth.sessionMember.value?.avatar_url || null);
-// Initials only, not a real avatar image — swap this for a real <img>
-// using MemberProfile.fetchProfile(MemberAuth.sessionMember.value?.slug)
-// if a NavBar avatar is wanted later (avatar_url is looked up by slug,
-// same as ProfileView does — no RPC changes needed for that).
 const isAdmin = computed(() => MemberAuth.sessionMember.value?.site_role === 'admin');
 
 // Initials fallback when no custom avatar image is set.
