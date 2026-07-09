@@ -8,18 +8,16 @@
         </div>
 
         <div class="side-panel-body">
-          <!-- This is the categorized shape for future notification data:
-               global announcements, maintenance notices, badge awards,
-               and moderation warnings each get their own section so they
-               don't all blur into one flat list once real data lands. -->
           <section class="notif-section">
-            <p class="notif-section-label">Global announcements</p>
-            <p class="forums-guest-note">No live announcements yet. Use the admin panel to post one when the feed is ready.</p>
-          </section>
-
-          <section class="notif-section">
-            <p class="notif-section-label">Maintenance updates</p>
-            <p class="forums-guest-note">No maintenance notices right now.</p>
+            <p class="notif-section-label">Announcements</p>
+            <template v-if="generalAnnouncements.length">
+              <div v-for="a in generalAnnouncements" :key="a.id" class="notif-card">
+                <strong class="notif-card-title">{{ a.title }}</strong>
+                <p class="notif-card-body">{{ a.body }}</p>
+                <span class="notif-card-time">{{ formatTime(a.created_at) }}</span>
+              </div>
+            </template>
+            <p v-else class="forums-guest-note">No announcements.</p>
           </section>
 
           <section class="notif-section">
@@ -34,7 +32,14 @@
 
           <section class="notif-section">
             <p class="notif-section-label">Maintenance</p>
-            <p class="forums-guest-note">No maintenance notices.</p>
+            <template v-if="maintenanceAnnouncements.length">
+              <div v-for="a in maintenanceAnnouncements" :key="a.id" class="notif-card notif-card--maintenance">
+                <strong class="notif-card-title">{{ a.title }}</strong>
+                <p class="notif-card-body">{{ a.body }}</p>
+                <span class="notif-card-time">{{ formatTime(a.created_at) }}</span>
+              </div>
+            </template>
+            <p v-else class="forums-guest-note">No maintenance notices.</p>
           </section>
         </div>
       </div>
@@ -43,7 +48,35 @@
 </template>
 
 <script setup>
+import { ref, computed, watch } from 'vue';
+import { sb } from '../../lib/supabase-client.js';
 import Panels from '../../composables/usePanels.js';
+
+const announcements = ref([]);
+
+const generalAnnouncements = computed(() => announcements.value.filter((a) => a.kind !== 'maintenance'));
+const maintenanceAnnouncements = computed(() => announcements.value.filter((a) => a.kind === 'maintenance'));
+
+// Refresh every time the panel opens — the announcements table only
+// exists once dmac-site-polish-schema.sql has run, so a query error
+// just leaves the empty placeholders in place.
+watch(Panels.rightOpen, async (open) => {
+  if (!open) return;
+  const { data, error } = await sb
+    .from('announcements')
+    .select('id, title, body, kind, created_at')
+    .order('created_at', { ascending: false })
+    .limit(20);
+  if (!error) announcements.value = data || [];
+});
+
+function formatTime(ts) {
+  try {
+    return new Date(ts).toLocaleString([], { dateStyle: 'medium', timeStyle: 'short' });
+  } catch (_) {
+    return '';
+  }
+}
 
 function onOverlayClick(e) {
   if (e.target === e.currentTarget) Panels.closeAll();

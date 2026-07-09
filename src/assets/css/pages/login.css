@@ -127,8 +127,14 @@
 }
 
 /* ── LOGIN CARD ──────────────────────────────── */
+.login-card-wrap {
+  width: min(480px, 100%);
+}
+
 .login-card {
   display: flex;
+  flex-direction: column;
+  width: 100%;
   width: min(100%, 980px);
   max-width: 100%;
   border-radius: 16px;
@@ -288,36 +294,57 @@
 
 .login-step2 .panel-title {
   font-family: var(--font, 'Chakra Petch', sans-serif);
-  font-weight: 600;
-  font-size: 1rem;
-  margin-bottom: 2px;
-}
-.login-step2 .panel-title-sub {
-  font-family: var(--font, 'Chakra Petch', sans-serif);
-  font-weight: 600;
-  font-size: 0.9rem;
+  font-weight: 700;
+  font-size: 1.1rem;
   margin-bottom: 12px;
-  color: #555;
 }
 
-/* ── SIGN-OUT LINK ───────────────────────────── */
-.login-signout {
-  position: absolute;
-  top: 40px;
-  right: 40px;
-  font-size: 0.95rem;
+/* ── WELCOME BACK PANEL ───────────────────── */
+.login-welcome {
+  background: linear-gradient(145deg, #fdfdfd, #ececec);
+  color: #1a1a1a;
+  align-items: flex-start;
+  padding: 32px 40px 36px;
+}
+
+.login-welcome .panel-title {
+  font-family: var(--font, 'Chakra Petch', sans-serif);
+  font-weight: 600;
+  font-size: 1.05rem;
+  color: #555;
+  margin-bottom: 4px;
+}
+
+.login-welcome-name {
+  font-family: var(--font, 'Chakra Petch', sans-serif);
+  font-weight: 800;
+  font-size: clamp(1.8rem, 6vw, 2.6rem);
+  line-height: 1.1;
+  color: #111;
+  margin: 0 0 10px;
+}
+
+.login-notyou {
+  font-size: 0.9rem;
   color: #666;
-  cursor: pointer;
+  margin-bottom: 18px;
+}
+
+.login-notyou-btn {
   border: none;
   background: none;
-  text-align: right;
-  max-width: 150px;
-  line-height: 1.2;
+  font: inherit;
+  color: #666;
   text-decoration: underline;
+  cursor: pointer;
   transition: color .2s;
 }
-.login-signout:hover {
-  color: #111;
+.login-notyou-btn:hover {
+  color: #c62828;
+}
+
+.login-open-btn {
+  max-width: 220px;
 }
 
 .login-signout--inline {
@@ -331,7 +358,7 @@
 
 /* ── FORM CONTROLS ───────────────────────────── */
 .login-select {
-  width: calc(100% - 150px);
+  width: 100%;
   padding: 6px;
   background: #fff;
   color: #111;

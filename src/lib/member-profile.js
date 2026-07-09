@@ -51,11 +51,22 @@ const MemberProfile = (() => {
   const EMPTY_PROFILE = { nickname: '', bio: '', social_links: [], avatar_url: null, banner_url: null, banner_color: null, year_joined: null };
 
   async function fetchProfile(memberSlug) {
-    const { data, error } = await sb
+    // banner_color / year_joined only exist once dmac-site-polish-schema.sql
+    // has been run — retry without them so this still works on the
+    // older schema.
+    let { data, error } = await sb
       .from('members')
       .select('nickname, bio, social_links, avatar_url, banner_url, banner_color, year_joined')
       .eq('slug', memberSlug)
       .maybeSingle();
+
+    if (error) {
+      ({ data, error } = await sb
+        .from('members')
+        .select('nickname, bio, social_links, avatar_url, banner_url')
+        .eq('slug', memberSlug)
+        .maybeSingle());
+    }
 
     if (error) {
       console.error('MemberProfile.fetchProfile:', error.message);
@@ -72,7 +83,7 @@ const MemberProfile = (() => {
     const token = MemberAuth.getSessionToken();
     if (!token) return { success: false, message: 'Not logged in.' };
 
-    const { data, error } = await sb.rpc('member_update_profile', {
+    const args = {
       p_session_token: token,
       p_nickname: nickname ?? null,
       p_bio: bio ?? null,
@@ -80,7 +91,12 @@ const MemberProfile = (() => {
       p_banner_url: bannerUrl ?? null,
       p_banner_color: bannerColor ?? null,
       p_social_links: socialLinks ?? null,
-    });
+    };
+    // Only sent when actually set — the older 6-arg RPC (before
+    // dmac-site-polish-schema.sql) rejects unknown named params.
+    if (bannerColor !== undefined) args.p_banner_color = bannerColor;
+
+    const { data, error } = await sb.rpc('member_update_profile', args);
 
     if (error) {
       // Constraint violations (nickname too long, bad social_links
@@ -103,8 +119,8 @@ const MemberProfile = (() => {
     return saveFields({ bio, socialLinks });
   }
 
-  function updateAppearance({ bannerUrl, bannerColor } = {}) {
-    return saveFields({ bannerUrl, bannerColor });
+  function updateBannerColor(color) {
+    return saveFields({ bannerColor: color });
   }
 
   function uploadAvatar(file) {
@@ -150,7 +166,7 @@ const MemberProfile = (() => {
     return data; // { success, url } or { success: false, message }
   }
 
-  return { fetchProfile, updateNickname, updateProfile, updateAppearance, uploadAvatar, uploadBanner };
+  return { fetchProfile, updateNickname, updateProfile, updateBannerColor, uploadAvatar, uploadBanner };
 })();
 
 export default MemberProfile;

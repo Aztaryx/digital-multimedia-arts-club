@@ -45,15 +45,15 @@
               <div class="profile-stat-grid">
                 <div class="profile-stat">
                   <span class="profile-stat-label">Year joined</span>
-                  <strong>{{ joinedYear }}</strong>
+                  <strong>{{ yearJoined }}</strong>
                 </div>
                 <div class="profile-stat">
                   <span class="profile-stat-label">Badges</span>
                   <strong>Unknown</strong>
                 </div>
                 <div class="profile-stat">
-                  <span class="profile-stat-label">Banner color</span>
-                  <strong>{{ bannerColor || '#f97316' }}</strong>
+                  <span class="profile-stat-label">Badges</span>
+                  <strong>Unknown</strong>
                 </div>
                 <div class="profile-stat">
                   <span class="profile-stat-label">Avatar</span>
@@ -143,12 +143,26 @@
                 <input class="profile-file" type="file" accept="image/*,.gif" @change="onBannerChosen" />
               </label>
 
-              <label class="profile-field profile-field--color">
-                <span>Banner color</span>
-                <input class="profile-color-input" type="color" v-model="bannerColor" />
-              </label>
-
-              <button class="profile-btn" v-sfx-hover @click="saveAppearance">Save appearance</button>
+              <div class="profile-banner-color">
+                <span class="profile-media-copy">
+                  <strong>Banner color</strong>
+                  <small>Shown when no banner image is set.</small>
+                </span>
+                <div class="profile-color-row">
+                  <button
+                    v-for="c in BANNER_COLORS"
+                    :key="c"
+                    class="profile-color-swatch"
+                    :class="{ selected: bannerColor === c }"
+                    :style="{ background: c }"
+                    :aria-label="`Banner color ${c}`"
+                    v-sfx-hover
+                    @click="bannerColor = c"
+                  ></button>
+                  <input class="profile-color-input" type="color" :value="bannerColor || '#f97316'" @input="bannerColor = $event.target.value" aria-label="Custom banner color" />
+                </div>
+                <button class="profile-btn" v-sfx-hover @click="saveBannerColor">Save banner color</button>
+              </div>
             </section>
 
             <section class="profile-panel profile-panel--full">
@@ -209,7 +223,10 @@ const bio = ref('');
 const socialLinks = ref([]); // [{ label, url }]
 const avatarUrl = ref(null);
 const bannerUrl = ref(null);
-const bannerColor = ref('#f97316');
+const bannerColor = ref(null);
+const yearJoined = ref('2026');
+
+const BANNER_COLORS = ['#f97316', '#a855f7', '#38bdf8', '#22c55e', '#ef4444', '#eab308', '#0f172a'];
 
 const publicName = computed(() => nickname.value.trim() || member.value?.display_name || 'DMAC member');
 const avatarInitials = computed(() => {
@@ -233,11 +250,15 @@ const profileScore = computed(() => {
   if (bannerUrl.value) score += 1;
   return `${score}/5`;
 });
-const bannerStyle = computed(() => ({
-  backgroundImage: bannerUrl.value
-    ? `linear-gradient(180deg, ${bannerColor.value}33, rgba(10, 10, 16, 0.72)), url("${bannerUrl.value}")`
-    : `linear-gradient(135deg, ${bannerColor.value}, rgba(76, 29, 149, 0.95))`,
-}));
+const bannerStyle = computed(() => {
+  if (bannerUrl.value) {
+    return { backgroundImage: `linear-gradient(180deg, rgba(10, 10, 16, 0.08), rgba(10, 10, 16, 0.72)), url("${bannerUrl.value}")` };
+  }
+  if (bannerColor.value) {
+    return { background: bannerColor.value };
+  }
+  return { backgroundImage: 'linear-gradient(135deg, rgba(249, 115, 22, 0.95), rgba(76, 29, 149, 0.95))' };
+});
 
 const statusMsg = ref('');
 const statusType = ref('info'); // 'info' | 'success' | 'error'
@@ -269,8 +290,23 @@ onMounted(async () => {
     : [];
   avatarUrl.value = profile.avatar_url;
   bannerUrl.value = profile.banner_url;
-  bannerColor.value = profile.banner_color || '#f97316';
+  bannerColor.value = profile.banner_color || null;
+  yearJoined.value = profile.year_joined || '2026';
 });
+
+async function saveBannerColor() {
+  playSfx('menuclick');
+  if (!bannerColor.value) {
+    status('Pick a banner color first.', 'error');
+    return;
+  }
+  const result = await MemberProfile.updateBannerColor(bannerColor.value);
+  if (result.success) {
+    status('Banner color saved.', 'success');
+  } else {
+    status(result.message || 'Could not save banner color.', 'error');
+  }
+}
 
 async function saveNickname() {
   playSfx('menuclick');
@@ -768,6 +804,51 @@ async function onBannerChosen(e) {
 .profile-file {
   font: inherit;
   color: rgba(240, 240, 240, 0.8);
+}
+
+.profile-banner-color {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 14px;
+  border-radius: 20px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.profile-color-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+.profile-color-swatch {
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  border: 2px solid rgba(255, 255, 255, 0.16);
+  cursor: pointer;
+  transition: transform 0.15s ease, border-color 0.15s ease;
+}
+
+.profile-color-swatch:hover {
+  transform: scale(1.12);
+}
+
+.profile-color-swatch.selected {
+  border-color: #fff;
+  transform: scale(1.12);
+}
+
+.profile-color-input {
+  width: 34px;
+  height: 34px;
+  padding: 0;
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  border-radius: 8px;
+  background: transparent;
+  cursor: pointer;
 }
 
 .profile-password-grid {

@@ -86,7 +86,7 @@ const routes = [
     path: '/admin',
     name: 'admin',
     component: () => import('../views/AdminView.vue'),
-    meta: { title: 'DMAC — Admin Panel', requiresAdmin: true },
+    meta: { title: 'DMAC — Admin Panel', requiresAuth: true, requiresAdmin: true },
   },
 ];
 
@@ -111,10 +111,13 @@ router.beforeEach(async (to) => {
     return member.site_role === 'admin' ? true : '/home';
   }
   if (!to.meta?.requiresAuth) return true;
-  if (MemberAuth.current()) return true;
 
-  const member = await MemberAuth.restoreSession();
-  return member ? true : '/login';
+  let member = MemberAuth.current();
+  if (!member) member = await MemberAuth.restoreSession();
+  if (!member) return '/login';
+
+  if (to.meta?.requiresAdmin && member.site_role !== 'admin') return '/home';
+  return true;
 });
 
 router.afterEach((to) => {
