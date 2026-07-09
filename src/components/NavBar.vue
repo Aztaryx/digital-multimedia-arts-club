@@ -43,6 +43,11 @@
       <li v-if="MemberAuth.sessionMember.value">
         <router-link to="/profile" :class="{ active: isSection('/profile') }">profile</router-link>
       </li>
+
+      <!-- Admin panel — admins only. -->
+      <li v-if="isAdmin">
+        <router-link to="/admin" class="nav-admin-link" :class="{ active: isSection('/admin') }">admin</router-link>
+      </li>
     </ul>
 
     <!-- ──────── NAV ACTIONS: forums / notifications / profile ────────
@@ -102,6 +107,7 @@
             <circle cx="12" cy="8.5" r="3.4" stroke-width="1.6" />
             <path d="M5 19c1.2-3.4 4-5 7-5s5.8 1.6 7 5" stroke-width="1.6" stroke-linecap="round" />
           </svg>
+          <img v-else-if="avatarUrl" class="nav-avatar-img" :src="avatarUrl" alt="" />
           <span v-else>{{ avatarLabel }}</span>
         </div>
 
@@ -113,6 +119,7 @@
 
           <template v-if="MemberAuth.sessionMember.value">
             <router-link to="/profile" class="nav-dropdown-item" @click="closeDropdowns">Edit profile</router-link>
+            <router-link v-if="isAdmin" to="/admin" class="nav-dropdown-item" @click="closeDropdowns">Admin panel</router-link>
             <button class="nav-dropdown-item nav-dropdown-item--danger" @click="signOut">Sign out</button>
           </template>
           <template v-else>
@@ -157,14 +164,16 @@
     <a href="#" @click.prevent="Panels.toggleLeft('forums'); closeMobile()">forums</a>
 
     <router-link v-if="MemberAuth.sessionMember.value" to="/profile" @click="closeMobile">profile</router-link>
+    <router-link v-if="isAdmin" to="/admin" @click="closeMobile">admin panel</router-link>
   </nav>
 </template>
 
 <script setup>
-import { ref, computed, onMounted, onBeforeUnmount } from 'vue';
+import { ref, computed, watch, onMounted, onBeforeUnmount } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { playSfx } from '../composables/useSfx.js';
 import MemberAuth from '../lib/member-auth.js';
+import MemberProfile from '../lib/member-profile.js';
 import { sb } from '../lib/supabase-client.js';
 import Panels from '../composables/usePanels.js';
 
@@ -222,15 +231,30 @@ const roleClass = computed(() => {
   if (m.site_role === 'moderator') return 'nav-avatar--moderator';
   return 'nav-avatar--member';
 });
-// Initials only, not a real avatar image — swap this for a real <img>
-// using MemberProfile.fetchProfile(MemberAuth.sessionMember.value?.slug)
-// if a NavBar avatar is wanted later (avatar_url is looked up by slug,
-// same as ProfileView does — no RPC changes needed for that).
+const isAdmin = computed(() => MemberAuth.sessionMember.value?.site_role === 'admin');
+
+// Initials fallback when no custom avatar image is set.
 const avatarLabel = computed(() => {
   const name = MemberAuth.sessionMember.value?.display_name;
   if (!name) return '?';
   return name.trim().split(/\s+/).slice(0, 2).map((w) => w[0]).join('').toUpperCase();
 });
+
+// Custom avatar image — looked up by slug the same way ProfileView
+// does, so the circle shows the member's uploaded picture.
+const avatarUrl = ref(null);
+watch(
+  () => MemberAuth.sessionMember.value?.slug,
+  async (slug) => {
+    avatarUrl.value = null;
+    if (!slug) return;
+    try {
+      const profile = await MemberProfile.fetchProfile(slug);
+      avatarUrl.value = profile?.avatar_url || null;
+    } catch (_) {}
+  },
+  { immediate: true },
+);
 
 async function signOut() {
   closeDropdowns();
