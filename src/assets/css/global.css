@@ -184,6 +184,9 @@ a     { color: inherit; text-decoration: none; }
   overflow: hidden;
 }
 .nav-avatar svg { width: 18px; height: 18px; stroke: var(--muted); fill: none; }
+.nav-avatar-img { width: 100%; height: 100%; border-radius: 50%; object-fit: cover; }
+.nav-avatar:has(.nav-avatar-img) { overflow: hidden; padding: 0; }
+.nav-avatar-image { width: 100%; height: 100%; object-fit: cover; border-radius: 50%; }
 .nav-avatar--guest      { border-color: rgba(255,255,255,.14); }
 .nav-avatar--member     { border-color: var(--purple); }
 .nav-avatar--moderator  { border-color: #38bdf8; }
