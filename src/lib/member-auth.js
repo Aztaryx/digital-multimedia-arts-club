@@ -47,6 +47,17 @@ const MemberAuth = (() => {
   const STORAGE_KEY = 'dmac_session_token';
   let cachedMember = null; // { slug, display_name, club_role, site_role }
 
+  // In-memory fallback for when localStorage is blocked or unavailable —
+  // notably some Android in-app browsers (Facebook/Messenger/Instagram),
+  // Samsung Internet with strict storage blocking, and Chrome Incognito
+  // with a zero-quota localStorage all throw on setItem/getItem. Without
+  // this fallback, that throw happened right after a *successful* login
+  // RPC and bubbled up as a generic "Something went wrong" error — so
+  // people with correct passwords were being told to try again.
+  // With the fallback, the session still works for the current page
+  // load; it just won't survive a hard refresh on those browsers.
+  let memoryToken = null;
+
   // Reactive mirror of cachedMember. Plain closure variables don't trigger
   // Vue re-renders on their own — components that need to know "is someone
   // logged in right now" (NavBar's profile link, route guards) watch this
@@ -58,13 +69,38 @@ const MemberAuth = (() => {
     sessionMember.value = member;
   }
 
+  // Temporary diagnostic helper — the UI has been showing a single generic
+  // "Something went wrong" for every RPC failure, which makes it impossible
+  // to tell a network problem from a CORS problem from an auth problem
+  // without console access. This surfaces the real reason inline instead,
+  // so it can be read directly off a phone screen. Safe to strip back down
+  // to a plain friendly string once the actual cause is confirmed.
+  function describeError(error) {
+    const parts = [];
+    if (error?.message) parts.push(error.message);
+    if (error?.code) parts.push(`code: ${error.code}`);
+    if (error?.status) parts.push(`status: ${error.status}`);
+    const detail = parts.join(' — ') || 'unknown error';
+    return `Something went wrong — try again. (${detail})`;
+  }
+
   function getToken() {
-    return localStorage.getItem(STORAGE_KEY);
+    try {
+      return localStorage.getItem(STORAGE_KEY) ?? memoryToken;
+    } catch (_) {
+      return memoryToken;
+    }
   }
 
   function setToken(token) {
-    if (token) localStorage.setItem(STORAGE_KEY, token);
-    else localStorage.removeItem(STORAGE_KEY);
+    memoryToken = token || null;
+    try {
+      if (token) localStorage.setItem(STORAGE_KEY, token);
+      else localStorage.removeItem(STORAGE_KEY);
+    } catch (_) {
+      // Storage blocked — memoryToken above already covers the current
+      // page load. Session just won't persist across a refresh here.
+    }
   }
 
   async function restoreSession() {
@@ -73,6 +109,7 @@ const MemberAuth = (() => {
 
     const { data, error } = await sb.rpc('member_session_check', { p_session_token: token });
     if (error || !data || !data.success) {
+      if (error) console.error('MemberAuth.restoreSession RPC error:', error);
       setToken(null);
       setMember(null);
       return null;
@@ -83,7 +120,10 @@ const MemberAuth = (() => {
 
   async function login(slug, password) {
     const { data, error } = await sb.rpc('member_login', { p_slug: slug, p_password: password });
-    if (error) return { success: false, message: 'Something went wrong — try again.' };
+    if (error) {
+      console.error('MemberAuth.login RPC error:', error);
+      return { success: false, message: describeError(error) };
+    }
     if (!data.success) return data; // { success: false, message: '...' }
 
     setToken(data.session_token);
@@ -103,7 +143,10 @@ const MemberAuth = (() => {
     if (!token) return { success: false, message: 'Log in with your name and password first.' };
 
     const { data, error } = await sb.rpc('member_link_google', { p_session_token: token });
-    if (error) return { success: false, message: 'Something went wrong — try again.' };
+    if (error) {
+      console.error('MemberAuth.linkGoogle RPC error:', error);
+      return { success: false, message: describeError(error) };
+    }
     return data;
   }
 
@@ -114,13 +157,19 @@ const MemberAuth = (() => {
     const { data, error } = await sb.rpc('member_change_own_password', {
       p_session_token: token, p_old_password: oldPassword, p_new_password: newPassword,
     });
-    if (error) return { success: false, message: 'Something went wrong — try again.' };
+    if (error) {
+      console.error('MemberAuth.changeOwnPassword RPC error:', error);
+      return { success: false, message: describeError(error) };
+    }
     return data;
   }
 
   async function fetchRoster(bucket) {
     const { data, error } = await sb.from('members').select('slug, display_name, site_role');
-    if (error || !data) return [];
+    if (error || !data) {
+      if (error) console.error('MemberAuth.fetchRoster error:', error);
+      return [];
+    }
 
     const wanted = bucket === 'moderator'
       ? (row) => row.site_role === 'moderator' || row.site_role === 'admin'

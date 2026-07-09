@@ -16,7 +16,7 @@ import { ref } from 'vue';
 
 const leftOpen = ref(false);
 const rightOpen = ref(false);
-const leftTab = ref('forums'); // 'forums' | 'dms'
+const leftTab = ref('forums'); // 'forums' | 'dms' | 'rules'
 
 function openLeft(tab) {
   if (tab) leftTab.value = tab;

@@ -14,6 +14,11 @@
               :class="{ active: Panels.leftTab.value === 'dms' }"
               @click="switchTab('dms')"
             >DMs</button>
+            <button
+              class="side-tab"
+              :class="{ active: Panels.leftTab.value === 'rules' }"
+              @click="switchTab('rules')"
+            >Rulebook</button>
           </div>
           <button class="side-panel-close" aria-label="Close" v-sfx-hover @click="Panels.closeAll">✕</button>
         </div>
@@ -32,13 +37,76 @@
                 <span>{{ selectedThread.author_name }}</span><span>·</span>
                 <span>{{ formatTime(selectedThread.created_at) }}</span>
               </div>
-              <div v-if="canModerate || isThreadOwner" class="forum-thread-actions">
+              <div v-if="threadEditId === selectedThread.id" class="forum-inline-editor">
+                <label class="forum-field">
+                  <span>Edit thread title</span>
+                  <input class="forum-input" v-model="threadEditDraft" maxlength="120" />
+                </label>
+                <div class="forum-composer-actions forum-composer-actions--compact">
+                  <button class="forum-btn forum-btn--primary" v-sfx-hover @click="saveThreadEdit">Save title</button>
+                  <button class="forum-btn" v-sfx-hover @click="cancelThreadEdit">Cancel</button>
+                </div>
+                <p v-if="threadEditStatus" class="forums-guest-note">{{ threadEditStatus }}</p>
+              </div>
+              <div v-else-if="canModerate || isThreadOwner" class="forum-thread-actions">
+                <button
+                  v-if="canEditThread"
+                  class="forum-link-btn"
+                  @click="beginThreadEdit"
+                >Edit title</button>
                 <button
                   v-if="canModerate"
                   class="forum-link-btn"
                   @click="togglePin"
                 >{{ selectedThread.pinned ? 'Unpin' : 'Pin' }}</button>
+                <button
+                  v-if="canModerate"
+                  class="forum-link-btn"
+                  @click="beginModeration(selectedThread.author_slug, selectedThread.author_name, 'warn')"
+                >Warn author</button>
+                <button
+                  v-if="canModerate"
+                  class="forum-link-btn"
+                  @click="beginModeration(selectedThread.author_slug, selectedThread.author_name, 'silence')"
+                >Silence author</button>
+                <button
+                  v-if="canModerate"
+                  class="forum-link-btn"
+                  @click="beginModeration(selectedThread.author_slug, selectedThread.author_name, 'unsilence')"
+                >Unsilence author</button>
                 <button class="forum-link-btn forum-link-btn--danger" @click="removeThread">Delete thread</button>
+              </div>
+
+              <div v-if="modTarget" class="forum-warning-composer">
+                <div class="forum-warning-head">
+                  <strong>{{ modActionLabel }} {{ modTarget.displayName }}</strong>
+                  <button class="forum-link-btn" v-sfx-hover @click="clearModeration">Cancel</button>
+                </div>
+                <label v-if="modAction === 'silence'" class="forum-field">
+                  <span>Duration</span>
+                  <select class="forum-input" v-model.number="modDuration">
+                    <option :value="1">1 hour</option>
+                    <option :value="24">24 hours</option>
+                    <option :value="72">3 days</option>
+                    <option :value="168">7 days</option>
+                    <option :value="720">30 days</option>
+                  </select>
+                </label>
+                <label class="forum-field">
+                  <span>Reason</span>
+                  <textarea
+                    class="forum-input forum-textarea"
+                    v-model="modReason"
+                    rows="3"
+                    maxlength="500"
+                    placeholder="Optional note for the moderation log"
+                  ></textarea>
+                </label>
+                <div class="forum-composer-actions forum-composer-actions--compact">
+                  <button class="forum-btn forum-btn--primary" v-sfx-hover @click="sendModeration">{{ modSubmitLabel }}</button>
+                  <button class="forum-btn" v-sfx-hover @click="clearModeration">Cancel</button>
+                </div>
+                <p v-if="modStatus" class="forums-guest-note">{{ modStatus }}</p>
               </div>
             </div>
 
@@ -48,13 +116,45 @@
                 <div class="forum-post-meta">
                   <strong>{{ post.author_name }}</strong>
                   <span>{{ formatTime(post.created_at) }}</span>
-                  <button
-                    v-if="canModerate || post.author_slug === myMoveSlug"
-                    class="forum-link-btn forum-link-btn--danger"
-                    @click="removePost(post.id)"
-                  >delete</button>
+                  <div v-if="canModerate || canEditPost(post)" class="forum-post-meta-actions">
+                    <button
+                      v-if="canEditPost(post)"
+                      class="forum-link-btn"
+                      @click="beginPostEdit(post)"
+                    >Edit</button>
+                    <button
+                      v-if="canModerate"
+                      class="forum-link-btn"
+                      @click="beginModeration(post.author_slug, post.author_name, 'warn')"
+                    >Warn</button>
+                    <button
+                      v-if="canModerate"
+                      class="forum-link-btn"
+                      @click="beginModeration(post.author_slug, post.author_name, 'silence')"
+                    >Silence</button>
+                    <button
+                      v-if="canModerate"
+                      class="forum-link-btn"
+                      @click="beginModeration(post.author_slug, post.author_name, 'unsilence')"
+                    >Unsilence</button>
+                    <button
+                      class="forum-link-btn forum-link-btn--danger"
+                      @click="removePost(post.id)"
+                    >Delete</button>
+                  </div>
                 </div>
-                <p class="forum-post-body">{{ post.body }}</p>
+                <div v-if="editingPostId === post.id" class="forum-inline-editor">
+                  <label class="forum-field">
+                    <span>Edit post</span>
+                    <textarea class="forum-input forum-textarea" v-model="postEditDraft" rows="4" maxlength="4000"></textarea>
+                  </label>
+                  <div class="forum-composer-actions forum-composer-actions--compact">
+                    <button class="forum-btn forum-btn--primary" v-sfx-hover @click="savePostEdit(post.id)">Save post</button>
+                    <button class="forum-btn" v-sfx-hover @click="cancelPostEdit">Cancel</button>
+                  </div>
+                  <p v-if="postEditStatus" class="forums-guest-note">{{ postEditStatus }}</p>
+                </div>
+                <p v-else class="forum-post-body">{{ post.body }}</p>
               </article>
             </section>
 
@@ -120,7 +220,7 @@
         </div>
 
         <!-- ══════════════ DMs TAB ══════════════ -->
-        <div v-else class="side-panel-body">
+        <div v-else-if="Panels.leftTab.value === 'dms'" class="side-panel-body">
           <div v-if="!isLoggedIn" class="dm-empty-state">
             <p class="forums-guest-note"><router-link to="/login" @click="Panels.closeAll">Log in</router-link> to add friends and send DMs.</p>
           </div>
@@ -188,6 +288,67 @@
             </section>
           </template>
         </div>
+
+        <!-- ══════════════ RULEBOOK TAB ══════════════ -->
+        <div v-else class="side-panel-body">
+          <div class="forums-head">
+            <p class="forums-intro">Applies to every thread, reply, and DM sent through DMAC's forums.</p>
+          </div>
+
+          <ol class="rulebook-list">
+            <li class="rulebook-item">
+              <span class="rulebook-item-num">1</span>
+              <div class="rulebook-item-body">
+                <h4>Be respectful</h4>
+                <p>Treat officers, advisers, and fellow members the way you'd want to be treated. No bullying, harassment, or personal attacks.</p>
+              </div>
+            </li>
+            <li class="rulebook-item">
+              <span class="rulebook-item-num">2</span>
+              <div class="rulebook-item-body">
+                <h4>Stay on topic</h4>
+                <p>Keep threads relevant to DMAC — event coverage, club projects, and school-related discussion.</p>
+              </div>
+            </li>
+            <li class="rulebook-item">
+              <span class="rulebook-item-num">3</span>
+              <div class="rulebook-item-body">
+                <h4>No spam or unrelated self-promotion</h4>
+                <p>Keep the noise down so real discussion doesn't get buried.</p>
+              </div>
+            </li>
+            <li class="rulebook-item">
+              <span class="rulebook-item-num">4</span>
+              <div class="rulebook-item-body">
+                <h4>Keep it appropriate</h4>
+                <p>No explicit, hateful, or illegal content — this is a school space.</p>
+              </div>
+            </li>
+            <li class="rulebook-item">
+              <span class="rulebook-item-num">5</span>
+              <div class="rulebook-item-body">
+                <h4>Respect privacy</h4>
+                <p>Don't share anyone's personal information without their permission.</p>
+              </div>
+            </li>
+            <li class="rulebook-item">
+              <span class="rulebook-item-num">6</span>
+              <div class="rulebook-item-body">
+                <h4>Post as yourself</h4>
+                <p>Threads and replies are tied to your member account — no impersonating other members, officers, or advisers.</p>
+              </div>
+            </li>
+            <li class="rulebook-item">
+              <span class="rulebook-item-num">7</span>
+              <div class="rulebook-item-body">
+                <h4>Follow moderator instructions</h4>
+                <p>Officers and advisers can pin, edit, or remove content that breaks these rules. Breaking a rule can mean a warning; repeated or serious violations can mean a temporary silence.</p>
+              </div>
+            </li>
+          </ol>
+
+          <p class="forums-guest-note">Questions about a moderation action? Reach out to an officer directly.</p>
+        </div>
       </div>
     </div>
   </Teleport>
@@ -197,6 +358,7 @@
 import { ref, computed, nextTick } from 'vue';
 import Panels from '../../composables/usePanels.js';
 import MemberAuth from '../../lib/member-auth.js';
+import { playSfx } from '../../composables/useSfx.js';
 import { sb } from '../../lib/supabase-client.js';
 
 const isLoggedIn = computed(() => !!MemberAuth.sessionMember.value);
@@ -243,6 +405,29 @@ const replyDraft = ref('');
 const replyStatus = ref('');
 
 const isThreadOwner = computed(() => selectedThread.value?.author_slug === myMoveSlug.value);
+const canEditThread = computed(() => !!selectedThread.value && (canModerate.value || isThreadOwner.value));
+
+const threadEditId = ref(null);
+const threadEditDraft = ref('');
+const threadEditStatus = ref('');
+
+const editingPostId = ref(null);
+const postEditDraft = ref('');
+const postEditStatus = ref('');
+
+const modTarget = ref(null);
+const modAction = ref('warn');
+const modDuration = ref(24);
+const modReason = ref('');
+const modStatus = ref('');
+
+const MOD_ACTION_LABELS = { warn: 'Warn', silence: 'Silence', unsilence: 'Unsilence' };
+const modActionLabel = computed(() => MOD_ACTION_LABELS[modAction.value] || 'Warn');
+const modSubmitLabel = computed(() => {
+  if (modAction.value === 'silence') return 'Silence member';
+  if (modAction.value === 'unsilence') return 'Lift silence';
+  return 'Send warning';
+});
 
 async function loadThreads() {
   threadsLoading.value = true;
@@ -261,6 +446,13 @@ async function loadThreads() {
 
 async function openThread(thread) {
   selectedThread.value = thread;
+  threadEditId.value = null;
+  threadEditDraft.value = '';
+  threadEditStatus.value = '';
+  editingPostId.value = null;
+  postEditDraft.value = '';
+  postEditStatus.value = '';
+  clearModeration();
   postsLoading.value = true;
   const { data, error } = await sb
     .from('forum_posts_feed')
@@ -281,6 +473,119 @@ function closeThread() {
   posts.value = [];
   replyDraft.value = '';
   replyStatus.value = '';
+  threadEditId.value = null;
+  threadEditDraft.value = '';
+  threadEditStatus.value = '';
+  editingPostId.value = null;
+  postEditDraft.value = '';
+  postEditStatus.value = '';
+  clearModeration();
+}
+
+function beginThreadEdit() {
+  if (!selectedThread.value) return;
+  threadEditId.value = selectedThread.value.id;
+  threadEditDraft.value = selectedThread.value.title;
+  threadEditStatus.value = '';
+}
+
+function cancelThreadEdit() {
+  threadEditId.value = null;
+  threadEditDraft.value = '';
+  threadEditStatus.value = '';
+}
+
+function beginPostEdit(post) {
+  editingPostId.value = post.id;
+  postEditDraft.value = post.body;
+  postEditStatus.value = '';
+}
+
+function cancelPostEdit() {
+  editingPostId.value = null;
+  postEditDraft.value = '';
+  postEditStatus.value = '';
+}
+
+function beginModeration(slug, displayName, action) {
+  modTarget.value = { slug, displayName };
+  modAction.value = action;
+  modDuration.value = 24;
+  modReason.value = '';
+  modStatus.value = '';
+}
+
+function clearModeration() {
+  modTarget.value = null;
+  modAction.value = 'warn';
+  modDuration.value = 24;
+  modReason.value = '';
+  modStatus.value = '';
+}
+
+function canEditPost(post) {
+  return canModerate.value || post.author_slug === myMoveSlug.value;
+}
+
+async function saveThreadEdit() {
+  if (!selectedThread.value) return;
+  const token = MemberAuth.getSessionToken();
+  const { data, error } = await sb.rpc('edit_forum_thread', {
+    p_session_token: token,
+    p_thread_id: selectedThread.value.id,
+    p_title: threadEditDraft.value.trim(),
+  });
+  if (error || !data?.success) {
+    threadEditStatus.value = data?.message || 'Could not update that thread.';
+    return;
+  }
+  selectedThread.value = { ...selectedThread.value, title: threadEditDraft.value.trim() };
+  threadEditId.value = null;
+  threadEditDraft.value = '';
+  threadEditStatus.value = '';
+  playSfx('staffsilence');
+  await loadThreads();
+}
+
+async function savePostEdit(postId) {
+  const token = MemberAuth.getSessionToken();
+  const { data, error } = await sb.rpc('edit_forum_post', {
+    p_session_token: token,
+    p_post_id: postId,
+    p_body: postEditDraft.value.trim(),
+  });
+  if (error || !data?.success) {
+    postEditStatus.value = data?.message || 'Could not update that post.';
+    return;
+  }
+  editingPostId.value = null;
+  postEditDraft.value = '';
+  postEditStatus.value = '';
+  playSfx('staffsilence');
+  await openThread(selectedThread.value);
+  await loadThreads();
+}
+
+async function sendModeration() {
+  if (!modTarget.value) return;
+  const action = modAction.value;
+  const token = MemberAuth.getSessionToken();
+  const { data, error } = await sb.rpc('member_moderate', {
+    p_session_token: token,
+    p_target_slug: modTarget.value.slug,
+    p_action: action,
+    p_reason: modReason.value.trim() || null,
+    p_duration_hours: modDuration.value,
+  });
+  if (error || !data?.success) {
+    const fallback = action === 'silence' ? 'Could not silence that member.'
+      : action === 'unsilence' ? 'Could not lift that silence.'
+      : 'Could not send that warning.';
+    modStatus.value = data?.message || fallback;
+    return;
+  }
+  playSfx(action === 'warn' ? 'staffwarning' : 'staffsilence');
+  clearModeration();
 }
 
 async function submitDraft() {
@@ -331,6 +636,7 @@ async function togglePin() {
     p_pinned: !selectedThread.value.pinned,
   });
   if (error || !data?.success) return;
+  playSfx('staffsilence');
   selectedThread.value = { ...selectedThread.value, pinned: !selectedThread.value.pinned };
   await loadThreads();
 }
@@ -342,6 +648,7 @@ async function removeThread() {
     p_thread_id: selectedThread.value.id,
   });
   if (error || !data?.success) return;
+  playSfx('staffspam');
   closeThread();
   await loadThreads();
 }
@@ -350,6 +657,7 @@ async function removePost(postId) {
   const token = MemberAuth.getSessionToken();
   const { data, error } = await sb.rpc('delete_forum_post', { p_session_token: token, p_post_id: postId });
   if (error || !data?.success) return;
+  playSfx('staffspam');
   await openThread(selectedThread.value);
 }
 

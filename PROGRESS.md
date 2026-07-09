@@ -198,7 +198,48 @@ Added this pass, since the SPA is now what's live on `main`:
   Confirmed locally that the copied file is byte-identical to
   `index.html`.
 
-## Not done yet / needs real verification
+## Done since last checkpoint (moderation pass)
+
+- **`src/components/panels/LeftPanel.vue`** — this file was quietly out
+  of date: a materially more complete version had been built at
+  `src/composables/panels/LeftPanel.vue` (wrong directory — composables
+  shouldn't hold `.vue` components) and never wired into `App.vue`,
+  which only ever imported the plainer copy from `components/panels/`.
+  That orphaned copy already called real, existing RPCs
+  (`edit_forum_thread`, `edit_forum_post`, `member_moderate`) that
+  nothing else in the app used. Merged it in as the one active version:
+  - Inline thread-title editing and inline post editing (mods or the
+    original author).
+  - "Warn author" — logs to `moderation_log` via `member_moderate`.
+  - Deleted the now-redundant `src/composables/panels/` directory.
+- **New: real silence enforcement.** `member_moderate`'s own comment
+  said it plainly — action='silence' only ever wrote a log row; a
+  silenced member could still post normally. Added
+  `supabase/dmac-moderation-silence-enforcement.sql`:
+  - `members.silenced_until` (timestamptz, null = not silenced).
+  - `member_moderate` gained `p_duration_hours` (default 24) and an
+    `'unsilence'` action; both now actually set/clear the column, not
+    just log.
+  - `create_forum_thread` / `create_forum_post` re-check that column
+    server-side and refuse new posts while it's in the future — same
+    "never trust the client" pattern as every other RPC here. Edits/
+    deletes of a silenced member's *existing* posts are untouched —
+    scope is "can't post new things," same as a normal forum timeout.
+  - Verified end-to-end against a scratch local Postgres (not your live
+    project — no network access here): non-mods correctly rejected,
+    warn stays log-only, silence blocks both new threads and replies,
+    unsilence immediately restores posting, a 0/negative duration
+    floors to 1 hour instead of silently no-op'ing, and the whole file
+    re-runs cleanly (idempotent, per its own header).
+  - Frontend: added a "Silence"/"Unsilence" pair next to "Warn" (thread
+    view and per-post), with a duration picker (1h/24h/3d/7d/30d) that
+    only shows up for Silence.
+  - **You still need to run `dmac-moderation-silence-enforcement.sql`
+    against your live Supabase project** (Dashboard → SQL Editor) —
+    same as every other `.sql` file in this folder; nothing here
+    applies itself.
+
+
 
 - **Visual QA.** Nothing in this pass was checked in an actual
   rendered browser — only `vite build` output (module resolution +

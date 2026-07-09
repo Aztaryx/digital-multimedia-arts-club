@@ -13,16 +13,16 @@
       <div class="about-text reveal" v-reveal>
         <SecHead>About Us</SecHead>
         <p class="about-paragraph">
-          DMAC — the Digital Multimedia Arts Club — is a student-run community watched over by Sir Richmond Causaren and the Head of TLE for anyone into digital creation: editing video, designing graphics, building websites, taking photos, or tinkering with tech and computers.
+          DMAC — the Digital Multimedia Arts Club — is a student-run club watched over by Sir Richmond Causaren and the Head of TLE. In practice, that makes us the school's go-to team for event coverage: we show up to record what happens, edit the footage and photos afterward, and post the finished coverage for the rest of the school to see.
         </p>
         <p class="about-paragraph">
-          We're brand new, just a couple of weeks old, so there's no long list of traditions yet — just a small group of students who decided to start making things together and are looking for more people to join in.
+          We're brand new, just a couple of weeks old, so there's no long list of traditions yet — just a small group of students who decided to start covering school events together and are looking for more people to join in.
         </p>
         <p class="about-paragraph">
-          That means if you sign up now, you're getting in early. Meetings are hands-on, projects are collaborative, and a lot of what DMAC becomes depends on what members want to do. We're open to any student, run by students, and growing based on interest — so if there's something you want to explore that we don't cover yet, tell us. That's basically how we got here in the first place.
+          That means if you sign up now, you're getting in early. Coverage is a team effort — someone's filming, someone's taking photos, someone's editing, someone's designing the graphic, someone's writing the post — and a lot of how that work gets divided depends on what members are into. We're open to any student, run by students, and growing based on interest — so if there's a part of the process you want to get better at, tell us.
         </p>
         <p class="about-paragraph">
-          To keep everyone on the same page, we do ask for a quick example of your work when you sign up. It doesn't have to be a masterpiece, and it doesn't matter if it's "good" yet. It just shows us what you're currently into—whether that's a video edit, a design piece, a photo, a line of code, or a PC spec sheet you put together. It sets our starting standard so we know exactly what tools and projects to dive into first.
+          To keep everyone on the same page, we do ask for a quick example of your work when you sign up. It doesn't have to be a masterpiece, and it doesn't matter if it's "good" yet. It just shows us what you're currently into — whether that's a video edit, a photo, a design piece, or anything else you've made. It sets our starting standard so we know exactly where to plug you into event coverage first.
         </p>
       </div>
 

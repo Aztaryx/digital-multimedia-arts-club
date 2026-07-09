@@ -282,7 +282,8 @@ async function handleSubmit() {
       setLoadingText('Ready');
     }
   } catch (e) {
-    status('Something went wrong. Please try again.', 'error');
+    console.error('handleSubmit error:', e);
+    status(`Something went wrong. Please try again. (${e?.message || 'unknown error'})`, 'error');
     submitDisabled.value = false;
     setLoadingText('Ready');
   }
@@ -325,7 +326,8 @@ async function handleGoogleLink() {
       options: { redirectTo: window.location.href },
     });
   } catch (e) {
-    status('Something went wrong. Please try again.', 'error');
+    console.error('handleGoogleLink error:', e);
+    status(`Something went wrong. Please try again. (${e?.message || 'unknown error'})`, 'error');
     setLoadingText('Ready');
     googleDisabled.value = false;
   }
@@ -344,7 +346,8 @@ async function handleOAuthCallback() {
     try {
       const { data: { session }, error } = await sb.auth.getSession();
       if (error || !session) {
-        status('Google sign-in failed.', 'error');
+        console.error('handleOAuthCallback getSession error:', error);
+        status(`Google sign-in failed. (${error?.message || 'no session'})`, 'error');
         setLoadingText('Ready');
         return;
       }
@@ -367,7 +370,8 @@ async function handleOAuthCallback() {
         setTimeout(() => { router.push('/home'); }, 1000);
       }
     } catch (e) {
-      status('Something went wrong with Google sign-in.', 'error');
+      console.error('handleOAuthCallback error:', e);
+      status(`Something went wrong with Google sign-in. (${e?.message || 'unknown error'})`, 'error');
       setLoadingText('Ready');
     }
   }

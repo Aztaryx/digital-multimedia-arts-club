@@ -86,9 +86,10 @@ const MemberProfile = (() => {
       // shape, etc.) surface here as a raw Postgres error rather than
       // a friendly { success:false, message } payload, since this
       // schema validates via table CHECK constraints, not in-function
-      // branching. Fine for now — swap in explicit pre-checks in this
-      // function later if the raw messages turn out to be too rough.
-      return { success: false, message: 'Something went wrong — try again.' };
+      // branching.
+      console.error('MemberProfile.saveFields error:', error);
+      const detail = error?.message ? ` (${error.message})` : '';
+      return { success: false, message: `Something went wrong — try again.${detail}` };
     }
     return data;
   }

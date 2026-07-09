@@ -5,6 +5,14 @@
       <div class="faq-list">
 
         <div class="faq-item">
+          <p class="faq-q">What does DMAC actually do?</p>
+          <p class="faq-a">
+            We cover school events — recording them, editing the footage and photos, and posting the
+            finished coverage. Everything else, like skill-building and club projects, grows out of that.
+          </p>
+        </div>
+
+        <div class="faq-item">
           <p class="faq-q">Does your team work anywhere else? Do you do commissions?</p>
           <p class="faq-a">
             No — DMAC is a school-based club, not a freelance team. We operate exclusively at

@@ -33,16 +33,16 @@
         <button class="hp-expanded-close" aria-label="Close panel" @click.stop="collapsePanel">&times;</button>
         <div class="hp-expanded-body">
           <h2 class="hp-expanded-title"><GradWrap>Digital</GradWrap></h2>
-          <p class="hp-expanded-tagline">Code &bull; Circuits &bull; Cyberspace</p>
+          <p class="hp-expanded-tagline">Upload &bull; Publish &bull; Archive</p>
           <div class="hp-expanded-text">
             <p>
-              The Digital pillar is all about understanding the tech we use every day — and learning how to make it do cool stuff. We explore web development, basic coding, and how computers actually work, all at a pace that makes sense for everyone.
+              The Digital pillar covers everything that happens after the camera stops rolling — getting the coverage online, organized, and in front of the rest of the school before everyone's moved on.
             </p>
             <p>
-              Whether you're curious about how websites are built, want to learn what's inside your computer, or just like figuring out how things work, this is the place to start. We keep it beginner-friendly and hands-on — no lectures, just learning by doing.
+              Whether you're curious about running our social pages, keeping event footage and photos organized, or helping build out this website, this is the place to start. We keep it beginner-friendly and hands-on — no lectures, just learning by doing.
             </p>
             <p>
-              Some of the things we get into: building simple websites with HTML and CSS, learning your way around different software, troubleshooting tech problems like a pro, and exploring tools that make everyday tasks easier. You don't need to be a "tech person" — you just need to be curious.
+              Some of the things we get into: posting and scheduling on our Facebook page, organizing shared folders of event footage, writing captions people actually read, and helping maintain this site. You don't need to be a "tech person" — you just need to be curious.
             </p>
           </div>
         </div>
@@ -80,13 +80,13 @@
           <p class="hp-expanded-tagline">Lights &bull; Camera &bull; Render</p>
           <div class="hp-expanded-text">
             <p>
-              The Multimedia pillar is where we bring ideas to life through video, sound, and motion. If you've ever watched a cool edit or short film and thought "I wanna make something like that," this is your starting point.
+              The Multimedia pillar is where school events actually get captured. If you've ever seen a recap video or event highlight reel and thought "I want to help make those," this is your starting point.
             </p>
             <p>
-              We cover the full process — coming up with ideas, planning shots, filming, editing, adding effects, and putting it all together into something you're proud of. You'll get hands-on time with editing software and learn the basics of how movies, music videos, and online content are actually made.
+              We cover the full process — showing up to film and shoot photos at assemblies, competitions, and school activities, then editing that raw footage into something worth posting. You'll get hands-on time with editing software and learn the basics of how recap videos and highlight reels actually come together.
             </p>
             <p>
-              No experience needed at all. Whether you want to make short films with friends, put together highlight reels, try out motion graphics, or just learn how to edit videos for fun — we'll help you figure it out step by step. Everyone starts somewhere, and this is a great place to start.
+              No experience needed at all. Whether you want to be behind the camera at school events, cut together highlight reels, try out motion graphics, or just learn how to edit video for fun — we'll help you figure it out step by step. Everyone starts somewhere, and this is a great place to start.
             </p>
           </div>
         </div>
@@ -126,13 +126,13 @@
           <p class="hp-expanded-tagline">Brush &bull; Pixel &bull; Canvas</p>
           <div class="hp-expanded-text">
             <p>
-              The Arts pillar is where your creativity gets to run free. This is all about making things that look awesome — whether that's digital drawings, poster designs, photo edits, or anything visual you can dream up.
+              The Arts pillar is where the coverage gets its look — the posters, thumbnails, and graphics that go alongside everything we film and photograph.
             </p>
             <p>
-              We explore digital illustration, graphic design, photography, and more. You'll learn how to use design tools, develop your own style, and pick up skills like composition, color theory, and typography along the way — without it feeling like a class.
+              We explore graphic design, photo editing, and layout — designing announcement graphics, event posters, and thumbnails for our posts. You'll learn how to use design tools and pick up skills like composition, color theory, and typography along the way — without it feeling like a class.
             </p>
             <p>
-              There's no "right way" to make art here. Whether you're already sketching every day or you've never opened a drawing app before, you're welcome. We're here to experiment, share ideas, and help each other get better. Your portfolio starts here.
+              There's no "right way" to make it here. Whether you're already designing every day or you've never opened a design app before, you're welcome. We're here to make our posts and events look as good as the work that goes into them.
             </p>
           </div>
         </div>
@@ -159,13 +159,13 @@
   <section class="home-section" v-reveal>
     <SecHead>Welcome to DMAC</SecHead>
     <p class="home-lead">
-      Welcome to DMAC! We're a community for anyone who loves making things —
-      whether that's editing video, drawing digital art, taking photos, building
-      websites, or just messing around with new software and hardware to see what
-      it can do. No experience needed, no pressure to be "good" yet. We meet
-      regularly to work on projects together, learn from each other, and share
-      what we've made. If you've ever thought "I wish I knew how to make that,"
-      this is where you find out.
+      Welcome to DMAC! We're the team behind the camera and the caption — the
+      students who show up at school events to record them, edit the footage
+      and photos, and post the finished coverage for everyone to see. No
+      experience needed, no pressure to be "good" yet. We meet regularly to
+      cover events together, learn from each other, and share what we've made.
+      If you've ever wondered who's filming at assemblies or editing the recap
+      videos afterward, that's us — and we're looking for more people to join in.
     </p>
   </section>
 
@@ -174,24 +174,24 @@
     <SecHead>What We Do</SecHead>
     <div class="wwd-grid">
       <div class="wwd-card" v-sfx-hover>
-        <h3>Video &amp; Animation</h3>
-        <p>Short films, edits, motion graphics, and everything in between.</p>
+        <h3>Event Coverage</h3>
+        <p>Filming and shooting photos at assemblies, competitions, and school activities.</p>
       </div>
       <div class="wwd-card" v-sfx-hover>
-        <h3>Graphic Design &amp; Digital Art</h3>
-        <p>Illustration, branding, digital painting, and design challenges.</p>
+        <h3>Video Editing</h3>
+        <p>Turning raw footage into recap videos, highlight reels, and clips worth posting.</p>
+      </div>
+      <div class="wwd-card" v-sfx-hover>
+        <h3>Graphic Design</h3>
+        <p>Posters, announcement graphics, and thumbnails for everything we post.</p>
       </div>
       <div class="wwd-card" v-sfx-hover>
         <h3>Photography</h3>
-        <p>Photo walks, editing, and visual storytelling.</p>
+        <p>Photo walks during events and picking the shots that tell the story.</p>
       </div>
       <div class="wwd-card" v-sfx-hover>
-        <h3>Web Development</h3>
-        <p>Building websites and web apps — including this one.</p>
-      </div>
-      <div class="wwd-card" v-sfx-hover>
-        <h3>Tech &amp; Computer Skills</h3>
-        <p>ADB, benchmarking, computer setup, and getting under the hood of how things work.</p>
+        <h3>Posting &amp; Socials</h3>
+        <p>Getting the finished coverage out on our Facebook page — and eventually this website.</p>
       </div>
     </div>
   </section>
@@ -202,19 +202,19 @@
     <div class="why-grid">
       <div class="why-item">
         <h3>No experience required</h3>
-        <p>We teach the tools as we go, whether that's editing software, design programs, or the basics of coding and computer setup. Show up curious, leave with skills.</p>
+        <p>We teach the tools as we go — camera work, editing software, or design programs. Show up curious, leave with skills.</p>
       </div>
       <div class="why-item">
         <h3>Build a real portfolio</h3>
-        <p>Work on projects you can point to later, for college applications, job applications, or just to have something to show for your time.</p>
+        <p>Work on coverage you can point to later, for college applications, job applications, or just to have something to show for your time.</p>
       </div>
       <div class="why-item">
         <h3>Shared tools &amp; resources</h3>
-        <p>Members pitch in extra gear, drives, cables, and software tips so everyone has what they need to get started.</p>
+        <p>Members pitch in cameras, drives, cables, and software tips so everyone has what they need to cover an event.</p>
       </div>
       <div class="why-item">
         <h3>Hands-on, not just talk</h3>
-        <p>Meetings are built around making things, not sitting through slides.</p>
+        <p>Meetings are built around actually covering events, not sitting through slides.</p>
       </div>
       <div class="why-item">
         <h3>Find your people</h3>
@@ -222,12 +222,13 @@
       </div>
       <div class="why-item">
         <h3>Get your work seen</h3>
-        <p>Featured in our projects gallery and at school events.</p>
+        <p>Every post, recap video, and event poster is your work — seen by the whole school.</p>
       </div>
     </div>
     <p class="home-teaser">
-      Game design and audio production are on our radar as the club grows —
-      let us know if that's something you'd want to see.
+      Want to get better at a specific part of coverage — more photography, more
+      motion graphics, running our socials? Let us know; the club's direction
+      follows what members want to get sharper at.
     </p>
   </section>
 </template>

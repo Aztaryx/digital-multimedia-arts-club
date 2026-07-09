@@ -1,5 +1,5 @@
 <template>
-  <nav id="navbar">
+  <nav id="navbar" :class="{ 'nav-hidden': Panels.leftOpen.value || Panels.rightOpen.value }">
     <router-link to="/home" class="nav-logo">
       <img src="https://aztaryx.github.io/dmac-assets/logo.png" alt="DMAC" height="38" />
     </router-link>
