@@ -22,12 +22,29 @@
 
           <section class="notif-section">
             <p class="notif-section-label">Badges</p>
-            <p class="forums-guest-note">No new badges.</p>
+            <!-- Genuinely nothing to query yet: the scores table this would
+                 read from (see lib/leaderboard.js) still keys off the old
+                 Google-OAuth `profiles.member_id`, never migrated to match
+                 `members.slug` the way forums/DMs/moderation all did — so
+                 there's no real link from a logged-in member to a score
+                 row today. Saying "checked, none new" here would be a lie;
+                 this says plainly that the check itself isn't wired up. -->
+            <p class="forums-guest-note">Badge tracking isn't wired up yet.</p>
           </section>
 
           <section class="notif-section">
             <p class="notif-section-label">Warnings</p>
-            <p class="forums-guest-note">Nothing here — good.</p>
+            <template v-if="!isLoggedIn">
+              <p class="forums-guest-note">Log in to see your moderation history.</p>
+            </template>
+            <template v-else-if="warnings.length">
+              <div v-for="w in warnings" :key="w.created_at" class="notif-card">
+                <strong class="notif-card-title">Warning from {{ w.actor_name }}</strong>
+                <p v-if="w.reason" class="notif-card-body">{{ w.reason }}</p>
+                <span class="notif-card-time">{{ formatTime(w.created_at) }}</span>
+              </div>
+            </template>
+            <p v-else class="forums-guest-note">Nothing here — good.</p>
           </section>
 
           <section class="notif-section">
@@ -51,8 +68,12 @@
 import { ref, computed, watch } from 'vue';
 import { sb } from '../../lib/supabase-client.js';
 import Panels from '../../composables/usePanels.js';
+import MemberAuth from '../../lib/member-auth.js';
 
 const announcements = ref([]);
+const warnings = ref([]);
+
+const isLoggedIn = computed(() => !!MemberAuth.sessionMember.value);
 
 const generalAnnouncements = computed(() => announcements.value.filter((a) => a.kind !== 'maintenance'));
 const maintenanceAnnouncements = computed(() => announcements.value.filter((a) => a.kind === 'maintenance'));
@@ -68,7 +89,23 @@ watch(Panels.rightOpen, async (open) => {
     .order('created_at', { ascending: false })
     .limit(20);
   if (!error) announcements.value = data || [];
+
+  if (isLoggedIn.value) await loadWarnings();
 });
+
+// Requires dmac-my-moderation-log-fix.sql — before that RPC existed,
+// this section had no way to read moderation_log at all (see that
+// file's header for why), so it just showed a hardcoded "good" state
+// unconditionally, warned or not.
+async function loadWarnings() {
+  const token = MemberAuth.getSessionToken();
+  const { data, error } = await sb.rpc('list_my_moderation_log', { p_session_token: token });
+  if (error || !data?.success) {
+    console.error('RightPanel: could not load moderation log —', error?.message || data?.message);
+    return;
+  }
+  warnings.value = (data.entries || []).filter((e) => e.action === 'warn');
+}
 
 function formatTime(ts) {
   try {

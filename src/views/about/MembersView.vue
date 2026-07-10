@@ -180,18 +180,16 @@
         <div class="card-badges-section">
           <div class="card-badges-header">
             <div class="card-badge-count">
-              <span class="card-badge-percent">?</span>
-              <span class="card-badge-text">badge count<br />Unknown</span>
+              <span class="card-badge-percent">{{ badgeCount }}</span>
+              <span class="card-badge-text">badge count</span>
             </div>
             <div class="card-badges-scrollable">
               <div
                 v-for="(badge, i) in openedMember?.badges || []"
                 :key="i"
                 class="badge-slot"
-                :style="badgeTiltStyle[i] || { '--tier-color': tierColor(badge.tierKey) }"
+                :style="{ '--tier-color': tierColor(badge.tierKey) }"
                 :title="badgeLabel(badge)"
-                @mousemove="tiltBadge(i, $event)"
-                @mouseleave="resetBadgeTilt(i)"
                 @mouseenter="playSfx('menuhover')"
                 @mousemove="onBadgeTilt"
                 @mouseleave="resetBadgeTilt"
@@ -223,7 +221,7 @@
           </div>
           <div class="card-stat">
             <span class="card-stat-label">badge count</span>
-            <span class="card-stat-value">Unknown</span>
+            <span class="card-stat-value">{{ badgeCount }}</span>
           </div>
           <div class="card-stat">
             <span class="card-stat-label">specializes in..</span>
@@ -441,6 +439,11 @@ async function loadLiveProfiles() {
   for (const row of data || []) map[row.slug] = row;
   liveProfiles.value = map;
 }
+
+// Real count instead of the old hardcoded "Unknown" — badges already
+// live on each MEMBERS entry (or get merged in via liveProfiles below),
+// so there's no reason this couldn't just be badges.length all along.
+const badgeCount = computed(() => openedMember.value?.badges?.length || 0);
 
 const openedMember = computed(() => {
   if (!selectedId.value) return null;

@@ -1,3 +1,52 @@
+## Beta v1.1 — gap-fixing pass
+
+Beta v1 shipped (all 11+ routes, forums/DMs/moderation/profiles/admin
+all wired to real Supabase RPCs — none of which made it into the
+"Done" sections below; this doc had fallen behind the actual code).
+This pass targeted concrete, verifiable gaps rather than new features:
+
+- **Dead code**: deleted `src/composables/panels/` — an orphaned,
+  materially older duplicate of `src/components/panels/LeftPanel.vue`/
+  `RightPanel.vue` that a previous pass's own notes claimed was already
+  deleted, but wasn't. Confirmed nothing imported from it before
+  removing.
+- **Fake stats, Members page**: `about/MembersView.vue`'s member-card
+  overlay had two separate "badge count" displays hardcoded to `?`/
+  "Unknown" — even though the real count (`openedMember.badges.length`)
+  was already sitting right there in the same component, one field
+  away. Both now show the real number.
+- **Fake stats, Profile page**: `ProfileView.vue`'s stat grid had two
+  copy-pasted "Badges: Unknown" tiles. One is now "Site role" (from
+  the already-loaded member object); the other is "Profile complete",
+  backed by a `profileScore` computed that existed in the file already
+  but was never actually referenced in the template.
+- **Unwired notifications — Warnings**: `RightPanel.vue`'s Warnings
+  section always showed a hardcoded "Nothing here — good," regardless
+  of whether a member had actually been warned, because nothing could
+  read `moderation_log` back — RLS is on with zero SELECT policies,
+  and even a policy keyed off `auth.uid()` wouldn't reach Tier A
+  (password-only) members anyway. Added
+  `supabase/dmac-my-moderation-log-fix.sql` (`list_my_moderation_log`
+  RPC, same session-token pattern as every other "list my ___" RPC
+  here) and wired the section up to it. **You still need to run this
+  SQL file against your live Supabase project**, same as every other
+  `.sql` file in this folder.
+- **Unwired notifications — Badges**: NOT faked. The Badges section's
+  "No new badges" was a lie by omission — nothing was actually being
+  checked. Root cause: `scores.member_id` (what `lib/leaderboard.js`
+  reads) still points at the old Google-OAuth `profiles.member_id`
+  scheme, which was never migrated to `members.slug` the way forums/
+  DMs/moderation all were — so there's genuinely no live link from a
+  logged-in member to a score row today. Left the section's copy
+  honest ("Badge tracking isn't wired up yet.") instead of inventing a
+  query against a table that can't actually answer it. Reconciling
+  `scores` with `members` is real, separate schema work — flag if you
+  want that done next.
+- Build verified clean after every change (`npm run build`, no new
+  warnings, one new SQL file — no other schema changes).
+
+---
+
 # DMAC SPA conversion — progress notes
 
 Converting the original multi-page static site into a Vite + Vue 3 +

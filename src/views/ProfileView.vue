@@ -48,12 +48,12 @@
                   <strong>{{ yearJoined }}</strong>
                 </div>
                 <div class="profile-stat">
-                  <span class="profile-stat-label">Badges</span>
-                  <strong>Unknown</strong>
+                  <span class="profile-stat-label">Site role</span>
+                  <strong>{{ member.site_role || 'member' }}</strong>
                 </div>
                 <div class="profile-stat">
-                  <span class="profile-stat-label">Badges</span>
-                  <strong>Unknown</strong>
+                  <span class="profile-stat-label">Profile complete</span>
+                  <strong>{{ profileScore }}</strong>
                 </div>
                 <div class="profile-stat">
                   <span class="profile-stat-label">Avatar</span>
@@ -241,6 +241,9 @@ const avatarInitials = computed(() => {
 const previewLinks = computed(() => socialLinks.value.filter((link) => link.label.trim() && link.url.trim()).slice(0, 3));
 const bioLength = computed(() => bio.value.trim().length);
 const joinedYear = computed(() => member.value?.year_joined || '2026');
+// Was computed but never actually rendered anywhere — the stat grid
+// had two copy-pasted "Badges: Unknown" tiles instead. Now backs the
+// "Profile complete" tile there.
 const profileScore = computed(() => {
   let score = 0;
   if (nickname.value.trim()) score += 1;
