@@ -77,6 +77,12 @@
                 <button class="forum-link-btn forum-link-btn--danger" @click="removeThread">Delete thread</button>
               </div>
 
+              <div v-if="isLoggedIn" class="forum-thread-actions">
+                <button class="forum-link-btn" v-sfx-hover @click="toggleFollow(selectedThread)">
+                  {{ Notifications.isFollowing(selectedThread.id) ? '★ Following — get notified on replies' : '☆ Follow this thread' }}
+                </button>
+              </div>
+
               <div v-if="modTarget" class="forum-warning-composer">
                 <div class="forum-warning-head">
                   <strong>{{ modActionLabel }} {{ modTarget.displayName }}</strong>
@@ -360,6 +366,7 @@ import Panels from '../../composables/usePanels.js';
 import MemberAuth from '../../lib/member-auth.js';
 import { playSfx } from '../../composables/useSfx.js';
 import { sb } from '../../lib/supabase-client.js';
+import Notifications from '../../lib/notifications.js';
 
 const isLoggedIn = computed(() => !!MemberAuth.sessionMember.value);
 const myMoveSlug = computed(() => MemberAuth.sessionMember.value?.slug || null);
@@ -692,6 +699,18 @@ async function removePost(postId) {
   if (error || !data?.success) return;
   playSfx('staffspam');
   await openThread(selectedThread.value);
+}
+
+/* Following a thread is what makes forum-reply toasts fire for it —
+   see dmac-notifications-schema.sql / lib/notifications.js. Purely
+   opt-in per member, unrelated to authoring/moderating it. */
+async function toggleFollow(thread) {
+  if (!thread) return;
+  const following = Notifications.isFollowing(thread.id);
+  const result = following
+    ? await Notifications.unfollowThread(thread.id)
+    : await Notifications.followThread(thread.id);
+  if (result?.success) playSfx(following ? 'menuback' : 'socialnotifyminor');
 }
 
 /* ══════════════ DMs (real — friendships + direct_messages) ══════════════ */

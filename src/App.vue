@@ -8,21 +8,25 @@
   <NavBar v-if="showChrome" />
   <LeftPanel v-if="showChrome" />
   <RightPanel v-if="showChrome" />
+  <NotificationToasts />
   <router-view />
   <FooterSection v-if="showChrome" />
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue';
+import { ref, computed, onMounted, watch } from 'vue';
 import { useRoute } from 'vue-router';
 import NavBar from './components/NavBar.vue';
 import LeftPanel from './components/panels/LeftPanel.vue';
 import RightPanel from './components/panels/RightPanel.vue';
 import FooterSection from './components/FooterSection.vue';
+import NotificationToasts from './components/NotificationToasts.vue';
 import SFX from './lib/sfx.js';
 import { SFX_DATA } from './lib/sfx-data.js';
 import { playSfx } from './composables/useSfx.js';
 import { BADGE_URL_LIST } from './lib/badges.js';
+import MemberAuth from './lib/member-auth.js';
+import Notifications from './lib/notifications.js';
 
 const route = useRoute();
 // Standalone pages (currently just /login) opt out of the shared
@@ -84,5 +88,18 @@ onMounted(() => {
         playSfx('menuback');
       }, 380);
     });
+});
+
+/* ── NOTIFICATIONS ──────────────────────────────────
+   Starts immediately (guests still get maintenance toasts) and
+   restarts under the new identity whenever login/logout happens —
+   Notifications.startPolling() itself no-ops if it's already polling
+   for the same slug, so this can fire on every sessionMember change
+   without duplicating timers. */
+onMounted(() => {
+  Notifications.startPolling();
+});
+watch(MemberAuth.sessionMember, () => {
+  Notifications.startPolling();
 });
 </script>

@@ -505,6 +505,63 @@ a     { color: inherit; text-decoration: none; }
 }
 .notif-card-time { font-family: var(--font); font-size: .62rem; letter-spacing: .05em; color: var(--muted); }
 
+/* ── TOAST POP-UPS (bottom-left) ──────────────────────────────────
+   Each toast's --accent custom property (set inline per-toast in
+   NotificationToasts.vue) drives the left border, icon color, and
+   type-label color — background/text stay the same neutral
+   black/grey for every type on purpose, so the accent is the only
+   thing that changes and stays easy to read at a glance. */
+.notif-toast-stack {
+  position: fixed; left: 16px; bottom: 16px; z-index: 2000;
+  display: flex; flex-direction: column; gap: 10px;
+  width: min(360px, calc(100vw - 32px));
+  pointer-events: none;
+}
+.notif-toast {
+  pointer-events: auto;
+  display: flex; align-items: flex-start; gap: 10px;
+  background: rgba(20,20,20,.96); backdrop-filter: blur(8px);
+  border: 1px solid rgba(255,255,255,.08);
+  border-left: 4px solid var(--accent, #888);
+  border-radius: 10px; padding: 10px 12px;
+  box-shadow: 0 8px 24px rgba(0,0,0,.4);
+  cursor: pointer;
+}
+.notif-toast-icon {
+  flex: none; width: 20px; height: 20px; margin-top: 1px; color: var(--accent, #888);
+}
+.notif-toast-icon svg { width: 100%; height: 100%; fill: none; stroke: currentColor; }
+.notif-toast-body { flex: 1; min-width: 0; }
+.notif-toast-head { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; }
+.notif-toast-title {
+  font-family: var(--font); font-size: .82rem; color: var(--text);
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.notif-toast-type {
+  flex: none; font-family: var(--font); font-size: .6rem; letter-spacing: .08em;
+  text-transform: uppercase; color: var(--accent, var(--muted));
+}
+.notif-toast-text {
+  margin-top: 3px; font-family: var(--font2); font-size: .78rem; line-height: 1.4;
+  color: var(--muted); display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+.notif-toast-close {
+  flex: none; background: none; border: none; color: var(--muted);
+  cursor: pointer; font-size: .78rem; line-height: 1; padding: 2px;
+}
+.notif-toast-close:hover { color: var(--text); }
+
+.notif-toast-enter-active { transition: opacity .25s var(--ease-out), transform .25s var(--ease-out); }
+.notif-toast-leave-active { transition: opacity .2s ease, transform .2s ease; position: absolute; }
+.notif-toast-enter-from { opacity: 0; transform: translateX(-24px); }
+.notif-toast-leave-to   { opacity: 0; transform: translateX(-24px); }
+.notif-toast-move       { transition: transform .25s var(--ease-out); }
+
+@media (max-width: 480px) {
+  .notif-toast-stack { left: 10px; bottom: 10px; width: calc(100vw - 20px); }
+}
+
 /* ── MOBILE NAV ────────────────────────────────────── */
 #mobile-nav {
   display: none; position: fixed; top: var(--nav-h); left: 0; right: 0;
