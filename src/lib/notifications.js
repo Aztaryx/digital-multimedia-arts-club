@@ -88,12 +88,11 @@ function dismiss(id) {
 }
 
 function notifyBadgeEarned({ badgeName, tierName, memberSlug } = {}) {
-  // Not wired to any automatic trigger yet — the scores table still
-  // keys off the old member_id, not members.slug (see the comment in
-  // RightPanel.vue), so there's no reliable "this login = this score
-  // row" link to poll for automatically. Call this by hand (or from
-  // wherever an officer's admin action awards a badge) once that link
-  // exists. Kept here now so the visual/audio side is ready to go.
+  // Automatic trigger: checkBadges() below, run every poll tick (see
+  // pollOnce()) once dmac-scores-members-link.sql's member_id link
+  // exists. Still safe to call by hand too (e.g. from a future
+  // "award this badge right now" admin action) — this function itself
+  // doesn't care who called it.
   const color = Leaderboard.TIER_COLORS[tierName] || '#ffffff';
   return push({
     type: 'badge',
@@ -189,10 +188,83 @@ function setSince(slug, iso) {
   }
 }
 
+/* ── BADGE CHECK ─────────────────────────────────────
+   Own checkpoint, own key — badges come from the `scores` table via
+   Leaderboard.fetchScores(), a completely different read path from
+   list_unseen_notifications() above, so they get their own
+   `dmac_badge_since_*` checkpoint rather than sharing sinceKey().
+   Same "first-ever check sets the checkpoint silently, doesn't dump
+   the whole backlog as toasts" rule as the rest of this file. */
+function badgeSinceKey(slug) {
+  return `dmac_badge_since_${slug}`;
+}
+
+function getBadgeSince(slug) {
+  try {
+    return localStorage.getItem(badgeSinceKey(slug));
+  } catch (_) {
+    return null;
+  }
+}
+
+function setBadgeSince(slug, iso) {
+  try {
+    localStorage.setItem(badgeSinceKey(slug), iso);
+  } catch (_) {
+    /* storage blocked — same fallback as everywhere else here */
+  }
+}
+
+let badgeCheckInFlight = false;
+
+// Compares the logged-in member's current badges (via the real
+// member_id → members.slug link dmac-scores-members-link.sql added)
+// against their own last-checked checkpoint, and toasts anything new
+// — a badge awarded for the first time, or an existing one whose row
+// got touched again (admin_upsert_score bumps created_at on update,
+// so correcting a value re-surfaces it too, which is the point: a
+// changed score is exactly the kind of thing worth re-notifying).
+async function checkBadges(slug) {
+  if (!slug || badgeCheckInFlight) return;
+  badgeCheckInFlight = true;
+  try {
+    const since = getBadgeSince(slug);
+    const scores = await Leaderboard.fetchScores();
+    const badges = Leaderboard.getBadgesForSlug(scores, slug);
+
+    if (!since) {
+      // No checkpoint yet for this member — baseline silently instead
+      // of toasting every badge they already hold.
+      setBadgeSince(slug, new Date().toISOString());
+      return;
+    }
+
+    const newBadges = badges.filter((b) => b.created_at && b.created_at > since);
+    for (const b of newBadges) {
+      notifyBadgeEarned({ badgeName: b.name, tierName: b.tierKey, memberSlug: slug });
+    }
+
+    const latest = badges.reduce(
+      (max, b) => (b.created_at && b.created_at > max ? b.created_at : max),
+      since
+    );
+    setBadgeSince(slug, latest);
+  } catch (err) {
+    console.error('Notifications: badge check failed —', err.message || err);
+  } finally {
+    badgeCheckInFlight = false;
+  }
+}
+
 async function pollOnce() {
   const member = MemberAuth.sessionMember.value;
   const slug = member?.slug || null;
   const token = MemberAuth.getSessionToken();
+
+  // Fire-and-forget: independent data source + checkpoint from the
+  // announcements/DM poll below, so it shouldn't block (or be blocked
+  // by) that RPC round-trip. No-ops for guests (slug is null).
+  checkBadges(slug);
 
   let since = getSince(slug);
   if (!since) {

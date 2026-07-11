@@ -520,6 +520,43 @@ a     { color: inherit; text-decoration: none; }
 }
 .notif-card-time { font-family: var(--font); font-size: .62rem; letter-spacing: .05em; color: var(--muted); }
 
+/* Badges panel — compact chips (icon + name + rank/percent), same
+   inlined-SVG-via-v-html approach as about/MembersView.vue's card
+   overlay, just smaller and without the hover-tilt interaction —
+   this is a glanceable list, not a showcase. */
+.notif-badges-grid {
+  display: flex; flex-direction: column; gap: 6px;
+}
+.notif-badge-chip {
+  display: flex; align-items: center; gap: 10px;
+  padding: 8px 10px; border-radius: 10px;
+  background: var(--surface); border: 1px solid rgba(255,255,255,.06);
+}
+.notif-badge-icon-wrap {
+  position: relative; flex-shrink: 0;
+  width: 36px; height: 36px; border-radius: 8px;
+  overflow: visible;
+}
+.notif-badge-bg { position: absolute; inset: 0; width: 100%; height: 100%; border-radius: 8px; }
+.notif-badge-bg svg { display: block; width: 100%; height: 100%; }
+.notif-badge-icon {
+  position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
+  z-index: 2; width: 62%; height: 62%;
+  filter: drop-shadow(0 0 4px rgba(0,0,0,.35));
+}
+.notif-badge-icon svg { display: block; width: 100%; height: 100%; }
+.notif-badge-diamond {
+  position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
+  z-index: 2; font-size: 1.15rem; line-height: 1;
+  filter: drop-shadow(0 0 4px currentColor);
+}
+.notif-badge-copy { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.notif-badge-copy strong {
+  font-family: var(--font); font-size: .78rem; color: var(--text);
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.notif-badge-copy span { font-family: var(--font2); font-size: .68rem; color: var(--muted); }
+
 /* ── TOAST POP-UPS (bottom-left) ──────────────────────────────────
    Each toast's --accent custom property (set inline per-toast in
    NotificationToasts.vue) drives the left border, icon color, and

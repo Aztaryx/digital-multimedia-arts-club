@@ -469,22 +469,7 @@ async function loadLiveScores() {
 }
 
 function badgesForSlug(slug) {
-  if (!slug || !liveScores.value.length) return [];
-  const badgeIds = [...new Set(liveScores.value.map((s) => s.badge_id))];
-  const badges = [];
-  for (const badgeId of badgeIds) {
-    const board = Leaderboard.getLeaderboard(liveScores.value, badgeId);
-    const entry = board.find((b) => b.slug === slug);
-    if (!entry) continue;
-    const tierName = entry.tier.name;
-    badges.push({
-      tierKey: tierName,
-      file: `${badgeId}.svg`,
-      name: Leaderboard.BADGE_LABELS[badgeId] || badgeId,
-      level: tierName.charAt(0).toUpperCase() + tierName.slice(1),
-    });
-  }
-  return badges;
+  return Leaderboard.getBadgesForSlug(liveScores.value, slug);
 }
 
 // Real count instead of the old hardcoded "Unknown" — badges already

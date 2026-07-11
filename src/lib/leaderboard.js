@@ -113,22 +113,27 @@ const Leaderboard = (() => {
      `member_id uuid references members(id)` column this embed
      needs); rows that haven't been linked yet just come back with
      `slug: null` and get filtered out below, same as they always
-     silently were before that link existed at all. */
+     silently were before that link existed at all. `id`/`created_at`
+     are new too — badge-notification "is this new?" checks (see
+     notifications.js's checkBadges()) need a real per-row timestamp,
+     not just the badge itself. */
   async function fetchScores() {
     const { data, error } = await sb
       .from('scores')
-      .select('badge_id, member_id, value, issue_number, awarded_on, members(slug)');
+      .select('id, badge_id, member_id, value, issue_number, awarded_on, created_at, members(slug)');
 
     if (error) throw new Error(`Leaderboard fetch failed: ${error.message}`);
 
     return (data || [])
       .map(r => ({
+        id: r.id,
         badge_id: r.badge_id,
         member_id: r.member_id,
         slug: r.members?.slug || null,
         value: parseFloat(r.value),
         issue_number: r.issue_number ?? null,
         awarded_on: r.awarded_on || null,
+        created_at: r.created_at || null,
       }))
       .filter(r => r.badge_id && r.member_id && !isNaN(r.value));
   }
@@ -216,6 +221,45 @@ const Leaderboard = (() => {
     });
   }
 
+  /* ── BADGES FOR A MEMBER ────────────────────────────
+     Given fetchScores()'s output and a member's slug, returns every
+     badge that member currently holds — one entry per badge_id
+     present anywhere in `scores`, ranked against everyone else who
+     has that badge. Same shape/logic about/MembersView.vue's own
+     (now-removed) badgesForSlug() used, pulled up here so
+     RightPanel.vue's Badges panel and notifications.js's "did I earn
+     anything new" check compute this identically instead of drifting
+     out of sync with three separate copies. `created_at`/`awarded_on`
+     pass through from the member's own raw score row (not a
+     leaderboard-computed field) — that's what makes "new since last
+     check" possible client-side. */
+  function getBadgesForSlug(scores, slug) {
+    if (!slug || !scores?.length) return [];
+    const own = scores.filter(s => s.slug === slug);
+    const badgeIds = [...new Set(own.map(s => s.badge_id))];
+    const badges = [];
+    for (const badgeId of badgeIds) {
+      const board = getLeaderboard(scores, badgeId);
+      const entry = board.find(b => b.slug === slug);
+      if (!entry) continue;
+      const raw = own.find(s => s.badge_id === badgeId);
+      const tierName = entry.tier.name;
+      badges.push({
+        badge_id: badgeId,
+        tierKey: tierName,
+        file: `${badgeId}.svg`,
+        name: BADGE_LABELS[badgeId] || badgeId,
+        level: tierName.charAt(0).toUpperCase() + tierName.slice(1),
+        value: entry.value,
+        rank: entry.rank,
+        percent: entry.percent,
+        awarded_on: raw?.awarded_on || null,
+        created_at: raw?.created_at || null,
+      });
+    }
+    return badges;
+  }
+
   /* ── SECRET / ISSUE-TRACKED BADGES ─────────────────
      Not percent-of-floor — worth decays by issue order instead.
      First person to earn it gets issue #1 (allomorphite — same
@@ -240,7 +284,7 @@ const Leaderboard = (() => {
     return TIER_CONFIG.find(t => t.name === tierName);
   }
 
-  return { fetchScores, getLeaderboard, tierFor, tierForIssueNumber, TIER_CONFIG, TIER_COLORS, BADGES, BADGE_LABELS, parseCSV };
+  return { fetchScores, getLeaderboard, getBadgesForSlug, tierFor, tierForIssueNumber, TIER_CONFIG, TIER_COLORS, BADGES, BADGE_LABELS, parseCSV };
 })();
 
 export default Leaderboard;

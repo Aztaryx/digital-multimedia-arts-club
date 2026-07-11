@@ -1,3 +1,69 @@
+## Beta v1.4 — badge notifications + admin score writing
+
+Both flagged directly in v1.3's own notes (RightPanel.vue's "flag it
+if you want that wired up too" for badges, and
+dmac-scores-members-link.sql's "flag it if you want score-writing
+moved into the app itself" for the admin side) — both now done.
+
+- **Badge notifications, wired end to end.** `lib/leaderboard.js`'s
+  `fetchScores()` now also selects `id`/`created_at` per score row,
+  and a new shared `Leaderboard.getBadgesForSlug(scores, slug)`
+  helper (pulled out of what was `about/MembersView.vue`'s local
+  `badgesForSlug()` — that view now just calls the shared one, so
+  there's one badge-computation path instead of a second copy) backs
+  all three places a member's own badges now show up:
+  - **New `checkBadges()` in `lib/notifications.js`**, run from
+    `pollOnce()` (so it fires immediately on login/session-restore via
+    `startPolling()`'s own immediate first tick, then every 6s after)
+    — compares a member's current badges against a per-member
+    `dmac_badge_since_<slug>` localStorage checkpoint (own key, since
+    badges read from `scores` via `Leaderboard`, not the
+    `list_unseen_notifications` RPC everything else here polls) and
+    toasts anything new via the already-existing `notifyBadgeEarned()`
+    (built in an earlier pass but never actually triggered until now).
+    First-ever check per member baselines silently — no toast storm
+    for badges someone already held before this shipped.
+  - **RightPanel.vue's Badges section** is no longer the "not wired up
+    yet" placeholder — it's a real, persistent list of the logged-in
+    member's current badges (icon, tier, rank/percent), loaded the
+    same way the Warnings/Silences/Forum sections already were (on
+    panel open). New compact `.notif-badge-*` CSS in `global.css`.
+  - Requires `dmac-scores-members-link.sql` to already be run (same
+    requirement v1.3 documented) — nothing new to run for this half.
+- **Admin score writing — new `supabase/dmac-admin-score-writing.sql`.**
+  The "Officers can insert/update/delete scores" RLS policies
+  (`dmac-social-schema-core.sql`) still key off the old Tier-B-only
+  `profiles.role = 'officer'` / `auth.uid()` scheme, which a Tier A
+  (password-only) admin can't satisfy — same shape of gap every other
+  "list/write my ___" fix in this project has closed the same way.
+  New `admin_upsert_score()` / `admin_delete_score()` RPCs, gated by
+  `members.site_role = 'admin'` via `_resolve_member_id()`, same
+  pattern as `create_announcement()`. Two new partial unique indexes
+  on the real `member_id` column (one for ordinary badges, one for
+  issue-tracked/secret ones) so upserts correct a value in place
+  instead of piling up duplicate rows; `legacy_member_id` loses its
+  `NOT NULL` since a score written for a member who only ever existed
+  in the new scheme has no legacy `profiles` row to point at. AdminView
+  gets a new "Award / update score" panel (member picker, badge picker
+  — known `Leaderboard.BADGES` entries + a "Custom badge id…" escape
+  hatch, value, optional issue #, optional date) plus a "Recent
+  scores" list with per-row delete. Correcting an existing score bumps
+  its `created_at`, which double-serves as a badge-notification
+  trigger — fixing a value re-surfaces it to the member as a toast,
+  which is the point.
+
+### To run
+
+**`supabase/dmac-admin-score-writing.sql`** — new file, run against
+your live Supabase project (Dashboard → SQL Editor), after
+`dmac-scores-members-link.sql` and `dmac-site-polish-schema.sql`. The
+badge-notification half needs no new SQL beyond what v1.3 already
+asked for.
+
+`npm run build` verified clean after every change above.
+
+---
+
 ## Beta v1.3 — follow-up round (backend badges fix + 2 clarifications)
 
 Three corrections/clarifications on top of v1.2:

@@ -54,14 +54,30 @@
 
           <section class="notif-section">
             <p class="notif-section-label">Badges</p>
-            <!-- Genuinely nothing to query yet: the scores table this would
-                 read from (see lib/leaderboard.js) still keys off the old
-                 Google-OAuth `profiles.member_id`, never migrated to match
-                 `members.slug` the way forums/DMs/moderation all did — so
-                 there's no real link from a logged-in member to a score
-                 row today. Saying "checked, none new" here would be a lie;
-                 this says plainly that the check itself isn't wired up. -->
-            <p class="forums-guest-note">Badge tracking isn't wired up yet.</p>
+            <template v-if="!isLoggedIn">
+              <p class="forums-guest-note">Log in to see your earned badges.</p>
+            </template>
+            <template v-else-if="badges.length">
+              <div class="notif-badges-grid">
+                <div
+                  v-for="b in badges"
+                  :key="b.badge_id"
+                  class="notif-badge-chip"
+                  :style="{ '--tier-color': tierColor(b.tierKey) }"
+                >
+                  <div class="notif-badge-icon-wrap">
+                    <div v-if="badgeBgSvg(b.tierKey)" class="notif-badge-bg" v-html="badgeBgSvg(b.tierKey)"></div>
+                    <div v-if="badgeIconSvg(b.file)" class="notif-badge-icon" :aria-label="badgeLabel(b)" v-html="badgeIconSvg(b.file)"></div>
+                    <span v-else class="notif-badge-diamond" :style="{ color: tierColor(b.tierKey) }">◆</span>
+                  </div>
+                  <div class="notif-badge-copy">
+                    <strong>{{ badgeLabel(b) }}</strong>
+                    <span>Rank #{{ b.rank }} · {{ b.percent }}%</span>
+                  </div>
+                </div>
+              </div>
+            </template>
+            <p v-else class="forums-guest-note">No badges yet — keep at it!</p>
           </section>
 
           <section class="notif-section">
@@ -119,12 +135,15 @@ import { sb } from '../../lib/supabase-client.js';
 import Panels from '../../composables/usePanels.js';
 import MemberAuth from '../../lib/member-auth.js';
 import { playSfx } from '../../composables/useSfx.js';
+import Leaderboard from '../../lib/leaderboard.js';
+import { BADGE_SVG } from '../../lib/badges.js';
 
 const announcements = ref([]);
 const warnings = ref([]);
 const silences = ref([]);
 const friendRequests = ref([]);
 const forumActivity = ref([]);
+const badges = ref([]);
 
 const isLoggedIn = computed(() => !!MemberAuth.sessionMember.value);
 
@@ -144,7 +163,7 @@ watch(Panels.rightOpen, async (open) => {
   if (!error) announcements.value = data || [];
 
   if (isLoggedIn.value) {
-    await Promise.all([loadModerationLog(), loadFriendRequests(), loadForumActivity()]);
+    await Promise.all([loadModerationLog(), loadFriendRequests(), loadForumActivity(), loadBadges()]);
   }
 });
 
@@ -201,6 +220,39 @@ async function loadForumActivity() {
     return;
   }
   forumActivity.value = data.entries || [];
+}
+
+// Requires dmac-scores-members-link.sql (the real member_id → members.id
+// link on scores). Same Leaderboard.getBadgesForSlug() helper the
+// automatic toast check (lib/notifications.js's checkBadges()) and
+// about/MembersView.vue's card overlay both use — one source of truth
+// for "what badges does this member currently have."
+async function loadBadges() {
+  try {
+    const scores = await Leaderboard.fetchScores();
+    const member = MemberAuth.sessionMember.value;
+    badges.value = Leaderboard.getBadgesForSlug(scores, member?.slug);
+  } catch (err) {
+    console.error('RightPanel: could not load badges —', err.message);
+  }
+}
+
+function tierColor(tierKey) {
+  return Leaderboard.TIER_COLORS[tierKey] || '#888';
+}
+function badgeLabel(badge) {
+  const name = badge?.name || 'Badge';
+  return badge?.level ? `${badge.level} ${name}` : name;
+}
+function badgeBgSvg(tierKey) {
+  return BADGE_SVG[`${tierKey}-badge`] || null;
+}
+// Same missing-`file` guard as about/MembersView.vue's badgeIconSvg —
+// falls back to the ◆ glyph rather than throwing.
+function badgeIconSvg(file) {
+  if (typeof file !== 'string' || !file) return null;
+  const base = file.replace(/\.[^.]+$/, '');
+  return BADGE_SVG[base] || null;
 }
 
 function formatTime(ts) {
