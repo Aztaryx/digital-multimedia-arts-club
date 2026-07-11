@@ -159,8 +159,23 @@
                     v-sfx-hover
                     @click="bannerColor = c"
                   ></button>
-                  <input class="profile-color-input" type="color" :value="bannerColor || '#f97316'" @input="bannerColor = $event.target.value" aria-label="Custom banner color" />
                 </div>
+                <ColorWheelPicker :model-value="bannerColor || '#f97316'" @update:model-value="bannerColor = $event" />
+                <div class="profile-hex-row">
+                  <span class="profile-hex-swatch" :style="{ background: bannerColor || '#f97316' }" aria-hidden="true"></span>
+                  <input
+                    class="profile-input profile-hex-input"
+                    :class="{ 'profile-hex-input--error': hexError }"
+                    type="text"
+                    v-model="hexDraft"
+                    maxlength="7"
+                    placeholder="#f97316"
+                    aria-label="Banner color hex code"
+                    @input="onHexInput"
+                    @blur="onHexBlur"
+                  />
+                </div>
+                <p v-if="hexError" class="profile-hex-error">{{ hexError }}</p>
                 <button class="profile-btn" v-sfx-hover @click="saveBannerColor">Save banner color</button>
               </div>
             </section>
@@ -190,6 +205,13 @@
         </section>
       </div>
     </div>
+
+    <AvatarCropModal
+      v-if="pendingAvatarFile"
+      :file="pendingAvatarFile"
+      @cropped="onAvatarCropped"
+      @cancel="onAvatarCropCancelled"
+    />
   </main>
 </template>
 
@@ -204,9 +226,11 @@
    redirect/callback dance already lives in LoginView.vue. If someone
    isn't Google-linked yet, this page just points them back to /login
    to do it there, rather than duplicating that flow. */
-import { ref, onMounted, computed } from 'vue';
+import { ref, onMounted, computed, watch } from 'vue';
 import { useRouter } from 'vue-router';
 import SecHead from '../components/SecHead.vue';
+import AvatarCropModal from '../components/AvatarCropModal.vue';
+import ColorWheelPicker from '../components/ColorWheelPicker.vue';
 import MemberAuth from '../lib/member-auth.js';
 import MemberProfile from '../lib/member-profile.js';
 import { playSfx } from '../composables/useSfx.js';
@@ -227,6 +251,55 @@ const bannerColor = ref(null);
 const yearJoined = ref('2026');
 
 const BANNER_COLORS = ['#f97316', '#a855f7', '#38bdf8', '#22c55e', '#ef4444', '#eab308', '#0f172a'];
+
+/* ── HEX CODE INPUT ─────────────────────────────────
+   The swatches + native <input type="color"> (a full OS color-picker
+   dialog) were the whole "card color switcher" story before this —
+   there was no way to just type a code you already know. bannerColor
+   stays the single source of truth; hexDraft is a synced text mirror
+   that only writes back once it's actually a valid hex string, so a
+   half-typed value doesn't blow away the real color while you're
+   still typing it. */
+const HEX_RE = /^#([0-9a-f]{3}|[0-9a-f]{6})$/i;
+const hexDraft = ref(bannerColor.value || '#f97316');
+const hexError = ref('');
+
+watch(bannerColor, (val) => {
+  hexDraft.value = val || '#f97316';
+});
+
+function normalizeHex(v) {
+  const body = v.slice(1);
+  const expanded = body.length === 3 ? body.split('').map((c) => c + c).join('') : body;
+  return `#${expanded.toLowerCase()}`;
+}
+
+function onHexInput() {
+  let v = hexDraft.value.trim();
+  if (v && !v.startsWith('#')) v = `#${v}`;
+  if (v !== hexDraft.value) hexDraft.value = v;
+
+  if (v === '' || v === '#') {
+    hexError.value = '';
+    return;
+  }
+  if (HEX_RE.test(v)) {
+    hexError.value = '';
+    bannerColor.value = normalizeHex(v);
+  } else {
+    hexError.value = 'Needs to be a hex code, like #f97316 or #f73.';
+  }
+}
+
+function onHexBlur() {
+  // Leaving the field with something incomplete/invalid still on
+  // screen — snap the visible text back to the last real color rather
+  // than leaving a red, unsaved-looking box behind.
+  if (hexDraft.value && !HEX_RE.test(hexDraft.value)) {
+    hexDraft.value = bannerColor.value || '#f97316';
+    hexError.value = '';
+  }
+}
 
 const publicName = computed(() => nickname.value.trim() || member.value?.display_name || 'DMAC member');
 const avatarInitials = computed(() => {
@@ -379,17 +452,35 @@ async function saveAppearance() {
   }
 }
 
-async function onAvatarChosen(e) {
+// Picking a file opens the crop modal instead of uploading straight
+// away — pendingAvatarFile holding a File is what mounts it (see
+// template). The actual upload only happens once a crop is confirmed.
+const pendingAvatarFile = ref(null);
+
+function onAvatarChosen(e) {
   const file = e.target.files[0];
+  // Clears the input so choosing the exact same file again after a
+  // Cancel still fires `change` — browsers only fire it on a value
+  // change, and re-picking an identical file wouldn't otherwise count.
+  e.target.value = '';
   if (!file) return;
+  pendingAvatarFile.value = file;
+}
+
+async function onAvatarCropped(croppedFile) {
+  pendingAvatarFile.value = null;
   status('Uploading avatar…', 'info');
-  const result = await MemberProfile.uploadAvatar(file);
+  const result = await MemberProfile.uploadAvatar(croppedFile);
   if (result.success) {
     avatarUrl.value = result.url;
     status('Avatar updated.', 'success');
   } else {
     status(result.message || 'Avatar upload failed.', 'error');
   }
+}
+
+function onAvatarCropCancelled() {
+  pendingAvatarFile.value = null;
 }
 
 async function onBannerChosen(e) {
@@ -844,14 +935,35 @@ async function onBannerChosen(e) {
   transform: scale(1.12);
 }
 
-.profile-color-input {
-  width: 34px;
-  height: 34px;
-  padding: 0;
-  border: 1px solid rgba(255, 255, 255, 0.16);
-  border-radius: 8px;
-  background: transparent;
-  cursor: pointer;
+.profile-hex-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.profile-hex-swatch {
+  flex-shrink: 0;
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  border: 2px solid rgba(255, 255, 255, 0.16);
+}
+
+.profile-hex-input {
+  max-width: 160px;
+  font-family: 'Rajdhani', monospace;
+  letter-spacing: 0.06em;
+  text-transform: lowercase;
+}
+
+.profile-hex-input--error {
+  border-color: rgba(239, 68, 68, 0.6);
+}
+
+.profile-hex-error {
+  font-size: 0.78rem;
+  color: #ffb0b0;
+  margin-top: -4px;
 }
 
 .profile-password-grid {

@@ -86,7 +86,7 @@
     aria-label="Member Profile"
     @click="onOverlayClick"
   >
-    <div class="card-panel" :class="{ open: panelOpen, 'is-founder': openedMember?.isFounder }" ref="panelRef">
+    <div class="card-panel" :class="{ open: panelOpen, 'is-founder': openedMember?.isFounder }" :style="cardTintStyle" ref="panelRef">
 
       <!-- Banner -->
       <div class="card-banner" :class="`card-banner--${openedMember?.bannerKey || 'default'}`" :style="bannerStyle">
@@ -195,8 +195,8 @@
                 @mouseleave="resetBadgeTilt"
                 @click="playSfx('no')"
               >
-                <img v-if="badgeBgUrl(badge.tierKey)" :src="badgeBgUrl(badge.tierKey)" alt="" class="badge-bg" />
-                <img v-if="badgeIconUrl(badge.file)" :src="badgeIconUrl(badge.file)" :alt="badgeLabel(badge)" class="badge-icon" />
+                <div v-if="badgeBgSvg(badge.tierKey)" class="badge-bg" v-html="badgeBgSvg(badge.tierKey)"></div>
+                <div v-if="badgeIconSvg(badge.file)" class="badge-icon" :aria-label="badgeLabel(badge)" v-html="badgeIconSvg(badge.file)"></div>
                 <span
                   v-else
                   class="badge-diamond"
@@ -242,8 +242,9 @@
 import { ref, computed, nextTick, onMounted, onBeforeUnmount } from 'vue';
 import SecHead from '../../components/SecHead.vue';
 import Leaderboard from '../../lib/leaderboard.js';
-import { BADGE_URLS } from '../../lib/badges.js';
+import { BADGE_SVG } from '../../lib/badges.js';
 import { playSfx } from '../../composables/useSfx.js';
+import { hexToRgb } from '../../lib/color-utils.js';
 import { sb } from '../../lib/supabase-client.js';
 import '../../assets/css/pages/members.css';
 
@@ -370,28 +371,38 @@ const MEMBERS = {
 };
 
 /* ── BADGE HELPERS ─────────────────────────────────
-   BADGE_URLS only knows about the .svg files actually sitting in
+   BADGE_SVG only knows about the .svg files actually sitting in
    src/assets/badges/ (see lib/badges.js's import.meta.glob). Right
    now that's just the tier gems + speedtypist.svg — none of the
    per-person badge icons referenced above (founder.png,
    quartzcontributor.png, etc.) exist yet. Rather than port the old
    two-step <img onerror> fallback chain, we just check up front:
-   known file → render the real image; unknown → render the ◆
-   glyph fallback directly. Once real badge art is dropped into
+   known file → render the real SVG (inlined via v-html — see
+   template — rather than an <img src>, so its markup is real DOM
+   CSS/JS can actually reach into); unknown → render the ◆ glyph
+   fallback directly. Once real badge art is dropped into
    src/assets/badges/ as .svg (matching the tier-gem convention),
    these start resolving automatically — no code change needed. */
 function tierColor(tierKey) {
   return TIER_COLORS[tierKey] || '#888';
 }
 function badgeLabel(badge) {
-  return badge.level ? `${badge.level} ${badge.name}` : badge.name;
+  const name = badge?.name || 'Badge';
+  return badge?.level ? `${badge.level} ${name}` : name;
 }
-function badgeBgUrl(tierKey) {
-  return BADGE_URLS[`${tierKey}-badge`] || null;
+function badgeBgSvg(tierKey) {
+  return BADGE_SVG[`${tierKey}-badge`] || null;
 }
-function badgeIconUrl(file) {
+// Guards against a badge entry with no `file` (or a non-string one) —
+// `.replace` on undefined used to throw and take the whole card down
+// with it, well before real per-person badge art ever gets a chance to
+// exist for someone to notice. Falls back to the ◆ glyph instead, same
+// as the "file doesn't resolve to anything in BADGE_SVG" case already
+// handled below it.
+function badgeIconSvg(file) {
+  if (typeof file !== 'string' || !file) return null;
   const base = file.replace(/\.[^.]+$/, '');
-  return BADGE_URLS[base] || null;
+  return BADGE_SVG[base] || null;
 }
 
 /* ── CARD OPEN/CLOSE STATE ─────────────────────────
@@ -440,6 +451,42 @@ async function loadLiveProfiles() {
   liveProfiles.value = map;
 }
 
+/* ── LIVE BADGES ─────────────────────────────────────
+   Requires dmac-scores-members-link.sql — before that migration,
+   scores.member_id had no real link to members.slug at all (see that
+   file's header), which is the actual reason this section's `badges`
+   was always the static, hardcoded `[]` sitting on every MEMBERS
+   entry above. Fetched once; recomputed per opened member by
+   matching slug against every badge's own leaderboard. */
+const liveScores = ref([]);
+
+async function loadLiveScores() {
+  try {
+    liveScores.value = await Leaderboard.fetchScores();
+  } catch (err) {
+    console.error('MembersView: could not load live scores —', err.message);
+  }
+}
+
+function badgesForSlug(slug) {
+  if (!slug || !liveScores.value.length) return [];
+  const badgeIds = [...new Set(liveScores.value.map((s) => s.badge_id))];
+  const badges = [];
+  for (const badgeId of badgeIds) {
+    const board = Leaderboard.getLeaderboard(liveScores.value, badgeId);
+    const entry = board.find((b) => b.slug === slug);
+    if (!entry) continue;
+    const tierName = entry.tier.name;
+    badges.push({
+      tierKey: tierName,
+      file: `${badgeId}.svg`,
+      name: Leaderboard.BADGE_LABELS[badgeId] || badgeId,
+      level: tierName.charAt(0).toUpperCase() + tierName.slice(1),
+    });
+  }
+  return badges;
+}
+
 // Real count instead of the old hardcoded "Unknown" — badges already
 // live on each MEMBERS entry (or get merged in via liveProfiles below),
 // so there's no reason this couldn't just be badges.length all along.
@@ -450,8 +497,9 @@ const openedMember = computed(() => {
   const base = MEMBERS[selectedId.value];
   if (!base) return null;
 
+  const liveBadges = badgesForSlug(selectedId.value);
   const live = liveProfiles.value[selectedId.value];
-  if (!live) return base;
+  if (!live) return { ...base, badges: liveBadges };
 
   // Same precedence ProfileView already uses for itself: a member's
   // own nickname/bio override the static roster copy when set, and
@@ -467,6 +515,7 @@ const openedMember = computed(() => {
     tagline: live.bio?.trim() || base.tagline,
     about: live.bio?.trim() || base.about,
     yearJoined: live.year_joined || base.yearJoined,
+    badges: liveBadges,
     liveAvatarUrl: live.avatar_url || null,
     liveBannerUrl: live.banner_url || null,
     liveBannerColor: live.banner_color || null,
@@ -480,6 +529,23 @@ const bannerStyle = computed(() => {
   if (m.liveBannerUrl) return { backgroundImage: `url(${m.liveBannerUrl})`, backgroundSize: 'cover', backgroundPosition: 'center' };
   if (m.liveBannerColor) return { background: m.liveBannerColor };
   return {};
+});
+
+// "Change card color" turned out to mean the WHOLE popup card, not
+// just the banner strip at the top — bannerStyle above only ever
+// touched .card-banner, which is why this is separate rather than
+// just reusing it. .card-panel's own background is a flat #111
+// (members.css); this washes it top-to-bottom in the member's own
+// color instead, fading back to that same #111 by mid-card so the
+// about/badges/stats text underneath stays exactly as legible as
+// before — "tinted", not "repainted illegibly."
+const cardTintStyle = computed(() => {
+  const color = openedMember.value?.liveBannerColor;
+  if (!color) return {};
+  const { r, g, b } = hexToRgb(color);
+  return {
+    background: `linear-gradient(180deg, rgba(${r},${g},${b},0.32) 0%, rgba(${r},${g},${b},0.14) 30%, #111 65%)`,
+  };
 });
 
 const avatarStyle = computed(() => {
@@ -588,6 +654,7 @@ onMounted(() => {
   document.addEventListener('keydown', onGlobalKeydown);
   window.addEventListener('resize', onResize);
   loadLiveProfiles();
+  loadLiveScores();
 });
 
 onBeforeUnmount(() => {

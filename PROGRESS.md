@@ -1,4 +1,173 @@
-## Beta v1.1 — gap-fixing pass
+## Beta v1.3 — follow-up round (backend badges fix + 2 clarifications)
+
+Three corrections/clarifications on top of v1.2:
+
+- **"The bug in badges" — actually a backend issue, confirmed.** This
+  was v1.2's flagged best-effort guess; the real bug is exactly the
+  gap that guess described, so it's now actually fixed rather than
+  just documented. New **`supabase/dmac-scores-members-link.sql`**
+  gives `scores` a real `member_id uuid references members(id)`
+  column (the old text column is kept, renamed to
+  `legacy_member_id`), with a zero-risk best-effort auto-backfill —
+  see that file's header for exactly how, and what you still need to
+  spot-check afterward (some rows may need linking by hand if the old
+  `profiles.member_id` was never set to match a real `members.slug`).
+  `lib/leaderboard.js` now returns a real `slug` on every leaderboard
+  entry (via the new FK), and `about/MembersView.vue` computes each
+  opened member's `badges` array from an actual
+  `Leaderboard.getLeaderboard()` call matched by slug — no longer the
+  static, hardcoded `[]` every member had before. **You need to run
+  this new SQL file** against your live project; nothing works until
+  you do. The v1.2 crash-guard fix (`badgeIconUrl`'s missing-`file`
+  guard) stays in, per your note.
+  - RightPanel.vue's Badges notification section is intentionally
+    UNCHANGED — the link now exists, but "did *I* earn anything new"
+    is a different, per-member check nobody's asked for yet. Flag it
+    if you want that wired up too, now that it's possible.
+- **"Change card color" — the whole popup card, not the profile
+  banner.** Re-read as: on the Members tab, when you click a card
+  open, the *entire* popup (not just the top banner strip) should
+  reflect their color. Added `cardTintStyle` to
+  `about/MembersView.vue` — washes `.card-panel`'s background in the
+  member's color from the top, fading back to the normal dark
+  background by mid-card, so the about/badges/stats text underneath
+  stays exactly as readable as before.
+- **"Add a color wheel."** The hex text field from v1.2 stays (still
+  useful for pasting/typing an exact code), but the picker itself is
+  now a real interactive color wheel — new
+  `src/components/ColorWheelPicker.vue` (hue around the ring,
+  saturation from center to edge, brightness slider underneath; plain
+  canvas + Pointer Events, no new dependency, same approach as
+  `AvatarCropModal.vue`). Replaces the native `<input type="color">`
+  in `ProfileView.vue`'s banner-color section — swatches, wheel, and
+  hex field all stay in sync through the same `bannerColor` ref.
+- **"Inline all badges so the SVG is directly manipulable."**
+  `lib/badges.js` now also exports `BADGE_SVG` — the same badge
+  `.svg` files, but as raw markup (Vite's `?raw` import) instead of
+  only a URL. `about/MembersView.vue` renders both the tier-gem
+  background and the specific badge icon via `v-html` now, so they're
+  real `<svg>`/`<path>` DOM nodes — reachable by CSS/JS for recoloring,
+  targeting a specific path, animating a piece of it, etc. — instead
+  of sitting opaque behind an `<img src="...">`. `BADGE_URLS` (the
+  original URL export) stays for `App.vue`'s preloader, which still
+  needs real URLs to preload — the two exports serve genuinely
+  different purposes now, not a leftover duplicate. Added real CSS
+  for `.badge-icon` too, which never actually had any before now
+  (dead code path until this pass, since badges were always `[]`).
+
+`npm run build` verified clean after every change above.
+
+---
+
+
+
+Everything filed through the in-app admin feedback board this round.
+Two items below (marked) are best-effort interpretations rather than
+1:1 restatements of the one-line report — see each for reasoning.
+
+### Feature requests
+
+- **Req #1 — Crop in avatar edit.** `ProfileView.vue`'s avatar picker
+  used to upload whatever file you chose, raw, no matter its aspect
+  ratio. New `src/components/AvatarCropModal.vue` — a plain
+  canvas + Pointer Events square cropper (drag to reposition, scroll
+  or slider to zoom), no new dependency — opens on file-select;
+  `onAvatarChosen` now just stages the file, and the actual
+  `MemberProfile.uploadAvatar()` call happens on confirm, with the
+  cropped `File` (512×512, PNG if the source could have transparency,
+  JPEG otherwise).
+- **Req #2/#3 — Card color switcher → "actually make it a hex
+  picker".** The banner-color swatches + native `<input type="color">`
+  already existed; #3 came in 6 minutes after #2 specifically asking
+  for a typeable hex code, since a native color-picker dialog isn't
+  really that. Added a real text input (`hexDraft`) synced against the
+  canonical `bannerColor`, with `#rgb`/`#rrggbb` validation and a
+  preview swatch — swatches, native picker, and the new text field all
+  write to the same `bannerColor` ref, so any of the three stays in
+  sync with the other two.
+- **Req #4 — Less labels, more buttons.** Interpreted as: two spots
+  where a `<label>` + `<select>` was standing in for a small, fixed
+  set of options a segmented button row handles in one click instead
+  of open-menu-then-click. Converted **both** the Admin panel's
+  announcement "Type" dropdown (`AdminView.vue`) and the moderation
+  composer's "Duration" dropdown (`LeftPanel.vue`) — same underlying
+  `kind`/`modDuration` refs, just a `.seg-toggle`/`.duration-group`
+  button row instead of a `<select>`. If there's a specific other
+  screen this was actually about, flag it and I'll convert that one
+  too — this is a pattern, not a one-off, so it's easy to extend.
+
+### Bugs
+
+- **#1 — Announcement Notif no sfx and popup.**
+  `list_unseen_notifications()` only ever returned `kind='maintenance'`
+  rows (as `maintenance`) — regular (`kind='announcement'`) posts
+  weren't in the poll payload *at all*, so they could never become a
+  toast, even though they always showed up fine in the Notifications
+  panel itself (that panel queries `announcements` directly,
+  kind-agnostic — never the broken part). New
+  `supabase/dmac-notifications-panel-fixes.sql` adds a second
+  `announcements` key to that same RPC; `lib/notifications.js` gained
+  an `announcement` `NOTIF_TYPES` entry + a poll loop for it.
+- **#2 — Friend Request Notif no saved + accept.** A friend request
+  only ever surfaced as a toast — dismiss it or miss it, and it was
+  gone until you happened to check the DMs tab. `RightPanel.vue` now
+  has a real "Friend requests" section (reusing the existing
+  `list_friend_requests` / `respond_friend_request` RPCs LeftPanel's
+  DMs tab already calls) with Accept/Decline right on the card.
+- **#3 — Silences aren't in Notifs.** Same root cause as the Warnings
+  section before the v1.1 pass, just for `action='silence'`/
+  `'unsilence'` instead of `'warn'` — `list_my_moderation_log` already
+  returns both, RightPanel just wasn't reading the silence ones out of
+  it. Added a "Silences" section alongside Warnings, same RPC, split
+  client-side by `action`.
+- **#4 — The bug in badges.** *Best-effort interpretation* — the
+  Badges section's "not wired up yet" honesty note (see v1.1) is a
+  known, flagged gap, not new breakage, and reconciling `scores` with
+  `members` needs a real data decision on the live project (matching
+  old hand-entered `profiles.member_id` values to real
+  `members.slug` — see `dmac-social-schema-core.sql`'s own comment)
+  that isn't safe to guess at blind. What I *did* find and fix:
+  `MembersView.vue`'s `badgeIconUrl()` called `.replace()` directly on
+  `badge.file` with no guard — a badge object missing (or with a
+  non-string) `file` would throw and take the whole card down with it.
+  Hardened that plus `badgeLabel()`'s `badge.name` the same way. If
+  there's a specific visible badge glitch this was meant to be
+  instead, describe what you're seeing and I'll chase that down
+  directly.
+- **#5 — Forum Update Notifs not saving.** *Best-effort
+  interpretation* — read as "forum-reply notifications have nothing
+  persistent behind them," the one gap Warnings/Silences/Friend
+  requests/Announcements didn't share: miss the toast and it's gone,
+  no way to check "what did I miss" on a followed thread. New
+  `list_my_followed_thread_activity()` RPC (same file as bug #1) backs
+  a new persistent "Forum" section in `RightPanel.vue`. If "not
+  saving" meant something more specific (e.g. the Follow toggle itself
+  not persisting) — I re-checked that path and it looks correct
+  end-to-end (`follow_forum_thread`/`unfollow_forum_thread` round-trip
+  through `loadFollowedThreads()` correctly) — let me know what you
+  saw and I'll dig further.
+- **#6 — Notif Latency.** Polling was every 15s; dropped to 6s, and
+  added a `visibilitychange` listener that fires an immediate poll the
+  moment a backgrounded tab becomes visible again, rather than always
+  waiting out whatever's left of the interval. Real-time (Supabase
+  Realtime) isn't an option here without new schema-level policy work
+  — see the "why polling, not Realtime" note at the top of
+  `dmac-notifications-schema.sql` — so this is the practical ceiling
+  without that larger change; flag it if 6s is still too slow and I'll
+  look at what Realtime would actually take.
+
+### To run
+
+**`supabase/dmac-notifications-panel-fixes.sql`** — new file, run
+against your live Supabase project (Dashboard → SQL Editor), after
+`dmac-notifications-schema.sql`. Everything else this pass is
+client-only.
+
+`npm run build` verified clean after every change above.
+
+---
+
+
 
 Beta v1 shipped (all 11+ routes, forums/DMs/moderation/profiles/admin
 all wired to real Supabase RPCs — none of which made it into the

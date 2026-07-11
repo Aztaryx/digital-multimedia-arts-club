@@ -39,6 +39,7 @@ function typeLabel(type) {
    tints the stroke to match that toast's outline. */
 const ICONS = {
   maintenance: '<svg viewBox="0 0 24 24"><path d="M14.7 6.3a4 4 0 0 1-5.4 5.4L4 17l3 3 5.3-5.3a4 4 0 0 1 5.4-5.4l-2.6 2.6-2-2 2.6-2.6Z" stroke-width="1.6" stroke-linejoin="round"/></svg>',
+  announcement: '<svg viewBox="0 0 24 24"><path d="M4 10v4a1 1 0 0 0 1 1h2l7 4V5L7 9H5a1 1 0 0 0-1 1Z" stroke-width="1.6" stroke-linejoin="round"/><path d="M18 9.5a3.5 3.5 0 0 1 0 5" stroke-width="1.6" stroke-linecap="round"/></svg>',
   dm: '<svg viewBox="0 0 24 24"><path d="M4 5.5h16a1 1 0 0 1 1 1V15a1 1 0 0 1-1 1H9l-4 4v-4H4a1 1 0 0 1-1-1V6.5a1 1 0 0 1 1-1Z" stroke-width="1.6" stroke-linejoin="round"/></svg>',
   warn: '<svg viewBox="0 0 24 24"><path d="M12 4 2 20h20L12 4Z" stroke-width="1.6" stroke-linejoin="round"/><path d="M12 10v4M12 17.2v.1" stroke-width="1.8" stroke-linecap="round"/></svg>',
   silence: '<svg viewBox="0 0 24 24"><path d="M6 9a6 6 0 1 1 12 0c0 4 1.5 5.5 2 6H4c.5-.5 2-2 2-6Z" stroke-width="1.6" stroke-linejoin="round"/><path d="M3 3l18 18" stroke-width="1.6" stroke-linecap="round"/></svg>',

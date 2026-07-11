@@ -32,6 +32,7 @@ import { playSfx } from '../composables/useSfx.js';
    the sender's own banner_color; badges use the tier they earned). */
 export const NOTIF_TYPES = {
   maintenance:     { label: 'Maintenance',     color: '#f97316', sfx: 'notify' },
+  announcement:    { label: 'Announcement',    color: '#38bdf8', sfx: 'notify' },
   dm:              { label: 'Message',         color: null,      sfx: 'socialdm' },
   warn:            { label: 'Warning',         color: '#eab308', sfx: 'staffwarning' },
   silence:         { label: 'Silence',         color: '#ef4444', sfx: 'staffsilence' },
@@ -155,7 +156,15 @@ function isFollowing(threadId) {
    has no stored checkpoint; rather than dump their whole backlog as
    toasts, it silently sets the checkpoint to "now" and starts fresh
    from there (still see everything old in the panels themselves). */
-const POLL_MS = 15000;
+// Was 15000 — the most common complaint behind "notif latency" wasn't
+// really the interval itself, it was coming back to an already-open tab
+// (laptop woke up, alt-tabbed back, etc.) and waiting up to a full
+// interval for the next tick. Dropping the interval helps some, but the
+// visibilitychange listener below (fires an immediate poll the moment
+// the tab becomes visible again) is what actually fixes that case —
+// the two together get "just happened" notifications a lot closer to
+// actually-just-happened.
+const POLL_MS = 6000;
 let pollTimer = null;
 let pollingSlug = null; // guards against a stale timer surviving a login/logout swap
 
@@ -204,6 +213,12 @@ async function pollOnce() {
   for (const a of data.maintenance || []) {
     push({ type: 'maintenance', title: a.title, body: a.body, meta: { id: a.id } });
   }
+  // Regular announcements — previously only `maintenance`-kind posts made
+  // it into the poll payload at all, so a plain announcement never got a
+  // popup or sfx even though it always showed up fine in the panel itself.
+  for (const a of data.announcements || []) {
+    push({ type: 'announcement', title: a.title, body: a.body, meta: { id: a.id } });
+  }
   for (const w of data.warnings || []) {
     push({ type: 'warn', title: `Warning from ${w.actor_name}`, body: w.reason || undefined });
   }
@@ -232,6 +247,17 @@ async function pollOnce() {
   }
 
   setSince(slug, data.server_time);
+}
+
+// Fires an out-of-schedule poll the instant the tab becomes visible
+// again, rather than making a person wait out whatever's left of the
+// current interval — registered once at module load, no-ops via the
+// `pollTimer` guard whenever nothing is actually polling.
+function onVisibilityChange() {
+  if (document.visibilityState === 'visible' && pollTimer) pollOnce();
+}
+if (typeof document !== 'undefined') {
+  document.addEventListener('visibilitychange', onVisibilityChange);
 }
 
 function startPolling() {

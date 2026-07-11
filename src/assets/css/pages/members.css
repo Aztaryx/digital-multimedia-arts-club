@@ -733,14 +733,44 @@
 }
 .badge-slot:hover::after { opacity: 1; }
 
-/* Tier gem — fills the slot, sits behind the icon. */
+/* Tier gem — fills the slot, sits behind the icon. Inlined <svg> now
+   (see about/MembersView.vue's badgeBgSvg/badgeIconSvg + v-html)
+   rather than an <img src>, so these are real DOM nodes — the nested
+   `svg` selectors below are what reproduce the old `object-fit:
+   contain` <img> behavior on a plain wrapper div; the SVG's own
+   default preserveAspectRatio ("xMidYMid meet") does the rest. */
 .badge-bg {
   position: absolute;
   inset: 0;
   width: 100%;
   height: 100%;
-  object-fit: contain;
   border-radius: 10px;
+}
+.badge-bg svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+/* The specific badge icon (e.g. speedtypist.svg), centered over the
+   tier-gem background — same position/layering as .badge-diamond
+   below, since exactly one of the two ever renders for a given badge
+   (see the v-if/v-else in the template). Also inlined <svg> now, same
+   story as .badge-bg above. */
+.badge-icon {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  z-index: 2;
+  width: 60%;
+  height: 60%;
+  filter: drop-shadow(0 0 6px rgba(0, 0, 0, .35));
+}
+.badge-icon svg {
+  display: block;
+  width: 100%;
+  height: 100%;
 }
 
 .badge-diamond {

@@ -16,13 +16,22 @@
             <span>Visible to every visitor</span>
           </div>
 
-          <label class="profile-field">
-            <span>Type</span>
-            <select class="profile-input" v-model="kind">
-              <option value="announcement">Announcement</option>
-              <option value="maintenance">Maintenance</option>
-            </select>
-          </label>
+          <div class="seg-toggle" role="group" aria-label="Announcement type">
+            <button
+              type="button"
+              class="seg-btn"
+              :class="{ active: kind === 'announcement' }"
+              v-sfx-hover
+              @click="kind = 'announcement'"
+            >Announcement</button>
+            <button
+              type="button"
+              class="seg-btn"
+              :class="{ active: kind === 'maintenance' }"
+              v-sfx-hover
+              @click="kind = 'maintenance'"
+            >Maintenance</button>
+          </div>
 
           <label class="profile-field">
             <span>Title</span>
@@ -204,6 +213,38 @@ function formatTime(ts) {
   letter-spacing: 0.14em;
   text-transform: uppercase;
   color: rgba(240, 240, 240, 0.55);
+}
+
+/* Segmented button toggle — swapped in for the old "Type" label +
+   <select>, since a two-option dropdown is just two buttons wearing a
+   trenchcoat: one click either way instead of open-menu-then-click. */
+.seg-toggle {
+  display: flex;
+  gap: 8px;
+}
+
+.seg-btn {
+  flex: 1;
+  font: inherit;
+  font-size: 0.85rem;
+  color: rgba(240, 240, 240, 0.7);
+  background: rgba(8, 8, 12, 0.58);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 16px;
+  padding: 10px 14px;
+  cursor: pointer;
+  transition: border-color 0.2s ease, color 0.2s ease, background 0.2s ease;
+}
+
+.seg-btn:hover {
+  border-color: rgba(249, 115, 22, 0.5);
+  color: #fff;
+}
+
+.seg-btn.active {
+  background: linear-gradient(135deg, var(--orange), var(--purple));
+  border-color: transparent;
+  color: #fff;
 }
 
 .profile-input,

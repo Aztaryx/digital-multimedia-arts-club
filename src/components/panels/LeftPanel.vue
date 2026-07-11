@@ -88,16 +88,16 @@
                   <strong>{{ modActionLabel }} {{ modTarget.displayName }}</strong>
                   <button class="forum-link-btn" v-sfx-hover @click="clearModeration">Cancel</button>
                 </div>
-                <label v-if="modAction === 'silence'" class="forum-field">
-                  <span>Duration</span>
-                  <select class="forum-input" v-model.number="modDuration">
-                    <option :value="1">1 hour</option>
-                    <option :value="24">24 hours</option>
-                    <option :value="72">3 days</option>
-                    <option :value="168">7 days</option>
-                    <option :value="720">30 days</option>
-                  </select>
-                </label>
+                <div v-if="modAction === 'silence'" class="duration-group" role="group" aria-label="Silence duration">
+                  <button
+                    v-for="d in DURATION_OPTIONS"
+                    :key="d.hours"
+                    type="button"
+                    class="duration-btn"
+                    :class="{ active: modDuration === d.hours }"
+                    @click="modDuration = d.hours"
+                  >{{ d.label }}</button>
+                </div>
                 <label class="forum-field">
                   <span>Reason</span>
                   <textarea
@@ -439,6 +439,17 @@ const modAction = ref('warn');
 const modDuration = ref(24);
 const modReason = ref('');
 const modStatus = ref('');
+
+// Same 5 options the old <select> offered — just rendered as a button
+// row instead of a label+dropdown (one click instead of open-menu-then-
+// click for the two most-used values especially).
+const DURATION_OPTIONS = [
+  { hours: 1, label: '1 hour' },
+  { hours: 24, label: '24 hours' },
+  { hours: 72, label: '3 days' },
+  { hours: 168, label: '7 days' },
+  { hours: 720, label: '30 days' },
+];
 
 const MOD_ACTION_LABELS = { warn: 'Warn', silence: 'Silence', unsilence: 'Unsilence' };
 const modActionLabel = computed(() => MOD_ACTION_LABELS[modAction.value] || 'Warn');

@@ -93,16 +93,31 @@ const Leaderboard = (() => {
     '2fast4u':   { direction: 'asc'  },
   };
 
+  /* ── DISPLAY NAMES ──────────────────────────────────
+     badge_id → human label, for anywhere a badge needs to show a
+     name rather than its raw id (see about/MembersView.vue). Falls
+     back to the raw badge_id itself for anything not listed here, so
+     a newly-added badge_id never renders blank while you get around
+     to naming it. */
+  const BADGE_LABELS = {
+    speedtypist: 'Speedtypist',
+    '2fast4u':   '2 Fast 4 U',
+  };
+
   /* ── FETCH ─────────────────────────────────────────
      Pulls every row from the `scores` table and returns them in
      the same shape the rest of this file has always expected:
-     an array of { badge_id, member_id, value, issue_number, awarded_on }.
-     getLeaderboard() below is completely unchanged — it has no
-     idea the data used to come from a CSV. */
+     an array of { badge_id, member_id, slug, value, issue_number,
+     awarded_on }. `slug` is new — requires
+     dmac-scores-members-link.sql to have been run (adds the real
+     `member_id uuid references members(id)` column this embed
+     needs); rows that haven't been linked yet just come back with
+     `slug: null` and get filtered out below, same as they always
+     silently were before that link existed at all. */
   async function fetchScores() {
     const { data, error } = await sb
       .from('scores')
-      .select('badge_id, member_id, value, issue_number, awarded_on');
+      .select('badge_id, member_id, value, issue_number, awarded_on, members(slug)');
 
     if (error) throw new Error(`Leaderboard fetch failed: ${error.message}`);
 
@@ -110,6 +125,7 @@ const Leaderboard = (() => {
       .map(r => ({
         badge_id: r.badge_id,
         member_id: r.member_id,
+        slug: r.members?.slug || null,
         value: parseFloat(r.value),
         issue_number: r.issue_number ?? null,
         awarded_on: r.awarded_on || null,
@@ -191,6 +207,7 @@ const Leaderboard = (() => {
       const percent = Math.min(100, Math.round(rawPercent));
       return {
         member_id: entry.member_id,
+        slug: entry.slug,
         value: entry.value,
         rank: i + 1,
         percent,
@@ -223,7 +240,7 @@ const Leaderboard = (() => {
     return TIER_CONFIG.find(t => t.name === tierName);
   }
 
-  return { fetchScores, getLeaderboard, tierFor, tierForIssueNumber, TIER_CONFIG, TIER_COLORS, BADGES, parseCSV };
+  return { fetchScores, getLeaderboard, tierFor, tierForIssueNumber, TIER_CONFIG, TIER_COLORS, BADGES, BADGE_LABELS, parseCSV };
 })();
 
 export default Leaderboard;

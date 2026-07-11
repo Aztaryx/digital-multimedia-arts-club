@@ -402,6 +402,19 @@ a     { color: inherit; text-decoration: none; }
 }
 .forum-composer-actions--compact { justify-content: flex-start; }
 
+/* Swapped in for the old "Duration" label + <select> — same 5 values,
+   one click instead of open-menu-then-click. */
+.duration-group { display: flex; flex-wrap: wrap; gap: 6px; }
+.duration-btn {
+  font-family: var(--font); font-size: .68rem; letter-spacing: .03em;
+  color: var(--muted); cursor: pointer;
+  background: rgba(255,255,255,.04); border: 1px solid rgba(255,255,255,.12);
+  border-radius: 999px; padding: 6px 12px;
+  transition: border-color .2s, background .2s, color .2s;
+}
+.duration-btn:hover { border-color: var(--orange); color: var(--orange); }
+.duration-btn.active { background: var(--orange); border-color: var(--orange); color: #1a1a1a; }
+
 .forum-link-btn {
   font-family: var(--font); font-size: .68rem; letter-spacing: .04em;
   color: var(--muted); background: none; border: none; cursor: pointer;
@@ -498,6 +511,8 @@ a     { color: inherit; text-decoration: none; }
   background: var(--surface); border: 1px solid rgba(255,255,255,.06);
 }
 .notif-card--maintenance { border-color: rgba(249,115,22,.35); }
+.notif-card--silence { border-color: rgba(239,68,68,.35); }
+.notif-card--forum { border-color: rgba(74,222,128,.35); }
 .notif-card-title { font-family: var(--font); font-size: .8rem; color: var(--text); }
 .notif-card-body {
   font-family: var(--font2); font-size: .78rem; line-height: 1.5;
