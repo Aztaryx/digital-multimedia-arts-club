@@ -443,7 +443,7 @@ async function loadRoster() {
 async function loadScores() {
   const { data, error } = await sb
     .from('scores')
-    .select('id, badge_id, value, issue_number, awarded_on, created_at, members(slug, display_name)')
+    .select('id, badge_id, value, issue_number, awarded_on, created_at, members!member_id(slug, display_name)')
     .order('created_at', { ascending: false })
     .limit(100);
   if (error) {

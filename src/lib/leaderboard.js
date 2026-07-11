@@ -120,7 +120,7 @@ const Leaderboard = (() => {
   async function fetchScores() {
     const { data, error } = await sb
       .from('scores')
-      .select('id, badge_id, member_id, value, issue_number, awarded_on, created_at, members(slug)');
+     .select('id, badge_id, member_id, value, issue_number, awarded_on, created_at, members!member_id(slug)');
 
     if (error) throw new Error(`Leaderboard fetch failed: ${error.message}`);
 
