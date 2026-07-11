@@ -1,3 +1,66 @@
+## Beta v1.5 — admin panel → admin dashboard
+
+The Admin Panel did exactly two things: post announcements/maintenance
+notices, and award scores. Everything else an admin might need —
+who's on the roster, who's silenced, what moderation has actually
+happened, promoting/demoting roles — had no UI at all, either
+hand-edited in the Supabase Table Editor or (for moderation history)
+genuinely unreadable from the app in any form. This pass turns it into
+an actual dashboard without touching either of the two things it
+already did well.
+
+- **New `supabase/dmac-admin-dashboard-schema.sql`** — two RPCs,
+  same `_resolve_member_id()` + `site_role = 'admin'` gate every other
+  admin RPC here uses (see `admin_upsert_score` in
+  `dmac-admin-score-writing.sql`):
+  - `admin_list_moderation_log()` — the admin-scoped sibling of
+    `list_my_moderation_log` (`dmac-my-moderation-log-fix.sql`), minus
+    the `target_id = caller` scoping, plus the target's name. Closes
+    the same "no policies on `moderation_log`, so nothing could ever
+    read it" gap that file documented, just for admins-viewing-everyone
+    instead of members-viewing-themselves.
+  - `admin_set_role()` — the write path `site_role` has never had.
+    Refuses to demote the last remaining admin, so a wrong click in
+    the new Members tab can't lock everyone out of `/admin` at once
+    (`requiresAdmin` in `router/index.js`).
+- **`AdminView.vue` rebuilt around five tabs** (Overview /
+  Announcements / Badges & Scores / Members / Moderation) instead of
+  one long scroll, with a persistent row of stat cards up top (member
+  count + role breakdown, badges awarded + distinct badge count, forum
+  thread/reply counts, announcement count, live silence count) that
+  stays visible across every tab. The stat counts and Overview's
+  "recent activity" feed (announcements + moderation actions, merged
+  and sorted) come from tables that have been publicly readable since
+  their own schema files (`members`, `scores`, `announcements`,
+  `forum_threads`, `forum_posts`) — no new SQL needed for those, just
+  count/select queries the client wasn't running before.
+  - **Members tab** — searchable roster with each member's role shown
+    as an editable `<select>` (calls `admin_set_role`), live silence
+    status, and a per-row "Moderate" toggle (warn / silence, with
+    reason + duration) that wraps the existing `member_moderate()` RPC
+    (`dmac-moderation-silence-enforcement.sql`) — that RPC has existed
+    since that file shipped but had no caller anywhere in the app
+    until now.
+  - **Moderation tab** — active silences (with one-click unsilence)
+    plus the full sitewide log from `admin_list_moderation_log`.
+  - Announcements and Scores & Badges tabs are the same panels from
+    v1.4, unchanged in behavior, just moved under tabs instead of
+    stacked on one page.
+
+### To run
+
+**`supabase/dmac-admin-dashboard-schema.sql`** — new file, run against
+your live Supabase project (Dashboard → SQL Editor), after
+`dmac-moderation-silence-enforcement.sql` and
+`dmac-admin-score-writing.sql`. Without it, the Members tab's role
+dropdown and the Moderation tab's log both fail gracefully (inline
+error / empty list) rather than breaking the rest of the page — same
+"missing migration" handling every other tab here already has.
+
+`npm run build` verified clean after every change above.
+
+---
+
 ## Beta v1.4 — badge notifications + admin score writing
 
 Both flagged directly in v1.3's own notes (RightPanel.vue's "flag it
