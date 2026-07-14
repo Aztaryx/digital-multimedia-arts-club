@@ -88,6 +88,15 @@ const routes = [
     component: () => import('../views/AdminView.vue'),
     meta: { title: 'DMAC — Admin Panel', requiresAuth: true, requiresAdmin: true },
   },
+  {
+    // Catch-all — also the trigger point for the Whoops. secret badge,
+    // see views/NotFoundView.vue. Must stay last in this array; Vue
+    // Router matches routes in order.
+    path: '/:pathMatch(.*)*',
+    name: 'not-found',
+    component: () => import('../views/NotFoundView.vue'),
+    meta: { title: 'DMAC — Page Not Found' },
+  },
 ];
 
 const router = createRouter({

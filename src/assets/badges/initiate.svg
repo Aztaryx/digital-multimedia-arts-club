@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!-- DMAC badge icon — flat line art, no gradients (placeholder pass, see dmac-badge-implementation-plan.md Part 3 for the real-art follow-up) -->
+<svg width="2000" height="2000" viewBox="0 0 529.16667 529.16666" version="1.1" xmlns="http://www.w3.org/2000/svg">
+<circle cx="264.58" cy="264.58" r="175.00" fill="#000000" stroke="none" stroke-width="0" opacity="0.55"/>
+<circle cx="264.58" cy="264.58" r="165.00" fill="none" stroke="#ffffff" stroke-width="6" opacity="0.55"/>
+<polygon points="264.58,114.58 298.58,264.58 264.58,286.58 230.58,264.58" fill="#ffffff" stroke="none" stroke-width="0" stroke-linejoin="round" opacity="1"/>
+<polygon points="264.58,414.58 298.58,264.58 264.58,242.58 230.58,264.58" fill="#000000" stroke="#ffffff" stroke-width="6" stroke-linejoin="round" opacity="1"/>
+<circle cx="264.58" cy="264.58" r="20.00" fill="#000000" stroke="#ffffff" stroke-width="6" opacity="1"/>
+</svg>

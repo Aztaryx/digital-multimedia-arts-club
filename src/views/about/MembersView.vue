@@ -202,7 +202,10 @@
                   class="badge-diamond"
                   :style="{ color: tierColor(badge.tierKey), textShadow: `0 0 14px ${tierColor(badge.tierKey)}, 0 0 28px ${tierColor(badge.tierKey)}66` }"
                 >◆</span>
-                <span class="badge-tip">{{ badgeLabel(badge) }}</span>
+                <span class="badge-tip">
+                  <span class="badge-tip-name">{{ badgeLabel(badge) }}</span>
+                  <span v-if="badge.flavor" class="badge-tip-flavor">{{ badge.flavor }}</span>
+                </span>
               </div>
             </div>
           </div>
@@ -469,7 +472,9 @@ async function loadLiveScores() {
 }
 
 function badgesForSlug(slug) {
-  return Leaderboard.getBadgesForSlug(liveScores.value, slug);
+  const stored = Leaderboard.getBadgesForSlug(liveScores.value, slug);
+  const computed = Leaderboard.getCompletionStatus(liveScores.value, slug);
+  return [...stored, ...computed];
 }
 
 // Real count instead of the old hardcoded "Unknown" — badges already

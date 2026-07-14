@@ -796,16 +796,33 @@
   border-radius: 6px;
   padding: 4px 8px;
   font-family: var(--font);
-  font-size: .58rem;
-  font-weight: 600;
-  letter-spacing: .1em;
-  text-transform: uppercase;
   color: var(--text);
-  white-space: nowrap;
+  white-space: normal;
+  max-width: 220px;
+  text-align: center;
   pointer-events: none;
   opacity: 0;
   transition: opacity .18s var(--ease-out), transform .18s var(--ease-out);
   z-index: 10;
+}
+.badge-tip-name {
+  display: block;
+  font-size: .58rem;
+  font-weight: 600;
+  letter-spacing: .1em;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+.badge-tip-flavor {
+  display: block;
+  margin-top: 4px;
+  font-size: .56rem;
+  font-weight: 400;
+  font-style: italic;
+  letter-spacing: normal;
+  text-transform: none;
+  opacity: .75;
+  white-space: normal;
 }
 .badge-slot:hover .badge-tip {
   opacity: 1;

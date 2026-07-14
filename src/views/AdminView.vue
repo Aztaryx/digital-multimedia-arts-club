@@ -166,6 +166,14 @@
               <input class="profile-input" v-model="scoreBadgeCustom" placeholder="e.g. pixelwizard" />
             </label>
 
+            <label v-if="scoreBadgeChoice === 'inseparable'" class="profile-field">
+              <span>Paired with</span>
+              <select class="profile-input" v-model="scorePartnerSlug">
+                <option value="">— none —</option>
+                <option v-for="m in roster" :key="m.slug" :value="m.slug">{{ m.display_name }}</option>
+              </select>
+            </label>
+
             <label class="profile-field">
               <span>Value</span>
               <input class="profile-input" type="number" step="any" v-model="scoreValue" placeholder="Numeric score" />
@@ -174,6 +182,11 @@
             <label class="profile-field">
               <span>Issue # <em>(secret badges only — leave blank otherwise)</em></span>
               <input class="profile-input" type="number" step="1" min="1" v-model="scoreIssueNumber" placeholder="Leave blank for ordinary badges" />
+              <small v-if="scoreBadgeChoice === 'new-game' && newGameSuggestedIssue">
+                New Game is optionally issue-tracked by join order — this member joined
+                #{{ newGameSuggestedIssue }}.
+                <button type="button" class="forum-link-btn" @click="scoreIssueNumber = newGameSuggestedIssue">Use #{{ newGameSuggestedIssue }}</button>
+              </small>
             </label>
 
             <label class="profile-field">
@@ -194,7 +207,7 @@
               <div v-for="s in scores" :key="s.id" class="admin-announcement-row">
                 <div class="admin-announcement-copy">
                   <strong>{{ s.display_name || s.slug || 'Unlinked member' }} — {{ badgeLabelFor(s.badge_id) }}</strong>
-                  <small>{{ s.value }}{{ s.issue_number ? ` · issue #${s.issue_number}` : '' }} · {{ formatTime(s.created_at) }}</small>
+                  <small>{{ s.value }}{{ s.issue_number ? ` · issue #${s.issue_number}` : '' }}{{ s.partner_name ? ` · with ${s.partner_name}` : '' }} · {{ formatTime(s.created_at) }}</small>
                 </div>
                 <button class="profile-btn profile-btn--danger" v-sfx-hover @click="removeScore(s.id)">Delete</button>
               </div>
@@ -358,6 +371,7 @@ const scores = ref([]);
 const scoreMemberSlug = ref('');
 const scoreBadgeChoice = ref('');
 const scoreBadgeCustom = ref('');
+const scorePartnerSlug = ref('');
 const scoreValue = ref('');
 const scoreIssueNumber = ref('');
 const scoreAwardedOn = ref('');
@@ -384,10 +398,26 @@ const siteStats = ref({ totalScores: 0, distinctBadges: 0, totalAnnouncements: 0
 // id…" in the template covers anything not registered there yet.
 const badgeOptions = computed(() => {
   const opts = {};
-  for (const id of Object.keys(Leaderboard.BADGES)) {
+  for (const id of Object.keys(Leaderboard.BADGE_LABELS)) {
     opts[id] = Leaderboard.BADGE_LABELS[id] || id;
   }
   return opts;
+});
+
+// New Game (see Part 4 of the implementation plan) is "free" if
+// awarded as an issue-tracked badge with issue_number = join order —
+// this just computes what that number would be for the currently
+// selected member, off the same roster the picker above already has
+// loaded. Purely a convenience suggestion; the admin can still type
+// any value, or leave it blank for the flat "everyone gets the same
+// tier" version instead.
+const newGameSuggestedIssue = computed(() => {
+  if (!scoreMemberSlug.value || !roster.value.length) return null;
+  const withDates = roster.value.filter(m => m.created_at);
+  if (!withDates.length) return null;
+  const ordered = [...withDates].sort((a, b) => new Date(a.created_at) - new Date(b.created_at));
+  const idx = ordered.findIndex(m => m.slug === scoreMemberSlug.value);
+  return idx === -1 ? null : idx + 1;
 });
 
 const statusMsg = ref('');
@@ -427,7 +457,7 @@ async function loadAnnouncements() {
 async function loadRoster() {
   const { data, error } = await sb
     .from('members')
-    .select('slug, display_name, club_role, site_role, silenced_until, year_joined')
+    .select('slug, display_name, club_role, site_role, silenced_until, year_joined, created_at')
     .order('display_name');
   if (error) {
     console.error('AdminView: could not load roster —', error.message);
@@ -443,7 +473,7 @@ async function loadRoster() {
 async function loadScores() {
   const { data, error } = await sb
     .from('scores')
-    .select('id, badge_id, value, issue_number, awarded_on, created_at, members!member_id(slug, display_name)')
+    .select('id, badge_id, value, issue_number, awarded_on, created_at, members!member_id(slug, display_name), partner:members!partner_member_id(display_name)')
     .order('created_at', { ascending: false })
     .limit(100);
   if (error) {
@@ -459,6 +489,7 @@ async function loadScores() {
     created_at: r.created_at,
     slug: r.members?.slug || null,
     display_name: r.members?.display_name || null,
+    partner_name: r.partner?.display_name || null,
   }));
 }
 
@@ -603,6 +634,7 @@ async function submitScore() {
     p_value: Number(scoreValue.value),
     p_issue_number: scoreIssueNumber.value === '' ? null : Number(scoreIssueNumber.value),
     p_awarded_on: scoreAwardedOn.value || null,
+    p_partner_slug: scorePartnerSlug.value || null,
   });
   savingScore.value = false;
 
@@ -614,6 +646,7 @@ async function submitScore() {
   scoreValue.value = '';
   scoreIssueNumber.value = '';
   scoreAwardedOn.value = '';
+  scorePartnerSlug.value = '';
   status('Score saved.', 'success');
   loadScores();
   loadSiteStats();

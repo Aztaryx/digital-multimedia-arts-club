@@ -1,6 +1,6 @@
 <template>
   <nav id="navbar" :class="{ 'nav-hidden': Panels.leftOpen.value || Panels.rightOpen.value }">
-    <router-link to="/home" class="nav-logo">
+    <router-link to="/home" class="nav-logo" @click="registerLogoTap">
       <img src="https://aztaryx.github.io/dmac-assets/logo.png" alt="DMAC" height="38" />
     </router-link>
     <ul class="nav-links">
@@ -177,6 +177,7 @@ import MemberAuth from '../lib/member-auth.js';
 import MemberProfile from '../lib/member-profile.js';
 import { sb } from '../lib/supabase-client.js';
 import Panels from '../composables/usePanels.js';
+import { registerLogoTap } from '../lib/secret-badges.js';
 
 const route = useRoute();
 const router = useRouter();

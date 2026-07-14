@@ -556,6 +556,7 @@ a     { color: inherit; text-decoration: none; }
   overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
 }
 .notif-badge-copy span { font-family: var(--font2); font-size: .68rem; color: var(--muted); }
+.notif-badge-flavor { font-style: italic; opacity: .8; white-space: normal; }
 
 /* ── TOAST POP-UPS (bottom-left) ──────────────────────────────────
    Each toast's --accent custom property (set inline per-toast in

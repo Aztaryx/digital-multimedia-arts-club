@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!-- DMAC badge icon — flat line art, no gradients (placeholder pass, see dmac-badge-implementation-plan.md Part 3 for the real-art follow-up) -->
+<svg width="2000" height="2000" viewBox="0 0 529.16667 529.16666" version="1.1" xmlns="http://www.w3.org/2000/svg">
+<circle cx="264.58" cy="264.58" r="175.00" fill="#000000" stroke="none" stroke-width="0" opacity="0.55"/>
+<rect x="74.58" y="199.58" width="380.00" height="130.00" rx="10" fill="#000000" stroke="#ffffff" stroke-width="8" opacity="1"/>
+<line x1="150.58" y1="199.58" x2="150.58" y2="329.58" stroke="#ffffff" stroke-width="5" stroke-linecap="round" opacity="0.8"/>
+<line x1="226.58" y1="199.58" x2="226.58" y2="329.58" stroke="#ffffff" stroke-width="5" stroke-linecap="round" opacity="0.8"/>
+<line x1="302.58" y1="199.58" x2="302.58" y2="329.58" stroke="#ffffff" stroke-width="5" stroke-linecap="round" opacity="0.8"/>
+<line x1="378.58" y1="199.58" x2="378.58" y2="329.58" stroke="#ffffff" stroke-width="5" stroke-linecap="round" opacity="0.8"/>
+<circle cx="112.58" cy="215.58" r="8.00" fill="#ffffff" stroke="none" stroke-width="0" opacity="0.85"/>
+<circle cx="112.58" cy="313.58" r="8.00" fill="#ffffff" stroke="none" stroke-width="0" opacity="0.85"/>
+<circle cx="188.58" cy="215.58" r="8.00" fill="#ffffff" stroke="none" stroke-width="0" opacity="0.85"/>
+<circle cx="188.58" cy="313.58" r="8.00" fill="#ffffff" stroke="none" stroke-width="0" opacity="0.85"/>
+<circle cx="264.58" cy="215.58" r="8.00" fill="#ffffff" stroke="none" stroke-width="0" opacity="0.85"/>
+<circle cx="264.58" cy="313.58" r="8.00" fill="#ffffff" stroke="none" stroke-width="0" opacity="0.85"/>
+<circle cx="340.58" cy="215.58" r="8.00" fill="#ffffff" stroke="none" stroke-width="0" opacity="0.85"/>
+<circle cx="340.58" cy="313.58" r="8.00" fill="#ffffff" stroke="none" stroke-width="0" opacity="0.85"/>
+<circle cx="416.58" cy="215.58" r="8.00" fill="#ffffff" stroke="none" stroke-width="0" opacity="0.85"/>
+<circle cx="416.58" cy="313.58" r="8.00" fill="#ffffff" stroke="none" stroke-width="0" opacity="0.85"/>
+<rect x="232.58" y="205.58" width="64.00" height="118.00" rx="4" fill="#ffffff" stroke="none" stroke-width="0" opacity="0.85"/>
+</svg>

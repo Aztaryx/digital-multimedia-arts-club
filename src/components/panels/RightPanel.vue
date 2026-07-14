@@ -72,7 +72,8 @@
                   </div>
                   <div class="notif-badge-copy">
                     <strong>{{ badgeLabel(b) }}</strong>
-                    <span>Rank #{{ b.rank }} · {{ b.percent }}%</span>
+                    <span>{{ badgeSubtitle(b) }}</span>
+                    <span v-if="b.flavor" class="notif-badge-flavor">{{ b.flavor }}</span>
                   </div>
                 </div>
               </div>
@@ -231,7 +232,9 @@ async function loadBadges() {
   try {
     const scores = await Leaderboard.fetchScores();
     const member = MemberAuth.sessionMember.value;
-    badges.value = Leaderboard.getBadgesForSlug(scores, member?.slug);
+    const stored = Leaderboard.getBadgesForSlug(scores, member?.slug);
+    const computed = Leaderboard.getCompletionStatus(scores, member?.slug);
+    badges.value = [...stored, ...computed];
   } catch (err) {
     console.error('RightPanel: could not load badges —', err.message);
   }
@@ -243,6 +246,16 @@ function tierColor(tierKey) {
 function badgeLabel(badge) {
   const name = badge?.name || 'Badge';
   return badge?.level ? `${badge.level} ${name}` : name;
+}
+// Tiered badges rank by percent-of-floor; issue-tracked (one-off)
+// badges rank by "which number holder you were" instead — see
+// getBadgesForSlug() in leaderboard.js for why percent doesn't mean
+// anything for those. Computed badges (Completionist) aren't ranked
+// against other people at all, so they get their own line entirely.
+function badgeSubtitle(badge) {
+  if (badge?.mode === 'computed') return `${badge.qualifying}/${badge.eligibleTotal} badges at ruby+`;
+  if (badge?.mode === 'issue') return `#${badge.rank} to earn this`;
+  return `Rank #${badge?.rank} · ${badge?.percent}%`;
 }
 function badgeBgSvg(tierKey) {
   return BADGE_SVG[`${tierKey}-badge`] || null;

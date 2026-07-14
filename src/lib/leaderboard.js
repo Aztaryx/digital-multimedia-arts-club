@@ -100,9 +100,102 @@ const Leaderboard = (() => {
      a newly-added badge_id never renders blank while you get around
      to naming it. */
   const BADGE_LABELS = {
-    speedtypist: 'Speedtypist',
-    '2fast4u':   '2 Fast 4 U',
+    speedtypist:        'Speedtypist',
+    '2fast4u':           '2 Fast 4 U',
+    // Tiered
+    shakespeare:         'Shakespeare',
+    'frame-by-frame':    'Frame By Frame',
+    'reel-deal':          'Reel Deal',
+    'thumbnail-titan':   'Thumbnail Titan',
+    archivist:            'Archivist',
+    'showed-up':         'Showed Up',
+    inseparable:          'Inseparable',
+    'hive-mind':         'Hive Mind',
+    initiate:             '[INITIATE]',
+    // One-off
+    whoops:               'Whoops.',
+    'h4h4-n00b':         'h4h4 n00b!',
+    'beta-tester':       'Beta Tester',
+    superstar:            'Superstar!',
+    'day-one':           'Day One',
+    'brick-placer':      'Brick Placer',
+    dethroned:            'Dethroned',
+    'growth-spurt':      'Growth Spurt',
+    'new-game':          'New Game',
   };
+
+  /* ── COMPUTED / META BADGES ─────────────────────────
+     Completionist and The True Completionist! are never awarded
+     through admin_upsert_score() — there's no scores row, nothing to
+     pick from a dropdown. Deliberately kept OUT of BADGE_LABELS so
+     they never show up in AdminView's "Choose a badge" list (which
+     reads BADGE_LABELS — see badgeOptions in AdminView.vue). Their
+     display name/flavor still need a home for rendering, hence this
+     separate map. See getCompletionStatus() below for how these get
+     computed. */
+  const COMPUTED_BADGES = {
+    completionist: {
+      name: 'Completionist',
+      flavor: '',
+      threshold: 0.75,
+    },
+    'true-completionist': {
+      name: 'The True Completionist!',
+      flavor: '',
+      threshold: 1,
+    },
+  };
+
+  /* ── FLAVOR TEXT ────────────────────────────────────
+     badge_id → flavor line, shown wherever a badge renders
+     (about/MembersView.vue, RightPanel.vue). Same fallback
+     philosophy as BADGE_LABELS: nothing here just means no flavor
+     line shows, not a broken render.
+
+     Inseparable's entry is a *template*, not a static string — it
+     contains {value}/{s}/{partner} tokens because the real text
+     differs per member (the shared project count, and which of the
+     two people is named). See applyFlavorTemplate() below for the
+     substitution and getBadgesForSlug() for where it gets called. */
+  const BADGE_FLAVOR = {
+    shakespeare:         'A master at work.',
+    'frame-by-frame':    'I built this thing, brick by brick.',
+    'reel-deal':          "Cut. Print. Next one's already due.",
+    'thumbnail-titan':   'Good hook. Now beat it.',
+    archivist:            "You can tell this guy a secret and he'd remember it for 20 years.",
+    'showed-up':         "Present again. Don't break the streak.",
+    inseparable:          '{value} project{s} worked on with {partner}.',
+    'hive-mind':         'moi moi moi moi moi moi',
+    initiate:             'PUBLISH? Y/N',
+    whoops:               '"how" — lead dev',
+    'h4h4-n00b':         'Up up down down left right left right... you know the rest.',
+    'beta-tester':       'dev pls fix',
+    superstar:            'Look who made the front page!',
+    'day-one':           'Before any of this existed, you were already here.',
+    'brick-placer':      'One brick. Infinite regret.',
+    dethroned:            'GG. No re.',
+    'growth-spurt':      'Sorry for blocking the group photo.',
+    'new-game':          'Press Start.',
+  };
+
+  /* ── FLAVOR TEMPLATING ──────────────────────────────
+     Only Inseparable needs this today, but written generically off
+     any {token} found in the string rather than a hardcoded
+     'inseparable' special-case, so a future badge that wants the
+     same named-pair pattern gets it for free. `ctx` supplies
+     whatever tokens the specific badge's template needs; tokens with
+     no matching ctx entry are left as-is rather than silently
+     vanishing, so a missing context value is obvious instead of
+     produci a blank hole in the sentence. */
+  function applyFlavorTemplate(template, ctx = {}) {
+    if (!template) return template;
+    let out = template.replace(/\{s\}/g, ctx.value === 1 ? '' : 's');
+    out = out.replace(/\{(\w+)\}/g, (match, token) => {
+      if (token === 's') return match; // already handled above
+      return Object.prototype.hasOwnProperty.call(ctx, token) ? ctx[token] : match;
+    });
+    return out;
+  }
 
   /* ── FETCH ─────────────────────────────────────────
      Pulls every row from the `scores` table and returns them in
@@ -120,7 +213,7 @@ const Leaderboard = (() => {
   async function fetchScores() {
     const { data, error } = await sb
       .from('scores')
-     .select('id, badge_id, member_id, value, issue_number, awarded_on, created_at, members!member_id(slug)');
+     .select('id, badge_id, member_id, value, issue_number, awarded_on, created_at, partner_member_id, members!member_id(slug), partner:members!partner_member_id(slug, display_name)');
 
     if (error) throw new Error(`Leaderboard fetch failed: ${error.message}`);
 
@@ -134,6 +227,13 @@ const Leaderboard = (() => {
         issue_number: r.issue_number ?? null,
         awarded_on: r.awarded_on || null,
         created_at: r.created_at || null,
+        // partner_member_id/partner_name are only ever populated for
+        // badges awarded with a paired member (Inseparable today) —
+        // null for every ordinary row. `?.` throughout means this is
+        // a no-op until dmac's partner_member_id migration has run;
+        // older/unmigrated schemas just come back with partner: null.
+        partner_member_id: r.partner_member_id || null,
+        partner_name: r.partner?.display_name || null,
       }))
       .filter(r => r.badge_id && r.member_id && !isNaN(r.value));
   }
@@ -232,27 +332,67 @@ const Leaderboard = (() => {
      out of sync with three separate copies. `created_at`/`awarded_on`
      pass through from the member's own raw score row (not a
      leaderboard-computed field) — that's what makes "new since last
-     check" possible client-side. */
+     check" possible client-side.
+
+     Tiering mode is decided per-row, not per-badge_id, off whether
+     `issue_number` is set — the same signal the admin form already
+     uses ("Issue # — secret badges only, leave blank otherwise").
+     A tiered badge (Shakespeare, Hive Mind, etc.) never gets an
+     issue_number, so it always goes through getLeaderboard()'s
+     percent-of-floor tiering. A one-off/secret badge always gets one,
+     so it always goes through tierForIssueNumber() instead — value
+     is conventionally just `1` for those and would otherwise put
+     every holder at a flat 100%/allomorphite, which isn't what "the
+     Nth person in" is supposed to mean. `mode` on the returned object
+     tells the UI which kind of badge this is, so it can show "Rank
+     #N · X%" for tiered badges and "#N to earn this" for one-off
+     ones instead of a meaningless 0%/blank percent. */
   function getBadgesForSlug(scores, slug) {
     if (!slug || !scores?.length) return [];
     const own = scores.filter(s => s.slug === slug);
     const badgeIds = [...new Set(own.map(s => s.badge_id))];
     const badges = [];
     for (const badgeId of badgeIds) {
-      const board = getLeaderboard(scores, badgeId);
-      const entry = board.find(b => b.slug === slug);
-      if (!entry) continue;
       const raw = own.find(s => s.badge_id === badgeId);
-      const tierName = entry.tier.name;
+      if (!raw) continue;
+
+      let tierObj, rank, percent, value, mode;
+
+      if (raw.issue_number != null) {
+        mode = 'issue';
+        tierObj = tierForIssueNumber(raw.issue_number);
+        rank = raw.issue_number;
+        percent = null;
+        value = raw.value;
+      } else {
+        const board = getLeaderboard(scores, badgeId);
+        const entry = board.find(b => b.slug === slug);
+        if (!entry) continue;
+        mode = 'tiered';
+        tierObj = entry.tier;
+        rank = entry.rank;
+        percent = entry.percent;
+        value = entry.value;
+      }
+
+      const tierName = tierObj.name;
+      const flavorTemplate = BADGE_FLAVOR[badgeId];
+      const flavor = flavorTemplate
+        ? applyFlavorTemplate(flavorTemplate, { value, partner: raw.partner_name || 'someone' })
+        : null;
+
       badges.push({
         badge_id: badgeId,
         tierKey: tierName,
+        mode,
         file: `${badgeId}.svg`,
         name: BADGE_LABELS[badgeId] || badgeId,
         level: tierName.charAt(0).toUpperCase() + tierName.slice(1),
-        value: entry.value,
-        rank: entry.rank,
-        percent: entry.percent,
+        value,
+        rank,
+        percent,
+        flavor,
+        partner_name: raw.partner_name || null,
         awarded_on: raw?.awarded_on || null,
         created_at: raw?.created_at || null,
       });
@@ -284,7 +424,93 @@ const Leaderboard = (() => {
     return TIER_CONFIG.find(t => t.name === tierName);
   }
 
-  return { fetchScores, getLeaderboard, getBadgesForSlug, tierFor, tierForIssueNumber, TIER_CONFIG, TIER_COLORS, BADGES, BADGE_LABELS, parseCSV };
+  /* ── COMPLETIONIST / THE TRUE COMPLETIONIST! ───────
+     Computed, not stored — see Part 4 of the implementation plan for
+     the full reasoning. Two decisions the plan flagged as needing a
+     conscious answer rather than an accident; documented here rather
+     than buried, so revisiting either one later is a one-line change:
+
+     1. DENOMINATOR — which badges count toward the 75%/100%.
+        Implemented here as every badge in BADGE_LABELS from this
+        20-badge rollout, exactly as dmac-badge-ideas.md's criteria
+        column literally states ("75% of all other badges" / "100% of
+        all other badges") — matching the plan's own worked example
+        ("with the current 18 other badges, 75% is 14 ... 100% is all
+        18"). BADGE_LABELS also carries two pre-existing badges from
+        before this rollout (speedtypist, 2fast4u) that the plan's
+        "18" doesn't count, so those two are excluded below to keep
+        the math matching the plan's own numbers — not a judgment
+        call about whether they *should* count, just following the
+        plan's stated arithmetic.
+
+        Separately: the eligible set as implemented still includes
+        the five situational one-offs (Growth Spurt, Brick Placer,
+        Dethroned, Beta Tester, Day One) that most members can never
+        earn no matter what they do — meaning 100% may be genuinely
+        unreachable for almost everyone. That reads as intentional for
+        a badge called "The True Completionist!", but it's a real
+        product decision, not a default to leave unexamined. To
+        restrict the denominator further, add badge_ids to
+        COMPLETIONIST_EXCLUDE below.
+
+     2. LIVE VS. LOCKED-IN — this is a live, recomputed status. A
+        member who hits 100% today and loses it tomorrow (because a
+        21st badge shipped that they don't have yet) drops back out
+        of True Completionist! automatically — nothing is written to
+        `scores` when the threshold is crossed. If a permanent,
+        earned-once badge is wanted instead, that needs an actual
+        scores row written the moment the threshold is first crossed
+        (closer to the one-off mechanic than a pure computed one) —
+        not implemented here, since it changes the write path, not
+        just this read-only check. */
+  const COMPLETIONIST_EXCLUDE = ['speedtypist', '2fast4u']; // legacy badges that predate this rollout — see point 1 above
+
+  function getCompletionStatus(scores, slug) {
+    const eligible = Object.keys(BADGE_LABELS).filter(id => !COMPLETIONIST_EXCLUDE.includes(id));
+    if (!eligible.length) return [];
+
+    const RUBY_OR_ABOVE = ['ruby', 'amethyst', 'prism', 'allomorphite'];
+    let qualifying = 0;
+    for (const badgeId of eligible) {
+      const board = getLeaderboard(scores, badgeId);
+      const entry = board.find(b => b.slug === slug);
+      if (entry && RUBY_OR_ABOVE.includes(entry.tier.name)) qualifying++;
+      else {
+        // Issue-tracked badges never show up in getLeaderboard() the
+        // way ordinary ones do (see getBadgesForSlug above) — check
+        // that path too before concluding this one doesn't qualify.
+        const own = scores.find(s => s.slug === slug && s.badge_id === badgeId && s.issue_number != null);
+        if (own && RUBY_OR_ABOVE.includes(tierForIssueNumber(own.issue_number).name)) qualifying++;
+      }
+    }
+
+    const ratio = qualifying / eligible.length;
+    const results = [];
+    for (const [badgeId, cfg] of Object.entries(COMPUTED_BADGES)) {
+      if (ratio >= cfg.threshold) {
+        results.push({
+          badge_id: badgeId,
+          tierKey: 'allomorphite', // meta badges render at the top tier's color/frame — there's no lower tier for a status you either have or don't
+          mode: 'computed',
+          file: `${badgeId}.svg`,
+          name: cfg.name,
+          level: '',
+          flavor: cfg.flavor || null,
+          qualifying,
+          eligibleTotal: eligible.length,
+          percent: Math.round(ratio * 100),
+        });
+      }
+    }
+    return results;
+  }
+
+  return {
+    fetchScores, getLeaderboard, getBadgesForSlug, getCompletionStatus,
+    tierFor, tierForIssueNumber, applyFlavorTemplate,
+    TIER_CONFIG, TIER_COLORS, BADGES, BADGE_LABELS, BADGE_FLAVOR, COMPUTED_BADGES,
+    parseCSV,
+  };
 })();
 
 export default Leaderboard;

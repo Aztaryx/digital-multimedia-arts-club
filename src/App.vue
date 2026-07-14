@@ -27,6 +27,7 @@ import { playSfx } from './composables/useSfx.js';
 import { BADGE_URL_LIST } from './lib/badges.js';
 import MemberAuth from './lib/member-auth.js';
 import Notifications from './lib/notifications.js';
+import { startKonamiListener } from './lib/secret-badges.js';
 
 const route = useRoute();
 // Standalone pages (currently just /login) opt out of the shared
@@ -98,6 +99,7 @@ onMounted(() => {
    without duplicating timers. */
 onMounted(() => {
   Notifications.startPolling();
+  startKonamiListener();
 });
 watch(MemberAuth.sessionMember, () => {
   Notifications.startPolling();
