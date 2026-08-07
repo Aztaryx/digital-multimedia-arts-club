@@ -40,26 +40,22 @@ function typeLabel(type) {
 const ICONS = {
   maintenance: '<svg viewBox="0 0 24 24"><path d="M14.7 6.3a4 4 0 0 1-5.4 5.4L4 17l3 3 5.3-5.3a4 4 0 0 1 5.4-5.4l-2.6 2.6-2-2 2.6-2.6Z" stroke-width="1.6" stroke-linejoin="round"/></svg>',
   announcement: '<svg viewBox="0 0 24 24"><path d="M4 10v4a1 1 0 0 0 1 1h2l7 4V5L7 9H5a1 1 0 0 0-1 1Z" stroke-width="1.6" stroke-linejoin="round"/><path d="M18 9.5a3.5 3.5 0 0 1 0 5" stroke-width="1.6" stroke-linecap="round"/></svg>',
-  dm: '<svg viewBox="0 0 24 24"><path d="M4 5.5h16a1 1 0 0 1 1 1V15a1 1 0 0 1-1 1H9l-4 4v-4H4a1 1 0 0 1-1-1V6.5a1 1 0 0 1 1-1Z" stroke-width="1.6" stroke-linejoin="round"/></svg>',
   warn: '<svg viewBox="0 0 24 24"><path d="M12 4 2 20h20L12 4Z" stroke-width="1.6" stroke-linejoin="round"/><path d="M12 10v4M12 17.2v.1" stroke-width="1.8" stroke-linecap="round"/></svg>',
   silence: '<svg viewBox="0 0 24 24"><path d="M6 9a6 6 0 1 1 12 0c0 4 1.5 5.5 2 6H4c.5-.5 2-2 2-6Z" stroke-width="1.6" stroke-linejoin="round"/><path d="M3 3l18 18" stroke-width="1.6" stroke-linecap="round"/></svg>',
   forum: '<svg viewBox="0 0 24 24"><path d="M4 5.5h16a1 1 0 0 1 1 1V15a1 1 0 0 1-1 1H9l-4 4v-4H4a1 1 0 0 1-1-1V6.5a1 1 0 0 1 1-1Z" stroke-width="1.6" stroke-linejoin="round"/><path d="M8 9.5h8M8 12.5h5" stroke-width="1.3" stroke-linecap="round"/></svg>',
-  friend_request: '<svg viewBox="0 0 24 24"><circle cx="9" cy="8.5" r="3.2" stroke-width="1.6"/><path d="M3 19c1-3.2 3.6-4.8 6-4.8s5 1.6 6 4.8" stroke-width="1.6" stroke-linecap="round"/><path d="M18 8v5M15.5 10.5h5" stroke-width="1.6" stroke-linecap="round"/></svg>',
   badge: '<svg viewBox="0 0 24 24"><circle cx="12" cy="9" r="5" stroke-width="1.6"/><path d="M9 13.5 7.5 20 12 17.5 16.5 20 15 13.5" stroke-width="1.6" stroke-linejoin="round"/></svg>',
 };
 
 function iconFor(type) {
-  return ICONS[type] || ICONS.dm;
+  return ICONS[type] || ICONS.forum;
 }
 
 /* Clicking a toast jumps to the panel where you'd actually act on it,
    then clears it — doesn't try to deep-link into e.g. one specific
-   DM thread or forum post (those live in LeftPanel's own local
-   state), just gets you to the right tab fast. */
+   forum post (that lives in LeftPanel's own local state), just gets
+   you to the right tab fast. */
 function onToastClick(t) {
-  if (t.type === 'dm' || t.type === 'friend_request') {
-    Panels.openLeft('dms');
-  } else if (t.type === 'forum') {
+  if (t.type === 'forum') {
     Panels.openLeft('forums');
   } else {
     Panels.openRight();

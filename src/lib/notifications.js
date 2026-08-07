@@ -28,16 +28,14 @@ import Leaderboard from './leaderboard.js';
 import { playSfx } from '../composables/useSfx.js';
 
 /* ── TYPE CONFIG ────────────────────────────────────
-   color: fixed hex, OR null when it's computed per-toast (DMs use
-   the sender's own banner_color; badges use the tier they earned). */
+   color: fixed hex, OR null when it's computed per-toast (badges use
+   the tier they earned). */
 export const NOTIF_TYPES = {
   maintenance:     { label: 'Maintenance',     color: '#f97316', sfx: 'notify' },
   announcement:    { label: 'Announcement',    color: '#38bdf8', sfx: 'notify' },
-  dm:              { label: 'Message',         color: null,      sfx: 'socialdm' },
   warn:            { label: 'Warning',         color: '#eab308', sfx: 'staffwarning' },
   silence:         { label: 'Silence',         color: '#ef4444', sfx: 'staffsilence' },
   forum:           { label: 'Forum reply',     color: '#4ade80', sfx: 'socialnotifymajor' },
-  friend_request:  { label: 'Friend request',  color: '#f472b6', sfx: 'socialdm' },
   badge:           { label: 'Badge earned',    color: null,      sfx: null }, // resolved per-tier, see badgeSfxFor()
 };
 
@@ -55,8 +53,6 @@ function badgeSfxFor(tierName) {
   if (i <= 5) return 'ach2';   // diamond, orichalcum, ruby
   return 'ach3';               // amethyst, prism
 }
-
-const DEFAULT_DM_COLOR = '#f97316'; // members.banner_color has this same default — see dmac-profile-sync-fix.sql
 
 /* ── TOAST STATE ────────────────────────────────────
    Newest first — NotificationToasts.vue just renders this array in
@@ -296,18 +292,6 @@ async function pollOnce() {
   }
   for (const s of data.silences || []) {
     push({ type: 'silence', title: `Silenced by ${s.actor_name}`, body: s.reason || undefined });
-  }
-  for (const r of data.friend_requests || []) {
-    push({ type: 'friend_request', title: `${r.display_name} sent a friend request`, meta: { slug: r.slug } });
-  }
-  for (const m of data.direct_messages || []) {
-    push({
-      type: 'dm',
-      title: m.from_name,
-      body: m.body,
-      color: m.from_banner_color || DEFAULT_DM_COLOR,
-      meta: { slug: m.from_slug },
-    });
   }
   for (const f of data.forum_replies || []) {
     push({

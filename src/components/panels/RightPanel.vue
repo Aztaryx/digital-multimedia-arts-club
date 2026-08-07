@@ -21,23 +21,6 @@
           </section>
 
           <section class="notif-section">
-            <p class="notif-section-label">Friend requests</p>
-            <template v-if="!isLoggedIn">
-              <p class="forums-guest-note">Log in to send and receive friend requests.</p>
-            </template>
-            <template v-else-if="friendRequests.length">
-              <div v-for="r in friendRequests" :key="r.slug" class="dm-request-row">
-                <span>{{ r.display_name }}</span>
-                <div class="dm-request-actions">
-                  <button class="forum-link-btn" v-sfx-hover @click="respondRequest(r.slug, true)">Accept</button>
-                  <button class="forum-link-btn forum-link-btn--danger" v-sfx-hover @click="respondRequest(r.slug, false)">Decline</button>
-                </div>
-              </div>
-            </template>
-            <p v-else class="forums-guest-note">No pending requests.</p>
-          </section>
-
-          <section class="notif-section">
             <p class="notif-section-label">Forum</p>
             <template v-if="!isLoggedIn">
               <p class="forums-guest-note">Log in and follow a thread to see replies here.</p>
@@ -135,14 +118,12 @@ import { ref, computed, watch } from 'vue';
 import { sb } from '../../lib/supabase-client.js';
 import Panels from '../../composables/usePanels.js';
 import MemberAuth from '../../lib/member-auth.js';
-import { playSfx } from '../../composables/useSfx.js';
 import Leaderboard from '../../lib/leaderboard.js';
 import { BADGE_SVG } from '../../lib/badges.js';
 
 const announcements = ref([]);
 const warnings = ref([]);
 const silences = ref([]);
-const friendRequests = ref([]);
 const forumActivity = ref([]);
 const badges = ref([]);
 
@@ -164,7 +145,7 @@ watch(Panels.rightOpen, async (open) => {
   if (!error) announcements.value = data || [];
 
   if (isLoggedIn.value) {
-    await Promise.all([loadModerationLog(), loadFriendRequests(), loadForumActivity(), loadBadges()]);
+    await Promise.all([loadModerationLog(), loadForumActivity(), loadBadges()]);
   }
 });
 
@@ -184,29 +165,6 @@ async function loadModerationLog() {
   const entries = data.entries || [];
   warnings.value = entries.filter((e) => e.action === 'warn');
   silences.value = entries.filter((e) => e.action === 'silence' || e.action === 'unsilence');
-}
-
-// Reuses the same list_friend_requests RPC LeftPanel's DMs tab already
-// calls — this just surfaces it here too, with Accept/Decline right on
-// the card, so a request doesn't only ever show up as a toast that's
-// gone the moment you miss it or refresh.
-async function loadFriendRequests() {
-  const token = MemberAuth.getSessionToken();
-  const { data, error } = await sb.rpc('list_friend_requests', { p_session_token: token });
-  if (error || !data?.success) return;
-  friendRequests.value = data.incoming || [];
-}
-
-async function respondRequest(slug, accept) {
-  const token = MemberAuth.getSessionToken();
-  const { data, error } = await sb.rpc('respond_friend_request', {
-    p_session_token: token,
-    p_from_slug: slug,
-    p_accept: accept,
-  });
-  if (error || !data?.success) return;
-  playSfx(accept ? 'socialnotifyminor' : 'menuback');
-  await loadFriendRequests();
 }
 
 // Requires dmac-notifications-panel-fixes.sql. Unlike the toast-only

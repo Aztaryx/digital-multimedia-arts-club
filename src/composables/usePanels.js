@@ -5,7 +5,7 @@
    buttons and the panel components themselves agree on one shared
    state, the same pattern member-auth.js uses for sessionMember.
 
-   Left panel  → Forums + DMs (tabbed)
+   Left panel  → Forums (tabbed with Rulebook)
    Right panel → Notifications
 
    Only one panel open at a time on purpose — opening one closes the
@@ -16,7 +16,7 @@ import { ref } from 'vue';
 
 const leftOpen = ref(false);
 const rightOpen = ref(false);
-const leftTab = ref('forums'); // 'forums' | 'dms' | 'rules'
+const leftTab = ref('forums'); // 'forums' | 'rules'
 
 function openLeft(tab) {
   if (tab) leftTab.value = tab;

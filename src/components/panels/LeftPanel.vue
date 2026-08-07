@@ -11,11 +11,6 @@
             >Forums</button>
             <button
               class="side-tab"
-              :class="{ active: Panels.leftTab.value === 'dms' }"
-              @click="switchTab('dms')"
-            >DMs</button>
-            <button
-              class="side-tab"
               :class="{ active: Panels.leftTab.value === 'rules' }"
               @click="switchTab('rules')"
             >Rulebook</button>
@@ -225,80 +220,10 @@
           </template>
         </div>
 
-        <!-- ══════════════ DMs TAB ══════════════ -->
-        <div v-else-if="Panels.leftTab.value === 'dms'" class="side-panel-body">
-          <div v-if="!isLoggedIn" class="dm-empty-state">
-            <p class="forums-guest-note"><router-link to="/login" @click="Panels.closeAll">Log in</router-link> to add friends and send DMs.</p>
-          </div>
-          <template v-else>
-            <!-- ── ADD FRIEND ── -->
-            <section class="dm-section">
-              <p class="notif-section-label">Add friend</p>
-              <div class="dm-add-row">
-                <select class="forum-input" v-model="addTargetSlug">
-                  <option value="" disabled>Choose a member…</option>
-                  <option v-for="p in addableRoster" :key="p.slug" :value="p.slug">{{ p.display_name }}</option>
-                </select>
-                <button class="forum-btn forum-btn--primary" v-sfx-hover @click="sendFriendRequest">Add</button>
-              </div>
-              <p v-if="addStatus" class="forums-guest-note">{{ addStatus }}</p>
-            </section>
-
-            <!-- ── INCOMING REQUESTS ── -->
-            <section v-if="incomingRequests.length" class="dm-section">
-              <p class="notif-section-label">Friend requests</p>
-              <div v-for="req in incomingRequests" :key="req.slug" class="dm-request-row">
-                <span>{{ req.display_name }}</span>
-                <div class="dm-request-actions">
-                  <button class="forum-link-btn" @click="respondRequest(req.slug, true)">Accept</button>
-                  <button class="forum-link-btn forum-link-btn--danger" @click="respondRequest(req.slug, false)">Decline</button>
-                </div>
-              </div>
-            </section>
-
-            <!-- ── FRIENDS / CONVERSATION ── -->
-            <section class="dm-section">
-              <p class="notif-section-label">Messages</p>
-              <p v-if="friends.length === 0" class="forums-guest-note">No friends yet — add someone above to start messaging.</p>
-              <label v-else class="forum-field dm-picker">
-                <select class="forum-input" v-model="dmTargetSlug" @change="loadConversation">
-                  <option value="" disabled>Choose a friend…</option>
-                  <option v-for="p in friends" :key="p.slug" :value="p.slug">{{ p.display_name }}</option>
-                </select>
-              </label>
-
-              <div v-if="dmTargetSlug" class="dm-thread">
-                <div class="dm-messages" ref="dmScrollRef">
-                  <p v-if="dmLoading" class="forums-guest-note">Loading…</p>
-                  <p v-else-if="dmMessages.length === 0" class="forums-guest-note">No messages yet — say hi.</p>
-                  <div
-                    v-for="m in dmMessages"
-                    :key="m.id"
-                    class="dm-bubble"
-                    :class="{ 'dm-bubble--me': m.from_me }"
-                  >{{ m.body }}</div>
-                </div>
-
-                <div class="dm-compose-row">
-                  <input
-                    class="forum-input"
-                    v-model="dmDraft"
-                    placeholder="Type a message…"
-                    maxlength="1000"
-                    @keydown.enter="sendDm"
-                  />
-                  <button class="forum-btn forum-btn--primary" v-sfx-hover @click="sendDm">Send</button>
-                </div>
-                <p v-if="dmStatus" class="forums-guest-note">{{ dmStatus }}</p>
-              </div>
-            </section>
-          </template>
-        </div>
-
         <!-- ══════════════ RULEBOOK TAB ══════════════ -->
         <div v-else class="side-panel-body">
           <div class="forums-head">
-            <p class="forums-intro">Applies to every thread, reply, and DM sent through DMAC's forums.</p>
+            <p class="forums-intro">Applies to every thread and reply posted through DMAC's forums.</p>
           </div>
 
           <ol class="rulebook-list">
@@ -361,7 +286,7 @@
 </template>
 
 <script setup>
-import { ref, computed, nextTick, onMounted } from 'vue';
+import { ref, computed, onMounted } from 'vue';
 import Panels from '../../composables/usePanels.js';
 import MemberAuth from '../../lib/member-auth.js';
 import { playSfx } from '../../composables/useSfx.js';
@@ -403,11 +328,6 @@ function formatTime(iso) {
 
 function switchTab(tab) {
   Panels.leftTab.value = tab;
-  if (tab === 'dms' && isLoggedIn.value) {
-    loadFriends();
-    loadFriendRequests();
-    loadAddableRoster();
-  }
 }
 
 /* ══════════════ FORUMS (real — forum_threads/forum_posts) ══════════════ */
@@ -724,108 +644,8 @@ async function toggleFollow(thread) {
   if (result?.success) playSfx(following ? 'menuback' : 'socialnotifyminor');
 }
 
-/* ══════════════ DMs (real — friendships + direct_messages) ══════════════ */
-const addableRoster = ref([]);
-const addTargetSlug = ref('');
-const addStatus = ref('');
-const incomingRequests = ref([]);
-const friends = ref([]);
-const dmTargetSlug = ref('');
-const dmMessages = ref([]);
-const dmLoading = ref(false);
-const dmDraft = ref('');
-const dmStatus = ref('');
-const dmScrollRef = ref(null);
-
-async function loadAddableRoster() {
-  const [members, mods] = await Promise.all([
-    MemberAuth.fetchRoster('member'),
-    MemberAuth.fetchRoster('moderator'),
-  ]);
-  const me = myMoveSlug.value;
-  addableRoster.value = [...members, ...mods]
-    .filter((p) => p.slug !== me)
-    .sort((a, b) => a.display_name.localeCompare(b.display_name));
-}
-
-async function loadFriends() {
-  const token = MemberAuth.getSessionToken();
-  const { data, error } = await sb.rpc('list_friends', { p_session_token: token });
-  if (error || !data?.success) return;
-  friends.value = data.friends || [];
-}
-
-async function loadFriendRequests() {
-  const token = MemberAuth.getSessionToken();
-  const { data, error } = await sb.rpc('list_friend_requests', { p_session_token: token });
-  if (error || !data?.success) return;
-  incomingRequests.value = data.incoming || [];
-}
-
-async function sendFriendRequest() {
-  if (!addTargetSlug.value) return;
-  const token = MemberAuth.getSessionToken();
-  const { data, error } = await sb.rpc('send_friend_request', {
-    p_session_token: token,
-    p_to_slug: addTargetSlug.value,
-  });
-  addStatus.value = (error || !data?.success) ? (data?.message || 'Could not send that request.') : 'Request sent.';
-  if (data?.success) addTargetSlug.value = '';
-}
-
-async function respondRequest(slug, accept) {
-  const token = MemberAuth.getSessionToken();
-  const { data, error } = await sb.rpc('respond_friend_request', {
-    p_session_token: token,
-    p_from_slug: slug,
-    p_accept: accept,
-  });
-  if (error || !data?.success) return;
-  await loadFriendRequests();
-  if (accept) await loadFriends();
-}
-
-async function loadConversation() {
-  if (!dmTargetSlug.value) return;
-  dmLoading.value = true;
-  dmStatus.value = '';
-  const token = MemberAuth.getSessionToken();
-  const { data, error } = await sb.rpc('get_conversation', {
-    p_session_token: token,
-    p_with_slug: dmTargetSlug.value,
-  });
-  dmLoading.value = false;
-  if (error || !data?.success) {
-    dmMessages.value = [];
-    dmStatus.value = data?.message || 'Could not load that conversation.';
-    return;
-  }
-  dmMessages.value = data.messages || [];
-  nextTick(() => {
-    if (dmScrollRef.value) dmScrollRef.value.scrollTop = dmScrollRef.value.scrollHeight;
-  });
-}
-
-async function sendDm() {
-  if (!dmDraft.value.trim() || !dmTargetSlug.value) return;
-  const token = MemberAuth.getSessionToken();
-  const { data, error } = await sb.rpc('send_direct_message', {
-    p_session_token: token,
-    p_to_slug: dmTargetSlug.value,
-    p_body: dmDraft.value.trim(),
-  });
-  if (error || !data?.success) {
-    dmStatus.value = data?.message || 'Message failed to send.';
-    return;
-  }
-  dmDraft.value = '';
-  dmStatus.value = '';
-  await loadConversation();
-}
-
 // Threads are public — load them right away regardless of tab/login
-// state. DM-related data only matters once logged in, and only gets
-// fetched when the DMs tab is actually opened (see switchTab()).
+// state.
 onMounted(() => {
   loadMemberMeta();
 });
