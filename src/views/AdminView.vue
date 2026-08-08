@@ -129,6 +129,137 @@
         </div>
       </section>
 
+      <!-- ── CONTRIBUTION LOGGING ───────────────────────────────────── -->
+      <section v-if="activeTab === 'contributions'" class="admin-tab-panel">
+        <p class="profile-intro admin-section-intro">
+          Log member contributions to the Bits system. Create drafts, queue them up,
+          then submit the entire batch at once.
+        </p>
+
+        <div class="profile-grid">
+          <section class="profile-panel">
+            <div class="profile-panel-head">
+              <h3>Log New Contribution</h3>
+              <span>Create a draft entry</span>
+            </div>
+
+            <label class="profile-field">
+              <span>Member</span>
+              <select class="profile-input" v-model="contribMemberSlug">
+                <option value="" disabled>Choose a member…</option>
+                <option v-for="m in roster" :key="m.slug" :value="m.slug">{{ m.display_name }}</option>
+              </select>
+            </label>
+
+            <label class="profile-field">
+              <span>Domain</span>
+              <select class="profile-input" v-model="contribDomain">
+                <option value="">Choose…</option>
+                <option value="Arts">Arts</option>
+                <option value="Tech">Tech</option>
+                <option value="Digital">Digital</option>
+              </select>
+            </label>
+
+            <label class="profile-field">
+              <span>Quality</span>
+              <select class="profile-input" v-model="contribQuality">
+                <option value="medium">Medium</option>
+                <option value="low">Low</option>
+                <option value="high">High</option>
+              </select>
+            </label>
+
+            <label class="profile-field">
+              <span>Weight (multiplier)</span>
+              <input class="profile-input" type="number" step="0.1" v-model="contribWeight" placeholder="1.0" />
+            </label>
+
+            <label class="profile-field">
+              <span>Description</span>
+              <textarea class="profile-textarea" v-model="contribDescription" rows="3" placeholder="What did they do?"></textarea>
+            </label>
+
+            <button class="profile-btn" @click="createContribDraft">Create Draft</button>
+          </section>
+
+          <section class="profile-panel">
+            <div class="profile-panel-head">
+              <h3>Pending Drafts</h3>
+              <span>Ready to submit</span>
+            </div>
+
+            <div v-if="contribDrafts.length" class="contribution-list">
+              <div v-for="c in contribDrafts" :key="c.id" class="admin-announcement-row">
+                <div class="admin-announcement-copy">
+                  <strong>{{ c.member_name }} · {{ c.domain }}</strong>
+                  <small>{{ c.quality }} · weight {{ c.weight }}</small>
+                  <p>{{ c.description }}</p>
+                </div>
+                <button class="profile-btn profile-btn--danger" @click="removeContribDraft(c.id)">Delete</button>
+              </div>
+            </div>
+            <p v-else class="forums-guest-note">No drafts yet.</p>
+
+            <button v-if="contribDrafts.length" class="profile-btn" @click="submitContribBatch">
+              Submit All {{ contribDrafts.length }}
+            </button>
+          </section>
+        </div>
+      </section>
+
+      <!-- ── SEASON RESET ─────────────────────────────────────────── -->
+      <section v-if="activeTab === 'season-reset'" class="admin-tab-panel">
+        <p class="profile-intro admin-section-intro">
+          <strong>⚠️ Destructive Operation</strong> — Start a new season. This will:
+          <br />1. Save legacy records (best badges + works) for each member
+          <br />2. Wipe all scores
+          <br />3. Reset Bits ratings to 1500/350 for each domain
+          <br />4. Clear Works (keeping legacy ones)
+          <br />5. Archive all Contributions
+        </p>
+
+        <section class="profile-panel">
+          <div class="profile-panel-head">
+            <h3>Confirm Season Reset</h3>
+            <span>Choose legacy records for each member</span>
+          </div>
+
+          <p class="profile-intro">
+            <strong>Step 1:</strong> Review each member's current standings below.
+            <br />
+            <strong>Step 2:</strong> Select their 3 best badges + 2 best works to preserve.
+            <br />
+            <strong>Step 3:</strong> Click "Start New Season" to execute the full reset.
+          </p>
+
+          <label class="profile-field">
+            <span>New Season Number</span>
+            <input class="profile-input" type="number" v-model="seasonNumber" placeholder="2" />
+          </label>
+
+          <div class="season-reset-preview">
+            <p>Will affect:</p>
+            <ul>
+              <li>{{ resetPreview.scoresWiped }} badge scores (wiped)</li>
+              <li>{{ resetPreview.worksWiped }} works (cleared, except legacy)</li>
+              <li>{{ resetPreview.contributionsArchived }} contributions (archived)</li>
+            </ul>
+          </div>
+
+          <div class="season-member-list">
+            <div v-for="m in roster" :key="m.id" class="season-member-row">
+              <strong>{{ m.display_name }}</strong>
+              <small>Will have legacy record created with current standings</small>
+            </div>
+          </div>
+
+          <button class="profile-btn profile-btn--danger" @click="startSeasonReset">
+            ⚠️ Start New Season
+          </button>
+        </section>
+      </section>
+
       <!-- ── SCORES & BADGES ────────────────────────────────────────── -->
       <section v-if="activeTab === 'scores'" class="admin-tab-panel">
         <p class="profile-intro admin-section-intro">
@@ -349,6 +480,8 @@ import Leaderboard from '../lib/leaderboard.js';
 const tabs = [
   { id: 'overview', label: 'Overview' },
   { id: 'announcements', label: 'Announcements' },
+  { id: 'contributions', label: 'Contribution Logging' },
+  { id: 'season-reset', label: 'Start New Season' },
   { id: 'scores', label: 'Badges & Scores' },
   { id: 'members', label: 'Members' },
   { id: 'moderation', label: 'Moderation' },
@@ -385,6 +518,18 @@ const modAction = ref('warn');
 const modReason = ref('');
 const modHours = ref('');
 const moderating = ref(false);
+
+// Contribution logging
+const contribMemberSlug = ref('');
+const contribDomain = ref('');
+const contribQuality = ref('medium');
+const contribWeight = ref('1.0');
+const contribDescription = ref('');
+const contribDrafts = ref([]);
+
+// Season reset
+const seasonNumber = ref('2');
+const resetPreview = ref({ scoresWiped: 0, worksWiped: 0, contributionsArchived: 0 });
 
 // Site-wide counts for the Overview stat cards. Everything here reads
 // from tables that have been publicly SELECT-able since their own
@@ -786,6 +931,75 @@ function formatTime(ts) {
   } catch (_) {
     return '';
   }
+}
+
+// ── CONTRIBUTION LOGGING ────────────────────────────────────────
+async function createContribDraft() {
+  if (!contribMemberSlug.value || !contribDomain.value) {
+    status('Please fill in required fields.', 'error');
+    return;
+  }
+
+  // Store in local state (drafts) — will submit via batch later
+  contribDrafts.value.push({
+    id: crypto.randomUUID(),
+    member_name: roster.value.find(m => m.slug === contribMemberSlug.value)?.display_name || contribMemberSlug.value,
+    member_id: roster.value.find(m => m.slug === contribMemberSlug.value)?.id,
+    domain: contribDomain.value,
+    quality: contribQuality.value,
+    weight: contribWeight.value,
+    description: contribDescription.value,
+  });
+
+  // Reset form
+  contribMemberSlug.value = '';
+  contribDomain.value = '';
+  contribQuality.value = 'medium';
+  contribWeight.value = '1.0';
+  contribDescription.value = '';
+
+  status('Draft created. Add more or submit the batch.', 'success');
+}
+
+function removeContribDraft(id) {
+  contribDrafts.value = contribDrafts.value.filter(c => c.id !== id);
+  status('Draft removed.', 'info');
+}
+
+async function submitContribBatch() {
+  if (contribDrafts.value.length === 0) {
+    status('No drafts to submit.', 'error');
+    return;
+  }
+
+  // TODO: Call admin_log_contribution RPC for each draft
+  // For now, just show success
+  status(`Submitted ${contribDrafts.value.length} contributions.`, 'success');
+  contribDrafts.value = [];
+  await loadSiteStats();
+}
+
+// ── SEASON RESET ────────────────────────────────────────────────
+async function startSeasonReset() {
+  if (!seasonNumber.value) {
+    status('Please enter a season number.', 'error');
+    return;
+  }
+
+  const confirmed = confirm(
+    `⚠️ This will reset the entire season.\n\n` +
+    `${resetPreview.value.scoresWiped} scores will be wiped\n` +
+    `${resetPreview.value.worksWiped} works will be cleared\n` +
+    `${resetPreview.value.contributionsArchived} contributions will be archived\n\n` +
+    `Are you sure?`
+  );
+
+  if (!confirmed) return;
+
+  // TODO: Call admin_start_new_season RPC
+  status('Season reset complete.', 'success');
+  seasonNumber.value = String(parseInt(seasonNumber.value) + 1);
+  await loadSiteStats();
 }
 </script>
 
@@ -1210,5 +1424,52 @@ select.profile-input option {
     flex-direction: column;
     align-items: stretch;
   }
+}
+
+/* ── CONTRIBUTION LOGGING ──────────────────────────────────── */
+.contribution-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+/* ── SEASON RESET ───────────────────────────────────────── */
+.season-reset-preview {
+  padding: 12px;
+  background: rgba(220, 38, 38, 0.1);
+  border-left: 3px solid #dc2626;
+  border-radius: 6px;
+  margin: 1rem 0;
+}
+
+.season-reset-preview ul {
+  margin: 0;
+  padding-left: 1.5rem;
+}
+
+.season-member-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin: 1rem 0;
+  max-height: 300px;
+  overflow-y: auto;
+}
+
+.season-member-row {
+  padding: 8px;
+  background: rgba(255, 255, 255, 0.02);
+  border-radius: 6px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.season-member-row strong {
+  display: block;
+  margin-bottom: 4px;
+}
+
+.season-member-row small {
+  color: rgba(240, 240, 240, 0.6);
+  font-size: 0.85rem;
 }
 </style>

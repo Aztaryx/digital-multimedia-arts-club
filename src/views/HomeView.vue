@@ -231,6 +231,33 @@
       follows what members want to get sharper at.
     </p>
   </section>
+
+  <!-- ════════════════════════════════ QUICK LINKS ═════════════════════════════ -->
+  <section class="home-section" v-reveal>
+    <SecHead>Quick Links</SecHead>
+    <div class="quicklinks-grid">
+      <router-link to="/about" class="quicklink-card" v-sfx-hover>
+        <h3>Who We Are</h3>
+        <p>Meet the team, learn our mission, and see what we've built together.</p>
+        <span class="quicklink-arrow">→</span>
+      </router-link>
+      <router-link to="/info/announcements" class="quicklink-card" v-sfx-hover>
+        <h3>Announcements</h3>
+        <p>Latest club news, event updates, and important announcements.</p>
+        <span class="quicklink-arrow">→</span>
+      </router-link>
+      <router-link to="/info/school-events" class="quicklink-card" v-sfx-hover>
+        <h3>School Events</h3>
+        <p>Upcoming assemblies, competitions, and events we'll be covering.</p>
+        <span class="quicklink-arrow">→</span>
+      </router-link>
+      <router-link to="/info/newsletters" class="quicklink-card" v-sfx-hover>
+        <h3>Newsletters</h3>
+        <p>Member updates, workshops, and what's happening in the club.</p>
+        <span class="quicklink-arrow">→</span>
+      </router-link>
+    </div>
+  </section>
 </template>
 
 <script setup>

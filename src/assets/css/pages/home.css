@@ -506,12 +506,50 @@
   border-top: 1px solid rgba(255,255,255,.06); padding-top: 24px;
 }
 
+/* ── QUICK LINKS ────────────────────────────────── */
+.quicklinks-grid {
+  display: grid; grid-template-columns: repeat(4, 1fr);
+  gap: 20px;
+}
+.quicklink-card {
+  position: relative; display: flex; flex-direction: column; gap: 12px;
+  padding: 24px;
+  background: linear-gradient(135deg, rgba(249,115,22,.05), rgba(139,92,246,.05));
+  border: 1px solid rgba(255,255,255,.08);
+  border-radius: 16px;
+  text-decoration: none;
+  transition: all 0.2s ease;
+  cursor: pointer;
+}
+.quicklink-card:hover {
+  background: linear-gradient(135deg, rgba(249,115,22,.12), rgba(139,92,246,.12));
+  border-color: rgba(249,115,22,.4);
+  transform: translateY(-2px);
+}
+.quicklink-card h3 {
+  font-family: var(--font); font-size: 1rem; font-weight: 700;
+  color: var(--text); letter-spacing: .02em;
+  margin: 0;
+}
+.quicklink-card p {
+  font-family: var(--font); font-size: .85rem; line-height: 1.6;
+  color: var(--muted); margin: 0;
+}
+.quicklink-arrow {
+  align-self: flex-end;
+  font-size: 1.2rem; color: var(--orange);
+  opacity: 0.7; transition: opacity 0.2s ease;
+}
+.quicklink-card:hover .quicklink-arrow {
+  opacity: 1;
+}
+
 /* ── RESPONSIVE (hero overrides) ───────────────── */
 @media (max-width: 768px) {
   .home-banner-inner { gap: 14px; padding: 16px 18px; }
   .hp-content { bottom: 52px; }
   .home-section { padding: 50px 20px; }
-  .wwd-grid, .why-grid { grid-template-columns: repeat(2, 1fr); }
+  .wwd-grid, .why-grid, .quicklinks-grid { grid-template-columns: repeat(2, 1fr); }
 
   /* Expanded panel responsive */
   .hp-expanded-close { top: 16px; right: 16px; width: 40px; height: 40px; font-size: 1.3rem; }
@@ -529,7 +567,7 @@
   .hp-letter { font-size: 52px !important; }
   .hp-word   { font-size: 9px  !important; letter-spacing: .12em; }
   .home-section { padding: 40px 16px; }
-  .wwd-grid, .why-grid { grid-template-columns: 1fr; }
+  .wwd-grid, .why-grid, .quicklinks-grid { grid-template-columns: 1fr; }
 
   /* Expanded panel mobile */
   .hp-expanded-body { width: 95%; padding: 56px 12px 24px; }

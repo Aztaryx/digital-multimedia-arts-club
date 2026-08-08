@@ -4,7 +4,7 @@ import MemberAuth from '../lib/member-auth.js';
 const routes = [
   {
     path: '/',
-    redirect: '/login',
+    redirect: '/home',
   },
   {
     path: '/home',
@@ -37,10 +37,34 @@ const routes = [
     meta: { title: 'DMAC — Projects' },
   },
   {
+    path: '/leaderboard',
+    name: 'leaderboard',
+    component: () => import('../views/LeaderboardView.vue'),
+    meta: { title: 'DMAC — Leaderboard' },
+  },
+  {
+    path: '/branding',
+    name: 'branding',
+    component: () => import('../views/BrandingView.vue'),
+    meta: { title: 'DMAC — Branding' },
+  },
+  {
     path: '/info/newsletters',
     name: 'info-newsletters',
     component: () => import('../views/info/NewslettersView.vue'),
     meta: { title: 'DMAC — Newsletters' },
+  },
+  {
+    path: '/info/announcements',
+    name: 'info-announcements',
+    component: () => import('../views/info/AnnouncementsView.vue'),
+    meta: { title: 'DMAC — Announcements' },
+  },
+  {
+    path: '/info/school-events',
+    name: 'info-school-events',
+    component: () => import('../views/info/SchoolEventsView.vue'),
+    meta: { title: 'DMAC — School Events' },
   },
   {
     path: '/info/update-log',

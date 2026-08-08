@@ -23,12 +23,18 @@
         <router-link to="/info/newsletters" data-icon="down" :class="{ active: isSection('/info') }" v-sfx-tap>information</router-link>
         <ul class="dropdown">
           <li><router-link to="/info/newsletters" :class="{ active: isExact('/info/newsletters') }">newsletters</router-link></li>
+          <li><router-link to="/info/announcements" :class="{ active: isExact('/info/announcements') }">announcements</router-link></li>
+          <li><router-link to="/info/school-events" :class="{ active: isExact('/info/school-events') }">school events</router-link></li>
           <li><router-link to="/info/update-log" :class="{ active: isExact('/info/update-log') }">update log</router-link></li>
           <li><router-link to="/info/faq" :class="{ active: isExact('/info/faq') }">faq</router-link></li>
         </ul>
       </li>
 
       <li><router-link to="/join" :class="{ active: isSection('/join') }">how to join</router-link></li>
+
+      <li><router-link to="/leaderboard" :class="{ active: isSection('/leaderboard') }">leaderboard</router-link></li>
+
+      <li><router-link to="/branding" :class="{ active: isSection('/branding') }">branding</router-link></li>
 
       <li v-if="isAdmin">
         <router-link to="/admin" class="nav-admin-link" :class="{ active: isExact('/admin') }">admin panel</router-link>
@@ -150,11 +156,17 @@
     <div class="mobile-group">
       <span class="mobile-group-label">◆ information</span>
       <router-link to="/info/newsletters" @click="closeMobile">newsletters</router-link>
+      <router-link to="/info/announcements" @click="closeMobile">announcements</router-link>
+      <router-link to="/info/school-events" @click="closeMobile">school events</router-link>
       <router-link to="/info/update-log" @click="closeMobile">update log</router-link>
       <router-link to="/info/faq" @click="closeMobile">faq</router-link>
     </div>
 
     <router-link to="/join" @click="closeMobile">how to join</router-link>
+
+    <router-link to="/leaderboard" @click="closeMobile">leaderboard</router-link>
+
+    <router-link to="/branding" @click="closeMobile">branding</router-link>
 
     <router-link v-if="isAdmin" to="/admin" class="nav-admin-link" @click="closeMobile">admin panel</router-link>
 
