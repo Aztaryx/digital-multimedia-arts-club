@@ -22,3 +22,16 @@ const SUPABASE_URL = 'https://ylhmidtwnvojawogbvhh.supabase.co';
 const SUPABASE_PUBLISHABLE_KEY = 'sb_publishable_mxjbouATop0KhOZObpWMoA_FeHQWXag';
 
 export const sb = createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY);
+
+/* Alias kept for backward compatibility — a handful of newer files
+   (LeaderboardView.vue, AnnouncementsView.vue, SchoolEventsView.vue,
+   lib/contribution-logging.js, lib/season-reset.js) were written
+   importing `{ supabase }` instead of `{ sb }`, which this module
+   never exported, so every one of those was silently `undefined` at
+   the call site — the first `.from(...)` call on any of them threw.
+   Rather than hunt down and rename every import across five files
+   (and risk missing a sixth later), this file now exports both names
+   for the same client. New code should still prefer `sb`, matching
+   every other file in this codebase — this alias exists purely so
+   the files already using `supabase` actually work. */
+export const supabase = sb;

@@ -4,7 +4,7 @@
       <SecHead>Admin Panel</SecHead>
 
       <p class="profile-intro">
-        A dashboard for the whole site — announcements, badges, the member roster, and
+        A dashboard for the whole site — newsletters, badges, the member roster, and
         moderation, all in one place.
       </p>
 
@@ -39,7 +39,7 @@
         <section class="profile-panel">
           <div class="profile-panel-head">
             <h3>Recent activity</h3>
-            <span>Announcements + moderation, newest first</span>
+            <span>Newsletters + moderation, newest first</span>
           </div>
 
           <template v-if="recentActivity.length">
@@ -64,28 +64,30 @@
         </section>
       </section>
 
-      <!-- ── ANNOUNCEMENTS ──────────────────────────────────────────── -->
+      <!-- ── NEWSLETTERS ────────────────────────────────────────────── -->
       <section v-if="activeTab === 'announcements'" class="admin-tab-panel">
         <p class="profile-intro admin-section-intro">
-          Post global announcements and maintenance notices — everything published here shows
-          up in everyone's notifications panel.
+          Post to the site's own dev journal — roadmap updates, sneak peeks, maintenance notices.
+          Everything published here shows up in everyone's notifications panel and on the public
+          Newsletters page. This is separate from the Announcements page (club news like meetings
+          and results) — that one's edited by hand in Supabase for now, no admin UI yet.
         </p>
 
         <div class="profile-grid">
           <section class="profile-panel">
             <div class="profile-panel-head">
-              <h3>New announcement</h3>
+              <h3>New entry</h3>
               <span>Visible to every visitor</span>
             </div>
 
-            <div class="seg-toggle" role="group" aria-label="Announcement type">
+            <div class="seg-toggle" role="group" aria-label="Newsletter entry type">
               <button
                 type="button"
                 class="seg-btn"
                 :class="{ active: kind === 'announcement' }"
                 v-sfx-hover
                 @click="kind = 'announcement'"
-              >Announcement</button>
+              >Update</button>
               <button
                 type="button"
                 class="seg-btn"
@@ -180,7 +182,7 @@
               <textarea class="profile-textarea" v-model="contribDescription" rows="3" placeholder="What did they do?"></textarea>
             </label>
 
-            <button class="profile-btn" @click="createContribDraft">Create Draft</button>
+            <button class="profile-btn" v-sfx-hover @click="createContribDraft">Create Draft</button>
           </section>
 
           <section class="profile-panel">
@@ -196,13 +198,13 @@
                   <small>{{ c.quality }} · weight {{ c.weight }}</small>
                   <p>{{ c.description }}</p>
                 </div>
-                <button class="profile-btn profile-btn--danger" @click="removeContribDraft(c.id)">Delete</button>
+                <button class="profile-btn profile-btn--danger" v-sfx-hover @click="removeContribDraft(c.id)">Delete</button>
               </div>
             </div>
             <p v-else class="forums-guest-note">No drafts yet.</p>
 
-            <button v-if="contribDrafts.length" class="profile-btn" @click="submitContribBatch">
-              Submit All {{ contribDrafts.length }}
+            <button v-if="contribDrafts.length" class="profile-btn" v-sfx-hover :disabled="submittingBatch" @click="submitContribBatch">
+              {{ submittingBatch ? 'Submitting…' : `Submit All ${contribDrafts.length}` }}
             </button>
           </section>
         </div>
@@ -212,9 +214,9 @@
       <section v-if="activeTab === 'season-reset'" class="admin-tab-panel">
         <p class="profile-intro admin-section-intro">
           <strong>⚠️ Destructive Operation</strong> — Start a new season. This will:
-          <br />1. Save legacy records (best badges + works) for each member
-          <br />2. Wipe all scores
-          <br />3. Reset Bits ratings to 1500/350 for each domain
+          <br />1. Save legacy records (final Threads score + best badges) for each member
+          <br />2. Wipe all badge scores
+          <br />3. Reset Bits ratings to 1500/350 for each domain, and Threads scores alongside them
           <br />4. Clear Works (keeping legacy ones)
           <br />5. Archive all Contributions
         </p>
@@ -222,15 +224,14 @@
         <section class="profile-panel">
           <div class="profile-panel-head">
             <h3>Confirm Season Reset</h3>
-            <span>Choose legacy records for each member</span>
+            <span>Legacy badges are auto-picked from current standings</span>
           </div>
 
           <p class="profile-intro">
-            <strong>Step 1:</strong> Review each member's current standings below.
-            <br />
-            <strong>Step 2:</strong> Select their 3 best badges + 2 best works to preserve.
-            <br />
-            <strong>Step 3:</strong> Click "Start New Season" to execute the full reset.
+            The 3 best badges per member (by tier) are picked automatically from their current
+            standings below — there's no Works/portfolio data to pull best-works from yet (that
+            feature hasn't been built), so <code>best_works</code> is saved empty for now and can
+            be filled in by hand later against the <code>legacy_records</code> table if needed.
           </p>
 
           <label class="profile-field">
@@ -248,14 +249,18 @@
           </div>
 
           <div class="season-member-list">
-            <div v-for="m in roster" :key="m.id" class="season-member-row">
+            <div v-for="m in legacyPreview" :key="m.slug" class="season-member-row">
               <strong>{{ m.display_name }}</strong>
-              <small>Will have legacy record created with current standings</small>
+              <small>
+                Threads score {{ m.final_threads_score ?? '—' }} ·
+                {{ m.best_badges.length ? m.best_badges.map(b => badgeLabelFor(b.badge_id)).join(', ') : 'no badges to preserve' }}
+              </small>
             </div>
+            <p v-if="!legacyPreview.length" class="forums-guest-note">Loading current standings…</p>
           </div>
 
-          <button class="profile-btn profile-btn--danger" @click="startSeasonReset">
-            ⚠️ Start New Season
+          <button class="profile-btn profile-btn--danger" v-sfx-hover :disabled="resettingSeason" @click="startSeasonReset">
+            {{ resettingSeason ? 'Resetting…' : '⚠️ Start New Season' }}
           </button>
         </section>
       </section>
@@ -378,7 +383,6 @@
                 @change="changeRole(m, $event.target.value)"
               >
                 <option value="member">member</option>
-                <option value="moderator">moderator</option>
                 <option value="admin">admin</option>
               </select>
 
@@ -471,15 +475,21 @@ import MemberAuth from '../lib/member-auth.js';
 import { sb } from '../lib/supabase-client.js';
 import { playSfx } from '../composables/useSfx.js';
 import Leaderboard from '../lib/leaderboard.js';
+import contributionLogging from '../lib/contribution-logging.js';
+import seasonReset from '../lib/season-reset.js';
 
 /* ── TABS ──────────────────────────────────────────────────────────
    Everything below is fetched up front on mount rather than lazily
    per tab — roster/scores/announcements/mod log are all small,
    club-scale datasets, and the Overview tab's stat cards need all of
-   them anyway, so there's no real win to deferring any one of them. */
+   them anyway, so there's no real win to deferring any one of them.
+   Tab id 'announcements' is kept as-is (not renamed to 'newsletters')
+   to avoid a churny rename across every ref/handler below — only the
+   user-facing label and copy changed, per dmac-consolidated-plan.md
+   §4/§11. */
 const tabs = [
   { id: 'overview', label: 'Overview' },
-  { id: 'announcements', label: 'Announcements' },
+  { id: 'announcements', label: 'Newsletters' },
   { id: 'contributions', label: 'Contribution Logging' },
   { id: 'season-reset', label: 'Start New Season' },
   { id: 'scores', label: 'Badges & Scores' },
@@ -526,21 +536,18 @@ const contribQuality = ref('medium');
 const contribWeight = ref('1.0');
 const contribDescription = ref('');
 const contribDrafts = ref([]);
+const submittingBatch = ref(false);
 
 // Season reset
 const seasonNumber = ref('2');
 const resetPreview = ref({ scoresWiped: 0, worksWiped: 0, contributionsArchived: 0 });
+const legacyScores = ref([]);   // raw Leaderboard.fetchScores() output, for legacy-badge computation
+const threadsScores = ref({});  // member_id -> current Threads score
+const resettingSeason = ref(false);
 
-// Site-wide counts for the Overview stat cards. Everything here reads
-// from tables that have been publicly SELECT-able since their own
-// schema files (members, scores, announcements, forum_threads,
-// forum_posts) — no new RPC needed just to count rows.
-const siteStats = ref({ totalScores: 0, distinctBadges: 0, totalAnnouncements: 0, totalThreads: 0, totalPosts: 0 });
+// Site-wide counts for the Overview stat cards.
+const siteStats = ref({ totalScores: 0, distinctBadges: 0, totalAnnouncements: 0, totalClubAnnouncements: 0, totalContributions: 0 });
 
-// Known badge_ids + labels come from lib/leaderboard.js — the same
-// single source of truth the leaderboard itself, about/MembersView.vue,
-// and RightPanel's badges list all already read from. "Custom badge
-// id…" in the template covers anything not registered there yet.
 const badgeOptions = computed(() => {
   const opts = {};
   for (const id of Object.keys(Leaderboard.BADGE_LABELS)) {
@@ -549,13 +556,6 @@ const badgeOptions = computed(() => {
   return opts;
 });
 
-// New Game (see Part 4 of the implementation plan) is "free" if
-// awarded as an issue-tracked badge with issue_number = join order —
-// this just computes what that number would be for the currently
-// selected member, off the same roster the picker above already has
-// loaded. Purely a convenience suggestion; the admin can still type
-// any value, or leave it blank for the flat "everyone gets the same
-// tier" version instead.
 const newGameSuggestedIssue = computed(() => {
   if (!scoreMemberSlug.value || !roster.value.length) return null;
   const withDates = roster.value.filter(m => m.created_at);
@@ -579,6 +579,8 @@ onMounted(() => {
   loadScores();
   loadModerationLog();
   loadSiteStats();
+  loadResetPreview();
+  loadLegacyCandidates();
 });
 
 async function loadAnnouncements() {
@@ -588,17 +590,12 @@ async function loadAnnouncements() {
     .order('created_at', { ascending: false })
     .limit(50);
   if (error) {
-    status('Could not load announcements — has dmac-site-polish-schema.sql been run?', 'error');
+    status('Could not load newsletters — has the schema been fully migrated?', 'error');
     return;
   }
   announcements.value = data || [];
 }
 
-// club_role/site_role/silenced_until/year_joined are all separately
-// column-granted (dmac-member-auth-schema.sql,
-// dmac-moderation-silence-enforcement.sql, dmac-profile-sync-fix.sql)
-// — this one query backs the score-award member picker, the Members
-// tab roster, and the Overview role-breakdown/silenced-count cards.
 async function loadRoster() {
   const { data, error } = await sb
     .from('members')
@@ -611,10 +608,6 @@ async function loadRoster() {
   roster.value = data || [];
 }
 
-// scores is publicly readable (dmac-social-schema-core.sql), and the
-// members(slug, display_name) embed needs the real member_id FK from
-// dmac-scores-members-link.sql — same query shape lib/leaderboard.js's
-// fetchScores() uses, just with the columns this list actually shows.
 async function loadScores() {
   const { data, error } = await sb
     .from('scores')
@@ -638,11 +631,6 @@ async function loadScores() {
   }));
 }
 
-// admin_list_moderation_log is the admin-scoped sibling of
-// list_my_moderation_log — same shape, but every member's history
-// instead of just the caller's own (dmac-admin-dashboard-schema.sql).
-// Silently no-ops with an empty list if that file hasn't been run yet
-// or the caller isn't an admin, same as the rest of this view.
 async function loadModerationLog() {
   const { data, error } = await sb.rpc('admin_list_moderation_log', {
     p_session_token: MemberAuth.getSessionToken(),
@@ -657,16 +645,22 @@ async function loadModerationLog() {
 
 async function loadSiteStats() {
   try {
-    const [announceRes, threadRes, postRes, scoreRes] = await Promise.all([
+    // forum_threads/forum_posts are gone — see
+    // dmac-forum-removal-and-role-merge.sql §1 — so the Overview
+    // cards now surface club news + contributions instead, both of
+    // which are real going forward. A query error on either (e.g.
+    // the migration hasn't been run yet) just leaves that count at
+    // its default rather than throwing.
+    const [announceRes, clubRes, contribRes, scoreRes] = await Promise.all([
       sb.from('announcements').select('*', { count: 'exact', head: true }),
-      sb.from('forum_threads').select('*', { count: 'exact', head: true }),
-      sb.from('forum_posts').select('*', { count: 'exact', head: true }),
+      sb.from('club_announcements').select('*', { count: 'exact', head: true }),
+      sb.from('contributions').select('*', { count: 'exact', head: true }),
       sb.from('scores').select('badge_id', { count: 'exact' }),
     ]);
     siteStats.value = {
       totalAnnouncements: announceRes.count || 0,
-      totalThreads: threadRes.count || 0,
-      totalPosts: postRes.count || 0,
+      totalClubAnnouncements: clubRes.count || 0,
+      totalContributions: contribRes.count || 0,
       totalScores: scoreRes.count || 0,
       distinctBadges: new Set((scoreRes.data || []).map((r) => r.badge_id)).size,
     };
@@ -675,12 +669,70 @@ async function loadSiteStats() {
   }
 }
 
+// admin_get_reset_preview — real counts instead of the hardcoded
+// zeros this panel used to show. Silently leaves the preview at zero
+// if the RPC hasn't been deployed yet (see
+// dmac-forum-removal-and-role-merge.sql), same "missing migration"
+// handling every other tab here already has.
+async function loadResetPreview() {
+  const { data, error } = await sb.rpc('admin_get_reset_preview', {
+    p_session_token: MemberAuth.getSessionToken(),
+  });
+  if (error || !data?.success) return;
+  resetPreview.value = {
+    scoresWiped: data.scores_wiped || 0,
+    worksWiped: data.works_wiped || 0,
+    contributionsArchived: data.contributions_archived || 0,
+  };
+}
+
+// Pulls current badge standings + Threads scores so the Season Reset
+// tab can show (and submit) an auto-computed legacy pick — top 3
+// badges per member by tier, plus their current Threads score. There
+// is deliberately no "best works" data here: no Works/portfolio UI
+// exists yet anywhere in the app, so that field goes to the RPC empty
+// (see the note in the Season Reset tab itself).
+async function loadLegacyCandidates() {
+  try {
+    legacyScores.value = await Leaderboard.fetchScores();
+  } catch (err) {
+    console.error('AdminView: could not load scores for legacy preview —', err.message);
+  }
+  const { data, error } = await sb.from('threads').select('member_id, score');
+  if (!error) {
+    const map = {};
+    for (const row of data || []) map[row.member_id] = row.score;
+    threadsScores.value = map;
+  }
+}
+
+const legacyPreview = computed(() => {
+  if (!roster.value.length) return [];
+  return roster.value.map((m) => {
+    const badges = Leaderboard.getBadgesForSlug(legacyScores.value, m.slug) || [];
+    const top3 = [...badges]
+      .sort((a, b) => (b.percent ?? -1) - (a.percent ?? -1))
+      .slice(0, 3)
+      .map((b) => ({ badge_id: b.badge_id, value: b.value }));
+    const memberRow = legacyScores.value.find((s) => s.slug === m.slug);
+    const memberId = memberRow?.member_id || null;
+    return {
+      slug: m.slug,
+      display_name: m.display_name,
+      member_id: memberId,
+      final_threads_score: memberId ? (threadsScores.value[memberId] ?? null) : null,
+      best_badges: top3,
+      best_works: [], // no Works UI/data exists yet — see loadLegacyCandidates()
+    };
+  });
+});
+
 function badgeLabelFor(badgeId) {
   return Leaderboard.BADGE_LABELS[badgeId] || badgeId;
 }
 
 const roleCounts = computed(() => {
-  const c = { admin: 0, moderator: 0, member: 0 };
+  const c = { admin: 0, member: 0 };
   for (const m of roster.value) c[m.site_role] = (c[m.site_role] || 0) + 1;
   return c;
 });
@@ -703,7 +755,7 @@ const statCards = computed(() => [
   {
     label: 'Members',
     value: roster.value.length,
-    sub: `${roleCounts.value.admin || 0} admin · ${roleCounts.value.moderator || 0} mod · ${roleCounts.value.member || 0} member`,
+    sub: `${roleCounts.value.admin || 0} admin · ${roleCounts.value.member || 0} member`,
   },
   {
     label: 'Badges awarded',
@@ -711,14 +763,14 @@ const statCards = computed(() => [
     sub: `${siteStats.value.distinctBadges} distinct badge${siteStats.value.distinctBadges === 1 ? '' : 's'}`,
   },
   {
-    label: 'Forum threads',
-    value: siteStats.value.totalThreads,
-    sub: `${siteStats.value.totalPosts} replies total`,
-  },
-  {
-    label: 'Announcements',
+    label: 'Newsletter entries',
     value: siteStats.value.totalAnnouncements,
     sub: announcements.value[0] ? `last: ${formatTime(announcements.value[0].created_at)}` : 'none yet',
+  },
+  {
+    label: 'Club announcements + contributions',
+    value: siteStats.value.totalClubAnnouncements + siteStats.value.totalContributions,
+    sub: `${siteStats.value.totalClubAnnouncements} news · ${siteStats.value.totalContributions} contributions`,
   },
   {
     label: 'Currently silenced',
@@ -727,11 +779,6 @@ const statCards = computed(() => [
   },
 ]);
 
-// Merges the two event streams this dashboard actually has timestamps
-// for (announcements + moderation actions) into one newest-first feed.
-// Forum posts/scores have created_at too, but folding every score
-// correction and forum reply in here would drown out the signal —
-// those already have their own "latest first" lists on their own tabs.
 const recentActivity = computed(() => {
   const items = [];
   for (const a of announcements.value.slice(0, 8)) {
@@ -795,6 +842,7 @@ async function submitScore() {
   status('Score saved.', 'success');
   loadScores();
   loadSiteStats();
+  loadLegacyCandidates();
 }
 
 async function removeScore(id) {
@@ -811,6 +859,7 @@ async function removeScore(id) {
   status('Deleted.', 'success');
   loadScores();
   loadSiteStats();
+  loadLegacyCandidates();
 }
 
 async function postAnnouncement() {
@@ -857,9 +906,6 @@ async function removeAnnouncement(id) {
   loadSiteStats();
 }
 
-// admin_set_role is new (dmac-admin-dashboard-schema.sql) — refuses
-// to demote the last remaining admin server-side, so the worst a bad
-// click does here is an error message, not a locked-out site.
 async function changeRole(m, newRole) {
   if (newRole === m.site_role) return;
   playSfx('menuclick');
@@ -872,7 +918,7 @@ async function changeRole(m, newRole) {
   savingRoleFor.value = '';
 
   if (error || !data?.success) {
-    status(data?.message || error?.message || 'Could not update role — has dmac-admin-dashboard-schema.sql been run?', 'error');
+    status(data?.message || error?.message || 'Could not update role.', 'error');
     return;
   }
   m.site_role = newRole;
@@ -900,9 +946,6 @@ async function quickModerate(slug, action) {
   await runModerate(slug, action, null);
 }
 
-// Wraps the existing member_moderate RPC (dmac-moderation-silence-
-// enforcement.sql) — no new SQL needed for warn/silence/unsilence
-// themselves, just a UI that actually calls it.
 async function runModerate(slug, action, reason, hours) {
   playSfx(action === 'warn' ? 'staffwarning' : 'staffsilence');
   moderating.value = true;
@@ -934,24 +977,24 @@ function formatTime(ts) {
 }
 
 // ── CONTRIBUTION LOGGING ────────────────────────────────────────
-async function createContribDraft() {
+function createContribDraft() {
   if (!contribMemberSlug.value || !contribDomain.value) {
     status('Please fill in required fields.', 'error');
     return;
   }
 
-  // Store in local state (drafts) — will submit via batch later
+  const member = roster.value.find(m => m.slug === contribMemberSlug.value);
+
   contribDrafts.value.push({
     id: crypto.randomUUID(),
-    member_name: roster.value.find(m => m.slug === contribMemberSlug.value)?.display_name || contribMemberSlug.value,
-    member_id: roster.value.find(m => m.slug === contribMemberSlug.value)?.id,
+    member_name: member?.display_name || contribMemberSlug.value,
+    member_slug: contribMemberSlug.value,
     domain: contribDomain.value,
     quality: contribQuality.value,
     weight: contribWeight.value,
     description: contribDescription.value,
   });
 
-  // Reset form
   contribMemberSlug.value = '';
   contribDomain.value = '';
   contribQuality.value = 'medium';
@@ -966,40 +1009,112 @@ function removeContribDraft(id) {
   status('Draft removed.', 'info');
 }
 
+// Wired to the real admin_log_contribution RPC via lib/contribution-logging.js
+// (that lib was already fully written — it just needed a caller and a
+// working `sb` import, see supabase-client.js). admin_log_contribution
+// takes a member_id (uuid), not a slug, so each draft's member row is
+// looked up fresh here rather than trusting whatever was cached when
+// the draft was created — a role/roster change between drafting and
+// submitting shouldn't be able to submit against a stale id.
 async function submitContribBatch() {
   if (contribDrafts.value.length === 0) {
     status('No drafts to submit.', 'error');
     return;
   }
 
-  // TODO: Call admin_log_contribution RPC for each draft
-  // For now, just show success
-  status(`Submitted ${contribDrafts.value.length} contributions.`, 'success');
-  contribDrafts.value = [];
+  const token = MemberAuth.getSessionToken();
+  submittingBatch.value = true;
+
+  const { data: freshRoster, error: rosterError } = await sb.from('members').select('id, slug');
+  if (rosterError) {
+    submittingBatch.value = false;
+    status('Could not resolve member ids — try again.', 'error');
+    return;
+  }
+  const idBySlug = Object.fromEntries((freshRoster || []).map((r) => [r.slug, r.id]));
+
+  let succeeded = 0;
+  const failures = [];
+
+  for (const draft of contribDrafts.value) {
+    const memberId = idBySlug[draft.member_slug];
+    if (!memberId) {
+      failures.push(`${draft.member_name}: member no longer exists`);
+      continue;
+    }
+    const result = await contributionLogging.createContribution(
+      token,
+      memberId,
+      draft.domain,
+      Number(draft.weight) || 1.0,
+      draft.quality,
+      draft.description || null,
+    );
+    if (result.success) succeeded++;
+    else failures.push(`${draft.member_name}: ${result.error || 'unknown error'}`);
+  }
+
+  submittingBatch.value = false;
+
+  if (failures.length) {
+    status(`Submitted ${succeeded}/${contribDrafts.value.length}. Failed: ${failures.join('; ')}`, failures.length === contribDrafts.value.length ? 'error' : 'info');
+  } else {
+    status(`Submitted ${succeeded} contribution${succeeded === 1 ? '' : 's'}.`, 'success');
+  }
+
+  // Only clear the drafts that actually succeeded — a partial batch
+  // failure shouldn't silently drop the ones that didn't go through.
+  const failedNames = new Set(failures.map((f) => f.split(':')[0]));
+  contribDrafts.value = contribDrafts.value.filter((d) => failedNames.has(d.member_name));
+
   await loadSiteStats();
 }
 
 // ── SEASON RESET ────────────────────────────────────────────────
 async function startSeasonReset() {
-  if (!seasonNumber.value) {
-    status('Please enter a season number.', 'error');
+  const seasonNum = parseInt(seasonNumber.value, 10);
+  if (!seasonNum || seasonNum < 1) {
+    status('Please enter a valid season number.', 'error');
     return;
   }
 
   const confirmed = confirm(
     `⚠️ This will reset the entire season.\n\n` +
-    `${resetPreview.value.scoresWiped} scores will be wiped\n` +
+    `${resetPreview.value.scoresWiped} badge scores will be wiped\n` +
     `${resetPreview.value.worksWiped} works will be cleared\n` +
     `${resetPreview.value.contributionsArchived} contributions will be archived\n\n` +
+    `Legacy records will be saved for ${legacyPreview.value.filter(m => m.member_id).length} member(s) first.\n\n` +
     `Are you sure?`
   );
-
   if (!confirmed) return;
 
-  // TODO: Call admin_start_new_season RPC
+  resettingSeason.value = true;
+  const token = MemberAuth.getSessionToken();
+
+  // Only members we actually have a resolved member_id for can be
+  // written into legacy_records — a member row missing from
+  // legacyScores.value (e.g. never had a score row at all) just gets
+  // skipped rather than sent up with a null id.
+  const legacyData = legacyPreview.value
+    .filter((m) => m.member_id)
+    .map((m) => ({
+      member_id: m.member_id,
+      final_threads_score: m.final_threads_score,
+      best_badges: m.best_badges,
+      best_works: m.best_works,
+    }));
+
+  const result = await seasonReset.startNewSeason(token, seasonNum, legacyData);
+  resettingSeason.value = false;
+
+  if (!result.success) {
+    status(result.error || 'Season reset failed.', 'error');
+    return;
+  }
+
   status('Season reset complete.', 'success');
-  seasonNumber.value = String(parseInt(seasonNumber.value) + 1);
-  await loadSiteStats();
+  seasonNumber.value = String(seasonNum + 1);
+  await Promise.all([loadSiteStats(), loadResetPreview(), loadLegacyCandidates(), loadScores()]);
 }
 </script>
 
@@ -1039,7 +1154,7 @@ async function startSeasonReset() {
 /* ── STAT CARDS ──────────────────────────────────────────────────── */
 .admin-stats-grid {
   display: grid;
-  grid-template-columns: repeat(5, minmax(0, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
   gap: 14px;
 }
 
@@ -1162,9 +1277,6 @@ async function startSeasonReset() {
   color: rgba(240, 240, 240, 0.55);
 }
 
-/* Segmented button toggle — swapped in for the old "Type" label +
-   <select>, since a two-option dropdown is just two buttons wearing a
-   trenchcoat: one click either way instead of open-menu-then-click. */
 .seg-toggle {
   display: flex;
   gap: 8px;
@@ -1344,7 +1456,6 @@ select.profile-input option {
 }
 
 .role-select--admin { border-color: rgba(239, 68, 68, 0.4); color: #f87171; }
-.role-select--moderator { border-color: rgba(168, 85, 247, 0.4); color: #c084fc; }
 
 .admin-roster-actions {
   display: flex;

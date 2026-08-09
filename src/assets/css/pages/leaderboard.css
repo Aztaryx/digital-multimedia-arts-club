@@ -1,0 +1,205 @@
+/* leaderboard.css — page-specific styles for the leaderboard page */
+
+.leaderboard-teaser {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 320px;
+  text-align: center;
+  gap: 8px;
+}
+
+.leaderboard-teaser-lead {
+  font-family: var(--font);
+  font-size: clamp(1rem, 1.5vw, 1.2rem);
+  font-weight: 600;
+  color: var(--text);
+  letter-spacing: .02em;
+}
+
+.countdown {
+  display: flex;
+  gap: 32px;
+  margin-top: 12px;
+}
+
+.countdown-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+}
+
+.countdown-item .number {
+  font-family: var(--font);
+  font-size: 2.4rem;
+  font-weight: 700;
+  line-height: 1;
+  background: linear-gradient(135deg, var(--orange), var(--purple));
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.countdown-item .label {
+  font-family: var(--font);
+  font-size: .68rem;
+  letter-spacing: .12em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+/* ── TABS ─────────────────────────────────────────── */
+.lb-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  border-bottom: 1px solid rgba(255, 255, 255, .08);
+  padding-bottom: 14px;
+  margin-bottom: 24px;
+}
+
+.lb-tab-btn {
+  font: inherit;
+  font-size: .85rem;
+  color: rgba(240, 240, 240, .66);
+  background: rgba(8, 8, 12, .5);
+  border: 1px solid rgba(255, 255, 255, .08);
+  border-radius: 999px;
+  padding: 9px 16px;
+  cursor: pointer;
+  transition: border-color .2s ease, color .2s ease, background .2s ease;
+}
+.lb-tab-btn:hover { border-color: rgba(249, 115, 22, .5); color: #fff; }
+.lb-tab-btn.active {
+  background: linear-gradient(135deg, var(--orange), var(--purple));
+  border-color: transparent;
+  color: #fff;
+}
+
+.leaderboard-content { display: flex; flex-direction: column; gap: 8px; }
+.lb-tab-panel { display: flex; flex-direction: column; gap: 16px; }
+
+.lb-panel-title {
+  font-family: var(--font);
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--text);
+  letter-spacing: .02em;
+}
+
+/* ── TABLE ────────────────────────────────────────── */
+.lb-table-wrap {
+  overflow-x: auto;
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, .06);
+  background: var(--surface);
+}
+
+.lb-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-family: var(--font);
+  font-size: .85rem;
+}
+
+.lb-table thead { background: rgba(255, 255, 255, .03); }
+
+.lb-table th {
+  text-align: left;
+  padding: 12px 16px;
+  font-size: .68rem;
+  letter-spacing: .1em;
+  text-transform: uppercase;
+  color: var(--muted);
+  border-bottom: 1px solid rgba(255, 255, 255, .06);
+  white-space: nowrap;
+}
+
+.lb-table td {
+  padding: 12px 16px;
+  color: var(--text);
+  border-bottom: 1px solid rgba(255, 255, 255, .04);
+  white-space: nowrap;
+}
+
+.lb-table tbody tr:hover { background: rgba(255, 255, 255, .02); }
+.lb-table tbody tr:last-child td { border-bottom: none; }
+
+.lb-table a { color: var(--purple); text-decoration: underline; text-underline-offset: 2px; }
+.lb-table a:hover { color: var(--orange); }
+
+.lb-score {
+  font-weight: 700;
+  background: linear-gradient(135deg, var(--orange), var(--purple));
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.lb-empty {
+  text-align: center;
+  color: var(--muted);
+  font-style: italic;
+  padding: 28px 16px;
+  white-space: normal;
+}
+
+/* ── BADGE SELECTOR ───────────────────────────────── */
+.lb-badge-selector { display: flex; }
+
+.lb-select {
+  font: inherit;
+  font-size: .85rem;
+  color: var(--text);
+  background: rgba(8, 8, 12, .58);
+  border: 1px solid rgba(255, 255, 255, .1);
+  border-radius: 10px;
+  padding: 9px 14px;
+}
+.lb-select:focus { outline: none; border-color: rgba(249, 115, 22, .7); }
+
+/* ── FACTOR GRID ──────────────────────────────────── */
+.lb-factor-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 16px;
+}
+
+.lb-factor-card {
+  background: var(--surface);
+  border: 1px solid rgba(255, 255, 255, .06);
+  border-radius: 12px;
+  padding: 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.lb-factor-card h4 {
+  font-family: var(--font);
+  font-size: .82rem;
+  font-weight: 700;
+  letter-spacing: .06em;
+  text-transform: uppercase;
+  color: var(--orange);
+}
+
+.lb-factor-table {
+  width: 100%;
+  font-family: var(--font);
+  font-size: .82rem;
+  color: var(--muted);
+}
+
+.lb-factor-table td {
+  padding: 5px 0;
+  border-bottom: 1px solid rgba(255, 255, 255, .04);
+}
+.lb-factor-table tr:last-child td { border-bottom: none; }
+
+@media (max-width: 640px) {
+  .countdown { gap: 18px; }
+  .countdown-item .number { font-size: 1.9rem; }
+}

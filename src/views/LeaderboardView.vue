@@ -1,126 +1,147 @@
 <template>
-  <div class="view leaderboard-view">
-    <SecHead title="Leaderboard" subtitle="Member rankings & performance" />
+  <main>
+    <div class="page-section reveal" v-reveal>
+      <SecHead>Leaderboard</SecHead>
 
-    <!-- Countdown/Teaser before September 1, 2026 -->
-    <div v-if="isCountdown" class="leaderboard-teaser">
-      <p>Leaderboard launches {{ revealDate }}</p>
-      <div class="countdown">
-        <div class="countdown-item">
-          <span class="number">{{ countdown.days }}</span>
-          <span class="label">days</span>
-        </div>
-        <div class="countdown-item">
-          <span class="number">{{ countdown.hours }}</span>
-          <span class="label">hours</span>
-        </div>
-        <div class="countdown-item">
-          <span class="number">{{ countdown.minutes }}</span>
-          <span class="label">minutes</span>
+      <!-- Countdown/Teaser before September 1, 2026 -->
+      <div v-if="isCountdown" class="leaderboard-teaser">
+        <p class="leaderboard-teaser-lead">Leaderboard launches {{ revealDateLabel }}</p>
+        <div class="countdown">
+          <div class="countdown-item">
+            <span class="number">{{ countdown.days }}</span>
+            <span class="label">days</span>
+          </div>
+          <div class="countdown-item">
+            <span class="number">{{ countdown.hours }}</span>
+            <span class="label">hours</span>
+          </div>
+          <div class="countdown-item">
+            <span class="number">{{ countdown.minutes }}</span>
+            <span class="label">minutes</span>
+          </div>
         </div>
       </div>
-    </div>
 
-    <!-- Main leaderboard view (after reveal date) -->
-    <div v-else class="leaderboard-content">
-      <div class="tabs">
-        <button
-          v-for="tab in tabs"
-          :key="tab.id"
-          :class="['tab-btn', { active: activeTab === tab.id }]"
-          @click="activeTab = tab.id"
-        >
-          {{ tab.label }}
-        </button>
-      </div>
-
-      <!-- Threads Leaderboard (primary) -->
-      <div v-show="activeTab === 'threads'" class="tab-content">
-        <h3>Threads Ranking (90-day Composite)</h3>
-        <table class="leaderboard-table">
-          <thead>
-            <tr>
-              <th>Rank</th>
-              <th>Member</th>
-              <th>Score</th>
-              <th>Ping</th>
-              <th>Bandwidth</th>
-              <th>FLOPS</th>
-              <th>Commits</th>
-              <th>Hertz</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr v-for="(entry, idx) in threadsData" :key="entry.id">
-              <td>{{ idx + 1 }}</td>
-              <td><router-link :to="`/profile?member=${entry.slug}`">{{ entry.name }}</router-link></td>
-              <td class="score">{{ entry.score }}</td>
-              <td>{{ entry.ping }}</td>
-              <td>{{ entry.bandwidth }}</td>
-              <td>{{ entry.flops }}</td>
-              <td>{{ entry.commits }}</td>
-              <td>{{ entry.hertz }}</td>
-            </tr>
-          </tbody>
-        </table>
-      </div>
-
-      <!-- Badge Leaderboards -->
-      <div v-show="activeTab === 'badges'" class="tab-content">
-        <h3>Badge Rankings</h3>
-        <div class="badge-selector">
-          <select v-model="selectedBadge">
-            <option v-for="badge in availableBadges" :key="badge" :value="badge">
-              {{ badge }}
-            </option>
-          </select>
+      <!-- Main leaderboard view (after reveal date) -->
+      <div v-else class="leaderboard-content">
+        <div class="lb-tabs" role="tablist">
+          <button
+            v-for="tab in tabs"
+            :key="tab.id"
+            type="button"
+            class="lb-tab-btn"
+            :class="{ active: activeTab === tab.id }"
+            role="tab"
+            :aria-selected="activeTab === tab.id"
+            v-sfx-hover
+            @click="activeTab = tab.id"
+          >{{ tab.label }}</button>
         </div>
-        <table class="leaderboard-table">
-          <thead>
-            <tr>
-              <th>Rank</th>
-              <th>Member</th>
-              <th>Value</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr v-for="(entry, idx) in badgeData" :key="entry.id">
-              <td>{{ idx + 1 }}</td>
-              <td>{{ entry.name }}</td>
-              <td>{{ entry.value }}</td>
-            </tr>
-          </tbody>
-        </table>
-      </div>
 
-      <!-- Per-Factor Views -->
-      <div v-show="activeTab === 'factors'" class="tab-content">
-        <h3>Individual Factors</h3>
-        <div class="factor-grid">
-          <div v-for="factor in factors" :key="factor" class="factor-card">
-            <h4>{{ factor }}</h4>
-            <table class="factor-table">
+        <!-- Threads Leaderboard (primary) -->
+        <div v-if="activeTab === 'threads'" class="lb-tab-panel">
+          <h3 class="lb-panel-title">Threads Ranking (90-day Composite)</h3>
+          <div class="lb-table-wrap">
+            <table class="lb-table">
+              <thead>
+                <tr>
+                  <th>Rank</th>
+                  <th>Member</th>
+                  <th>Score</th>
+                  <th>Ping</th>
+                  <th>Bandwidth</th>
+                  <th>FLOPS</th>
+                  <th>Commits</th>
+                  <th>Hertz</th>
+                </tr>
+              </thead>
               <tbody>
-                <tr v-for="(entry, idx) in factorData[factor]" :key="entry.id">
-                  <td>{{ idx + 1 }}.</td>
-                  <td>{{ entry.name }}</td>
-                  <td>{{ entry.value }}</td>
+                <tr v-for="(entry, idx) in threadsData" :key="entry.id">
+                  <td>{{ idx + 1 }}</td>
+                  <td><router-link :to="`/profile?member=${entry.slug}`">{{ entry.name }}</router-link></td>
+                  <td class="lb-score">{{ entry.score }}</td>
+                  <td>{{ entry.ping }}</td>
+                  <td>{{ entry.bandwidth }}</td>
+                  <td>{{ entry.flops }}</td>
+                  <td>{{ entry.commits }}</td>
+                  <td>{{ entry.hertz }}</td>
+                </tr>
+                <tr v-if="!threadsData.length">
+                  <td colspan="8" class="lb-empty">No Threads data yet.</td>
                 </tr>
               </tbody>
             </table>
           </div>
         </div>
+
+        <!-- Badge Leaderboards -->
+        <div v-if="activeTab === 'badges'" class="lb-tab-panel">
+          <h3 class="lb-panel-title">Badge Rankings</h3>
+          <div class="lb-badge-selector">
+            <select class="lb-select" v-model="selectedBadge">
+              <option v-for="badge in availableBadges" :key="badge" :value="badge">{{ badge }}</option>
+            </select>
+          </div>
+          <div class="lb-table-wrap">
+            <table class="lb-table">
+              <thead>
+                <tr>
+                  <th>Rank</th>
+                  <th>Member</th>
+                  <th>Value</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr v-for="(entry, idx) in badgeData" :key="entry.id ?? entry.member_id">
+                  <td>{{ idx + 1 }}</td>
+                  <td>{{ entry.name }}</td>
+                  <td>{{ entry.value }}</td>
+                </tr>
+                <tr v-if="!badgeData.length">
+                  <td colspan="3" class="lb-empty">No data for this badge yet.</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- Per-Factor Views -->
+        <div v-if="activeTab === 'factors'" class="lb-tab-panel">
+          <h3 class="lb-panel-title">Individual Factors</h3>
+          <div class="lb-factor-grid">
+            <div v-for="factor in factors" :key="factor" class="lb-factor-card">
+              <h4>{{ factor }}</h4>
+              <table class="lb-factor-table">
+                <tbody>
+                  <tr v-for="(entry, idx) in (factorData[factor] || [])" :key="entry.id ?? entry.member_id">
+                    <td>{{ idx + 1 }}.</td>
+                    <td>{{ entry.name }}</td>
+                    <td>{{ entry.value }}</td>
+                  </tr>
+                  <tr v-if="!(factorData[factor] || []).length">
+                    <td colspan="3" class="lb-empty">No data yet.</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
-  </div>
+  </main>
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue';
+import { ref, computed, watch, onMounted, onBeforeUnmount } from 'vue';
 import SecHead from '../components/SecHead.vue';
-import { supabase } from '../lib/supabase-client.js';
+import { sb } from '../lib/supabase-client.js';
+import '../assets/css/pages/leaderboard.css';
 
-const revealDate = new Date(2026, 8, 1); // Sept 1, 2026
+/* Reveal gate per dmac-consolidated-plan.md §8 — Sept 1, 2026. Before
+   that, a countdown/teaser shows in place of real standings. */
+const revealDate = new Date(2026, 8, 1); // month is 0-indexed — 8 = September
+const revealDateLabel = revealDate.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
+
 const activeTab = ref('threads');
 const selectedBadge = ref(null);
 
@@ -134,43 +155,51 @@ const factors = ['Ping', 'Bandwidth', 'FLOPS', 'Commits', 'Hertz'];
 
 const countdown = ref({ days: 0, hours: 0, minutes: 0 });
 const threadsData = ref([]);
-const badgeData = ref([]);
+const badgeScoresByBadge = ref({}); // { badge_id: [entry, ...] }
 const availableBadges = ref([]);
 const factorData = ref({});
 
-const isCountdown = computed(() => {
-  return new Date() < revealDate;
-});
+// Derived from badgeScoresByBadge — recomputes automatically when
+// the dropdown changes, instead of freezing at whatever badge was
+// selected the moment the page first loaded.
+const badgeData = computed(() => badgeScoresByBadge.value[selectedBadge.value] || []);
+
+const isCountdown = computed(() => new Date() < revealDate);
+
+let countdownTimer = null;
 
 onMounted(() => {
   updateCountdown();
-  setInterval(updateCountdown, 60000); // Update every minute
-  
+  countdownTimer = setInterval(updateCountdown, 60000);
+
   if (!isCountdown.value) {
     loadLeaderboardData();
   }
 });
 
+onBeforeUnmount(() => {
+  if (countdownTimer) clearInterval(countdownTimer);
+});
+
 function updateCountdown() {
   const now = new Date();
   const diff = revealDate - now;
-  
+
   if (diff <= 0) {
     countdown.value = { days: 0, hours: 0, minutes: 0 };
     return;
   }
-  
+
   const days = Math.floor(diff / (1000 * 60 * 60 * 24));
   const hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
   const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
-  
+
   countdown.value = { days, hours, minutes };
 }
 
 async function loadLeaderboardData() {
   try {
-    // Load Threads leaderboard (primary ranking with 90-day composite score)
-    const { data: threads, error: threadsError } = await supabase
+    const { data: threads, error: threadsError } = await sb
       .from('threads')
       .select(`
         id,
@@ -187,7 +216,7 @@ async function loadLeaderboardData() {
       .limit(100);
 
     if (!threadsError && threads) {
-      threadsData.value = threads.map((t, idx) => ({
+      threadsData.value = threads.map((t) => ({
         id: t.id,
         member_id: t.member_id,
         score: Math.round(t.score),
@@ -199,202 +228,76 @@ async function loadLeaderboardData() {
         name: t.members?.display_name || 'Anonymous',
         slug: t.members?.slug || 'unknown',
       }));
+    } else if (threadsError) {
+      console.error('LeaderboardView: could not load threads —', threadsError.message);
     }
 
-    // Load badge rankings (query scores table grouped by badge)
-    const { data: badgeScores, error: badgesError } = await supabase
+    const { data: badgeScores, error: badgesError } = await sb
       .from('scores')
-      .select('badge, member_id, value, members!inner(display_name, slug)')
-      .not('badge', 'is', null)
-      .order('badge', { ascending: true })
+      .select('badge_id, member_id, value, members!member_id(display_name, slug)')
+      .order('badge_id', { ascending: true })
       .order('value', { ascending: false });
 
     if (!badgesError && badgeScores) {
-      // Extract unique badges for selector
-      const badgeSet = new Set(badgeScores.map(s => s.badge));
+      const badgeSet = new Set(badgeScores.map((s) => s.badge_id));
       availableBadges.value = Array.from(badgeSet).sort();
       if (availableBadges.value.length > 0 && !selectedBadge.value) {
         selectedBadge.value = availableBadges.value[0];
       }
 
-      // Group by badge for easier lookup
       const byBadge = {};
-      badgeScores.forEach(entry => {
-        if (!byBadge[entry.badge]) byBadge[entry.badge] = [];
-        byBadge[entry.badge].push({
+      badgeScores.forEach((entry) => {
+        if (!byBadge[entry.badge_id]) byBadge[entry.badge_id] = [];
+        byBadge[entry.badge_id].push({
           member_id: entry.member_id,
           name: entry.members?.display_name || 'Anonymous',
           slug: entry.members?.slug || 'unknown',
           value: Math.round(entry.value),
         });
       });
-      badgeData.value = byBadge;
+      badgeScoresByBadge.value = byBadge;
+    } else if (badgesError) {
+      console.error('LeaderboardView: could not load badge scores —', badgesError.message);
     }
 
-    // Load factor data (individual dimension scores from member_domain_ratings)
-    const { data: ratings, error: ratingsError } = await supabase
+    const { data: ratings, error: ratingsError } = await sb
       .from('member_domain_ratings')
       .select(`
-        domain,
-        rating,
+        domain_arts, domain_tech, domain_digital,
         member_id,
         members!inner(display_name, slug)
-      `)
-      .order('domain', { ascending: true })
-      .order('rating', { ascending: false });
+      `);
 
     if (!ratingsError && ratings) {
-      const factorMap = {
-        'Arts': 'Ping',
-        'Tech': 'Bandwidth',
-        'Digital': 'FLOPS',
-        'Community': 'Commits',
-        'Leadership': 'Hertz'
-      };
+      // member_domain_ratings stores one row per member with a column
+      // per domain, not one row per (member, domain) pair — flatten
+      // it into the { Factor: [...] } shape the template expects.
+      // Ping/Bandwidth/FLOPS map to the three real Bits domains;
+      // Commits/Hertz have no backing domain yet, so they stay empty
+      // until that's decided rather than showing invented numbers.
+      const domainToFactor = { domain_arts: 'Ping', domain_tech: 'Bandwidth', domain_digital: 'FLOPS' };
+      const grouped = { Ping: [], Bandwidth: [], FLOPS: [], Commits: [], Hertz: [] };
 
-      // Group by domain/factor
-      factors.forEach(factor => {
-        const domain = Object.keys(factorMap).find(k => factorMap[k] === factor);
-        if (domain) {
-          factorData.value[factor] = ratings
-            .filter(r => r.domain === domain)
-            .map(r => ({
-              member_id: r.member_id,
-              name: r.members?.display_name || 'Anonymous',
-              slug: r.members?.slug || 'unknown',
-              value: r.rating ? r.rating.toFixed(1) : '0.0',
-            }))
-            .slice(0, 50); // Top 50 per factor
+      for (const r of ratings) {
+        for (const [col, factor] of Object.entries(domainToFactor)) {
+          grouped[factor].push({
+            member_id: r.member_id,
+            name: r.members?.display_name || 'Anonymous',
+            slug: r.members?.slug || 'unknown',
+            value: r[col] != null ? Number(r[col]).toFixed(1) : '0.0',
+          });
         }
-      });
+      }
+      for (const factor of Object.keys(grouped)) {
+        grouped[factor].sort((a, b) => Number(b.value) - Number(a.value));
+        grouped[factor] = grouped[factor].slice(0, 50);
+      }
+      factorData.value = grouped;
+    } else if (ratingsError) {
+      console.error('LeaderboardView: could not load Bits ratings —', ratingsError.message);
     }
   } catch (err) {
-    console.error('Failed to load leaderboard data:', err);
+    console.error('LeaderboardView: failed to load leaderboard data —', err.message || err);
   }
 }
 </script>
-
-<style scoped>
-.leaderboard-view {
-  padding: 2rem;
-}
-
-.leaderboard-teaser {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  min-height: 400px;
-  text-align: center;
-}
-
-.countdown {
-  display: flex;
-  gap: 2rem;
-  margin-top: 2rem;
-}
-
-.countdown-item {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-}
-
-.countdown-item .number {
-  font-size: 2.5rem;
-  font-weight: bold;
-  color: var(--primary);
-}
-
-.countdown-item .label {
-  font-size: 0.9rem;
-  color: var(--text-secondary);
-  margin-top: 0.5rem;
-}
-
-.tabs {
-  display: flex;
-  gap: 1rem;
-  margin: 2rem 0;
-  border-bottom: 1px solid var(--border);
-}
-
-.tab-btn {
-  padding: 0.75rem 1.5rem;
-  background: none;
-  border: none;
-  cursor: pointer;
-  font-size: 1rem;
-  color: var(--text-secondary);
-  transition: all 0.2s;
-}
-
-.tab-btn.active {
-  color: var(--primary);
-  border-bottom: 2px solid var(--primary);
-}
-
-.tab-content {
-  margin: 2rem 0;
-}
-
-.leaderboard-table {
-  width: 100%;
-  border-collapse: collapse;
-  margin-top: 1rem;
-}
-
-.leaderboard-table thead {
-  background: var(--bg-secondary);
-}
-
-.leaderboard-table th, .leaderboard-table td {
-  padding: 0.75rem;
-  text-align: left;
-  border-bottom: 1px solid var(--border);
-}
-
-.leaderboard-table tr:hover {
-  background: var(--bg-secondary);
-}
-
-.score {
-  font-weight: bold;
-  color: var(--primary);
-}
-
-.badge-selector {
-  margin: 1rem 0;
-}
-
-.badge-selector select {
-  padding: 0.5rem;
-  font-size: 1rem;
-}
-
-.factor-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-  gap: 2rem;
-  margin-top: 2rem;
-}
-
-.factor-card {
-  padding: 1rem;
-  border: 1px solid var(--border);
-  border-radius: 8px;
-}
-
-.factor-card h4 {
-  margin: 0 0 1rem 0;
-}
-
-.factor-table {
-  width: 100%;
-  font-size: 0.9rem;
-}
-
-.factor-table td {
-  padding: 0.5rem;
-}
-</style>
