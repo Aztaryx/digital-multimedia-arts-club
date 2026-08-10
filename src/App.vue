@@ -6,8 +6,6 @@
   </div>
 
   <NavBar v-if="showChrome" />
-  <LeftPanel v-if="showChrome" />
-  <RightPanel v-if="showChrome" />
   <NotificationToasts />
   <router-view />
   <FooterSection v-if="showChrome" />
@@ -17,8 +15,6 @@
 import { ref, computed, onMounted, watch } from 'vue';
 import { useRoute } from 'vue-router';
 import NavBar from './components/NavBar.vue';
-import LeftPanel from './components/panels/LeftPanel.vue';
-import RightPanel from './components/panels/RightPanel.vue';
 import FooterSection from './components/FooterSection.vue';
 import NotificationToasts from './components/NotificationToasts.vue';
 import SFX from './lib/sfx.js';

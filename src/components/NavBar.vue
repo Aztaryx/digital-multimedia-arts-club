@@ -1,104 +1,139 @@
 <template>
-  <nav id="navbar" :class="{ 'nav-hidden': Panels.leftOpen.value || Panels.rightOpen.value }">
+  <nav id="navbar">
     <router-link to="/home" class="nav-logo" @click="registerLogoTap">
       <img src="https://aztaryx.github.io/dmac-assets/logo.png" alt="DMAC" height="38" />
     </router-link>
+
     <ul class="nav-links">
       <li>
-        <router-link to="/home" :class="{ active: isExact('/home') }">home</router-link>
+        <router-link to="/home" class="nav-icon-link" :class="{ active: isExact('/home') }" aria-label="Home" v-sfx-tap>
+          <img :src="ICONS.home" alt="" />
+        </router-link>
       </li>
 
       <li class="has-dropdown">
-        <router-link to="/about" data-icon="down" :class="{ active: isSection('/about') }" v-sfx-tap>about</router-link>
+        <router-link to="/about" class="nav-icon-link" :class="{ active: isSection('/about') }" aria-label="About" v-sfx-tap>
+          <img :src="ICONS.about" alt="" />
+        </router-link>
         <ul class="dropdown">
-          <li><router-link to="/about" :class="{ active: isExact('/about') }">about us</router-link></li>
-          <li><router-link to="/about/mission" :class="{ active: isExact('/about/mission') }">mission</router-link></li>
-          <li><router-link to="/about/members" :class="{ active: isExact('/about/members') }">members</router-link></li>
+          <li>
+            <router-link to="/about" class="dropdown-link" :class="{ active: isExact('/about') }">
+              <img class="dropdown-icon" :src="ICONS.aboutUs" alt="" /><span>about us</span>
+            </router-link>
+          </li>
+          <li>
+            <router-link to="/about/mission" class="dropdown-link" :class="{ active: isExact('/about/mission') }">
+              <img class="dropdown-icon" :src="ICONS.mission" alt="" /><span>mission</span>
+            </router-link>
+          </li>
+          <li>
+            <router-link to="/about/members" class="dropdown-link" :class="{ active: isExact('/about/members') }">
+              <img class="dropdown-icon" :src="ICONS.members" alt="" /><span>members</span>
+            </router-link>
+          </li>
         </ul>
       </li>
 
-      <li><router-link to="/projects" :class="{ active: isSection('/projects') }">projects</router-link></li>
+      <li>
+        <router-link to="/projects" class="nav-icon-link" :class="{ active: isSection('/projects') }" aria-label="Projects" v-sfx-tap>
+          <img :src="ICONS.projects" alt="" />
+        </router-link>
+      </li>
 
       <li class="has-dropdown">
-        <router-link to="/info/newsletters" data-icon="down" :class="{ active: isSection('/info') }" v-sfx-tap>information</router-link>
+        <router-link to="/info/newsletters" class="nav-icon-link" :class="{ active: isSection('/info') }" aria-label="Information" v-sfx-tap>
+          <img :src="ICONS.information" alt="" />
+        </router-link>
         <ul class="dropdown">
-          <li><router-link to="/info/newsletters" :class="{ active: isExact('/info/newsletters') }">newsletters</router-link></li>
-          <li><router-link to="/info/announcements" :class="{ active: isExact('/info/announcements') }">announcements</router-link></li>
-          <li><router-link to="/info/school-events" :class="{ active: isExact('/info/school-events') }">school events</router-link></li>
-          <li><router-link to="/info/update-log" :class="{ active: isExact('/info/update-log') }">update log</router-link></li>
-          <li><router-link to="/info/faq" :class="{ active: isExact('/info/faq') }">faq</router-link></li>
+          <li>
+            <router-link to="/info/newsletters" class="dropdown-link" :class="{ active: isExact('/info/newsletters') }">
+              <img class="dropdown-icon" :src="ICONS.newsletters" alt="" /><span>newsletters</span>
+            </router-link>
+          </li>
+          <li>
+            <router-link to="/info/announcements" class="dropdown-link" :class="{ active: isExact('/info/announcements') }">
+              <img class="dropdown-icon" :src="ICONS.announcements" alt="" /><span>announcements</span>
+            </router-link>
+          </li>
+          <li>
+            <router-link to="/info/school-events" class="dropdown-link" :class="{ active: isExact('/info/school-events') }">
+              <img class="dropdown-icon" :src="ICONS.schoolEvents" alt="" /><span>school events</span>
+            </router-link>
+          </li>
+          <li>
+            <router-link to="/info/update-log" class="dropdown-link" :class="{ active: isExact('/info/update-log') }">
+              <img class="dropdown-icon" :src="ICONS.updateLog" alt="" /><span>update log</span>
+            </router-link>
+          </li>
+          <li>
+            <router-link to="/info/faq" class="dropdown-link" :class="{ active: isExact('/info/faq') }">
+              <img class="dropdown-icon" :src="ICONS.faq" alt="" /><span>faq</span>
+            </router-link>
+          </li>
         </ul>
       </li>
 
-      <li><router-link to="/join" :class="{ active: isSection('/join') }">how to join</router-link></li>
+      <li>
+        <router-link to="/join" class="nav-icon-link" :class="{ active: isSection('/join') }" aria-label="How to Join" v-sfx-tap>
+          <img :src="ICONS.join" alt="" />
+        </router-link>
+      </li>
 
-      <li><router-link to="/leaderboard" :class="{ active: isSection('/leaderboard') }">leaderboard</router-link></li>
+      <li>
+        <router-link to="/leaderboard" class="nav-icon-link" :class="{ active: isSection('/leaderboard') }" aria-label="Leaderboard" v-sfx-tap>
+          <img :src="ICONS.leaderboard" alt="" />
+        </router-link>
+      </li>
 
-      <li><router-link to="/branding" :class="{ active: isSection('/branding') }">branding</router-link></li>
+      <li>
+        <router-link to="/branding" class="nav-icon-link" :class="{ active: isSection('/branding') }" aria-label="Branding" v-sfx-tap>
+          <img :src="ICONS.branding" alt="" />
+        </router-link>
+      </li>
 
       <li v-if="isAdmin">
-        <router-link to="/admin" class="nav-admin-link" :class="{ active: isExact('/admin') }">admin panel</router-link>
+        <router-link to="/admin" class="nav-icon-link nav-admin-link" :class="{ active: isExact('/admin') }" aria-label="Admin Panel" v-sfx-tap>
+          <img :src="ICONS.adminPanel" alt="" />
+        </router-link>
       </li>
 
       <li class="has-dropdown">
-        <router-link to="/socials" data-icon="down" :class="{ active: isSection('/socials') }" v-sfx-tap>socials</router-link>
+        <span class="nav-icon-link" :class="{ active: isSection('/socials') }" aria-label="Socials" tabindex="0" v-sfx-tap>
+          <img :src="ICONS.socials" alt="" />
+        </span>
         <ul class="dropdown">
-          <li><a href="https://www.facebook.com/profile.php?id=61590594809333" target="_blank" rel="noopener">facebook</a></li>
+          <li>
+            <a href="https://www.facebook.com/profile.php?id=61590594809333" target="_blank" rel="noopener" class="dropdown-link">
+              <img class="dropdown-icon" :src="ICONS.facebook" alt="" /><span>facebook</span>
+            </a>
+          </li>
         </ul>
       </li>
 
       <!-- Only shown once logged in — sessionMember is the reactive
            mirror in member-auth.js, so this appears/disappears right
-           after login/logout without needing a page reload. -->
+           after login/logout without needing a page reload. Profile
+           isn't part of the 19-icon set (stays the avatar circle in
+           nav-actions), so this is the one .nav-links entry that's
+           still a text link rather than an icon. -->
       <li v-if="MemberAuth.sessionMember.value">
-        <router-link to="/profile" :class="{ active: isSection('/profile') }">profile</router-link>
+        <router-link to="/profile" class="nav-text-link" :class="{ active: isSection('/profile') }">profile</router-link>
       </li>
-
     </ul>
 
-    <!-- ──────── NAV ACTIONS: forums / notifications / profile ────────
-         Always visible (desktop AND mobile) — these sit next to the
-         hamburger rather than collapsing into it, since they're
-         account-state controls, not page navigation. -->
+    <!-- ──────── NAV ACTIONS: profile ────────
+         The Forums/Rulebook and Notifications icon buttons that used
+         to sit here are gone along with the two side overlay panels
+         (LeftPanel.vue/RightPanel.vue) — forums were removed entirely
+         per dmac-consolidated-plan.md §1/§11, and the Rulebook +
+         Notifications panels that replaced/accompanied it were
+         dropped as unneeded once forums were gone. Toasts (see
+         NotificationToasts.vue) still surface maintenance/
+         announcement/warn/silence/badge events on their own, with no
+         panel behind them anymore. Only the profile circle is left
+         here now. -->
     <div class="nav-actions">
-      <!-- Forums: opens the left side panel (Forums + DMs tabs) rather
-           than navigating anywhere — open to guests too (read-only,
-           enforced inside LeftPanel, not here). -->
-      <div
-        class="nav-icon-btn"
-        :class="{ active: Panels.leftOpen.value }"
-        role="button"
-        tabindex="0"
-        aria-label="Open forums"
-        v-sfx-tap
-        @click.stop="Panels.toggleLeft('forums')"
-        @keydown.enter="Panels.toggleLeft('forums')"
-      >
-        <svg viewBox="0 0 24 24" aria-hidden="true">
-          <path d="M4 5.5h16a1 1 0 0 1 1 1V15a1 1 0 0 1-1 1H9l-4 4v-4H4a1 1 0 0 1-1-1V6.5a1 1 0 0 1 1-1Z" stroke-width="1.6" stroke-linejoin="round" />
-        </svg>
-      </div>
-
-      <!-- Notifications: opens the right side panel — only meaningful
-           once logged in. -->
-      <div
-        v-if="MemberAuth.sessionMember.value"
-        class="nav-icon-btn"
-        :class="{ active: Panels.rightOpen.value }"
-        role="button"
-        tabindex="0"
-        aria-label="Notifications"
-        v-sfx-tap
-        @click.stop="Panels.toggleRight()"
-        @keydown.enter="Panels.toggleRight()"
-      >
-        <svg viewBox="0 0 24 24" aria-hidden="true">
-          <path d="M6 9a6 6 0 1 1 12 0c0 4 1.5 5.5 2 6H4c.5-.5 2-2 2-6Z" stroke-width="1.6" stroke-linejoin="round" />
-          <path d="M9.5 18a2.5 2.5 0 0 0 5 0" stroke-width="1.6" stroke-linecap="round" />
-        </svg>
-      </div>
-
-      <!-- Profile circle: guest / member / moderator / admin. -->
+      <!-- Profile circle: guest / member / admin. -->
       <div
         class="nav-profile"
         role="button"
@@ -142,42 +177,55 @@
   </nav>
 
   <nav id="mobile-nav" :class="{ open: mobileOpen }" aria-label="Mobile navigation">
-    <router-link to="/home" @click="closeMobile">home</router-link>
+    <router-link to="/home" class="mobile-link" @click="closeMobile">
+      <img class="mobile-icon" :src="ICONS.home" alt="" /><span>home</span>
+    </router-link>
 
     <div class="mobile-group">
-      <span class="mobile-group-label">◆ about</span>
-      <router-link to="/about" @click="closeMobile">about us</router-link>
-      <router-link to="/about/mission" @click="closeMobile">mission</router-link>
-      <router-link to="/about/members" @click="closeMobile">members</router-link>
+      <span class="mobile-group-label"><img class="mobile-group-icon" :src="ICONS.about" alt="" />about</span>
+      <router-link to="/about" class="mobile-link" @click="closeMobile"><img class="mobile-icon" :src="ICONS.aboutUs" alt="" /><span>about us</span></router-link>
+      <router-link to="/about/mission" class="mobile-link" @click="closeMobile"><img class="mobile-icon" :src="ICONS.mission" alt="" /><span>mission</span></router-link>
+      <router-link to="/about/members" class="mobile-link" @click="closeMobile"><img class="mobile-icon" :src="ICONS.members" alt="" /><span>members</span></router-link>
     </div>
 
-    <router-link to="/projects" @click="closeMobile">projects</router-link>
+    <router-link to="/projects" class="mobile-link" @click="closeMobile">
+      <img class="mobile-icon" :src="ICONS.projects" alt="" /><span>projects</span>
+    </router-link>
 
     <div class="mobile-group">
-      <span class="mobile-group-label">◆ information</span>
-      <router-link to="/info/newsletters" @click="closeMobile">newsletters</router-link>
-      <router-link to="/info/announcements" @click="closeMobile">announcements</router-link>
-      <router-link to="/info/school-events" @click="closeMobile">school events</router-link>
-      <router-link to="/info/update-log" @click="closeMobile">update log</router-link>
-      <router-link to="/info/faq" @click="closeMobile">faq</router-link>
+      <span class="mobile-group-label"><img class="mobile-group-icon" :src="ICONS.information" alt="" />information</span>
+      <router-link to="/info/newsletters" class="mobile-link" @click="closeMobile"><img class="mobile-icon" :src="ICONS.newsletters" alt="" /><span>newsletters</span></router-link>
+      <router-link to="/info/announcements" class="mobile-link" @click="closeMobile"><img class="mobile-icon" :src="ICONS.announcements" alt="" /><span>announcements</span></router-link>
+      <router-link to="/info/school-events" class="mobile-link" @click="closeMobile"><img class="mobile-icon" :src="ICONS.schoolEvents" alt="" /><span>school events</span></router-link>
+      <router-link to="/info/update-log" class="mobile-link" @click="closeMobile"><img class="mobile-icon" :src="ICONS.updateLog" alt="" /><span>update log</span></router-link>
+      <router-link to="/info/faq" class="mobile-link" @click="closeMobile"><img class="mobile-icon" :src="ICONS.faq" alt="" /><span>faq</span></router-link>
     </div>
 
-    <router-link to="/join" @click="closeMobile">how to join</router-link>
+    <router-link to="/join" class="mobile-link" @click="closeMobile">
+      <img class="mobile-icon" :src="ICONS.join" alt="" /><span>how to join</span>
+    </router-link>
 
-    <router-link to="/leaderboard" @click="closeMobile">leaderboard</router-link>
+    <router-link to="/leaderboard" class="mobile-link" @click="closeMobile">
+      <img class="mobile-icon" :src="ICONS.leaderboard" alt="" /><span>leaderboard</span>
+    </router-link>
 
-    <router-link to="/branding" @click="closeMobile">branding</router-link>
+    <router-link to="/branding" class="mobile-link" @click="closeMobile">
+      <img class="mobile-icon" :src="ICONS.branding" alt="" /><span>branding</span>
+    </router-link>
 
-    <router-link v-if="isAdmin" to="/admin" class="nav-admin-link" @click="closeMobile">admin panel</router-link>
+    <router-link v-if="isAdmin" to="/admin" class="mobile-link nav-admin-link" @click="closeMobile">
+      <img class="mobile-icon" :src="ICONS.adminPanel" alt="" /><span>admin panel</span>
+    </router-link>
 
     <div class="mobile-group">
-      <span class="mobile-group-label">◆ socials</span>
-      <a href="https://www.facebook.com/profile.php?id=61590594809333" target="_blank" rel="noopener">facebook</a>
+      <span class="mobile-group-label"><img class="mobile-group-icon" :src="ICONS.socials" alt="" />socials</span>
+      <a href="https://www.facebook.com/profile.php?id=61590594809333" target="_blank" rel="noopener" class="mobile-link">
+        <img class="mobile-icon" :src="ICONS.facebook" alt="" /><span>facebook</span>
+      </a>
     </div>
 
-    <a href="#" @click.prevent="Panels.toggleLeft('forums'); closeMobile()">forums</a>
-
-    <router-link v-if="MemberAuth.sessionMember.value" to="/profile" @click="closeMobile">profile</router-link>
+    <!-- Profile stays text-only — deliberately outside the icon set. -->
+    <router-link v-if="MemberAuth.sessionMember.value" to="/profile" class="mobile-link" @click="closeMobile">profile</router-link>
   </nav>
 </template>
 
@@ -188,8 +236,50 @@ import { playSfx } from '../composables/useSfx.js';
 import MemberAuth from '../lib/member-auth.js';
 import MemberProfile from '../lib/member-profile.js';
 import { sb } from '../lib/supabase-client.js';
-import Panels from '../composables/usePanels.js';
 import { registerLogoTap } from '../lib/secret-badges.js';
+
+/* ── ICON PATHS ─────────────────────────────────────
+   Files live at /icons/File_Name.png in the repo's public/ folder
+   (Vite copies public/ as-is to dist/'s root, unprocessed).
+
+   IMPORTANT: don't hardcode "/icons/Home.png" directly — this repo
+   deploys to GitHub Pages under a subpath (see vite.config.js's
+   base: '/digital-multimedia-arts-club/'), so a literal leading-slash
+   path resolves against the domain ROOT in production, not the
+   subpath the site actually lives at. That's an easy way to get
+   icons that work perfectly in `npm run dev` (served from '/') and
+   then silently 404 the moment it's deployed. import.meta.env.BASE_URL
+   is '/' locally and '/digital-multimedia-arts-club/' in the built
+   site, so prefixing with it keeps both cases working without
+   needing two different configs.
+
+   `notifications` is kept in this map even though there's no
+   notifications trigger left to put it on (that button went away
+   with the side-panel removal above) — harmless to leave defined in
+   case it finds a home somewhere else later; nothing currently
+   renders it. */
+const ICON_BASE = `${import.meta.env.BASE_URL}icons/`;
+const ICONS = {
+  home: `${ICON_BASE}Home.png`,
+  about: `${ICON_BASE}About.png`,
+  aboutUs: `${ICON_BASE}About_Us.png`,
+  mission: `${ICON_BASE}Mission.png`,
+  members: `${ICON_BASE}Members.png`,
+  projects: `${ICON_BASE}Projects.png`,
+  information: `${ICON_BASE}Information.png`,
+  newsletters: `${ICON_BASE}Newsletters.png`,
+  announcements: `${ICON_BASE}Announcements.png`,
+  schoolEvents: `${ICON_BASE}School_Events.png`,
+  faq: `${ICON_BASE}FAQ.png`,
+  updateLog: `${ICON_BASE}Update_Log.png`,
+  join: `${ICON_BASE}How_to_Join.png`,
+  leaderboard: `${ICON_BASE}Leaderboard.png`,
+  branding: `${ICON_BASE}Branding.png`,
+  socials: `${ICON_BASE}Socials.png`,
+  facebook: `${ICON_BASE}Facebook.png`,
+  adminPanel: `${ICON_BASE}Admin_Panel.png`,
+  notifications: `${ICON_BASE}Notifications.png`,
+};
 
 const route = useRoute();
 const router = useRouter();
@@ -208,11 +298,11 @@ onBeforeUnmount(() => {
 });
 
 /* ── PROFILE DROPDOWN ─────────────────────────────────
-   Forums/Notifications now open the full side panels (usePanels.js)
-   instead of a small dropdown — this is the only dropdown left in
-   the navbar itself. A document-level click listener closes it when
-   the click lands outside (@click.stop on the trigger + panel itself
-   keeps clicks *inside* from bubbling up first). */
+   The only dropdown left in the navbar now that Forums/Notifications
+   opened side panels that no longer exist. A document-level click
+   listener closes it when the click lands outside (@click.stop on
+   the trigger + panel itself keeps clicks *inside* from bubbling up
+   first). */
 const profileOpen = ref(false);
 
 function toggleProfile() {
@@ -228,22 +318,18 @@ function onDocumentClick(e) {
 }
 
 /* ── ROLE DISPLAY ──────────────────────────────────────
-   site_role is the only permission tier this project actually tracks
-   ('member' | 'moderator' | 'admin' — see dmac-member-auth-schema.sql).
-   Not-logged-in is treated as "Guest" throughout. */
+   site_role is the only permission tier this project tracks now —
+   'member' | 'admin' (dmac-consolidated-plan.md §2 merged moderator
+   into admin). Not-logged-in is treated as "Guest" throughout. */
 const roleLabel = computed(() => {
   const m = MemberAuth.sessionMember.value;
   if (!m) return 'Guest';
-  if (m.site_role === 'admin') return 'Admin';
-  if (m.site_role === 'moderator') return 'Moderator';
-  return 'Member / Officer';
+  return m.site_role === 'admin' ? 'Admin' : 'Member / Officer';
 });
 const roleClass = computed(() => {
   const m = MemberAuth.sessionMember.value;
   if (!m) return 'nav-avatar--guest';
-  if (m.site_role === 'admin') return 'nav-avatar--admin';
-  if (m.site_role === 'moderator') return 'nav-avatar--moderator';
-  return 'nav-avatar--member';
+  return m.site_role === 'admin' ? 'nav-avatar--admin' : 'nav-avatar--member';
 });
 const isAdmin = computed(() => MemberAuth.sessionMember.value?.site_role === 'admin');
 

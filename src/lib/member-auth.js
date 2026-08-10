@@ -21,12 +21,11 @@
    MemberAuth.linkGoogle()            → call AFTER a successful login() AND
                                          AFTER sb.auth signInWithOAuth
                                          has completed (see login screen)
-   MemberAuth.fetchRoster('member')   → array of {slug, display_name} for
-   MemberAuth.fetchRoster('moderator')  the name dropdown, sorted by name.
-                                         'member' bucket = site_role 'member'
-                                         (the "member/officer" login button).
-                                         'moderator' bucket = site_role
-                                         'moderator' or 'admin'.
+   MemberAuth.fetchRoster()           → array of {slug, display_name} for
+                                         the name dropdown, sorted by name —
+                                         everyone, staff included (see the
+                                         function's own comment for why
+                                         there's no more role split here).
    MemberAuth.current()               → cached member object, or null
    MemberAuth.hasRole('admin')        → convenience check off the cached member
    MemberAuth.sessionMember           → reactive (Vue ref) mirror of current(),
@@ -181,19 +180,23 @@ const MemberAuth = (() => {
     return data;
   }
 
-  async function fetchRoster(bucket) {
-    const { data, error } = await sb.from('members').select('slug, display_name, site_role');
+  // Two roles only now (member/admin — dmac-consolidated-plan.md §2),
+  // and there's no longer a reason to split the login roster by role:
+  // which permissions someone gets is entirely server-side (site_role
+  // on their own members row), not which name-list they picked from.
+  // This used to default to filtering to site_role==='member' only,
+  // which meant an admin could never appear in the "Member / Officer"
+  // list at all — you had to already know to pick the (now-removed)
+  // Moderator bucket to log in. This just returns everyone, staff
+  // included, and LoginView.vue's single roster dropdown covers it.
+  async function fetchRoster() {
+    const { data, error } = await sb.from('members').select('slug, display_name');
     if (error || !data) {
       if (error) console.error('MemberAuth.fetchRoster error:', error);
       return [];
     }
 
-    const wanted = bucket === 'moderator'
-      ? (row) => row.site_role === 'moderator' || row.site_role === 'admin'
-      : (row) => row.site_role === 'member';
-
     return data
-      .filter(wanted)
       .map(({ slug, display_name }) => ({ slug, display_name }))
       .sort((a, b) => a.display_name.localeCompare(b.display_name));
   }
@@ -204,7 +207,6 @@ const MemberAuth = (() => {
 
   function hasRole(role) {
     if (!cachedMember) return false;
-    if (role === 'moderator') return cachedMember.site_role === 'moderator' || cachedMember.site_role === 'admin';
     return cachedMember.site_role === role;
   }
 

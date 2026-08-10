@@ -46,9 +46,7 @@
 
                 <button class="role-btn role-btn--guest" :class="{ selected: chosenRole === 'guest' }" @click="selectRole('guest')">Guest</button>
 
-                <button class="role-btn role-btn--member" :class="{ selected: chosenRole === 'member' }" @click="selectRole('member')">Member / Officer</button>
-
-                <button class="role-btn role-btn--moderator" :class="{ selected: chosenRole === 'moderator' }" @click="selectRole('moderator')">Moderator</button>
+                <button class="role-btn role-btn--member" :class="{ selected: chosenRole === 'member' }" @click="selectRole('member')">Member / Officer / Admin</button>
               </template>
 
               <div v-else class="login-step1-summary">
@@ -124,7 +122,16 @@ import '../assets/css/pages/login.css';
    (credentials). A restored session skips both steps and shows the
    "Welcome back" panel instead. This is a standalone route (see
    router meta.hideChrome / App.vue) so it doesn't get the shared
-   NavBar/FooterSection. */
+   NavBar/FooterSection.
+
+   Only two role buttons now — Guest and Member/Officer/Admin. The
+   old third "Moderator" button pointed at a roster bucket
+   (site_role in ('moderator','admin')) that only existed because
+   the "Member" bucket filtered OUT admins entirely; now that
+   MemberAuth.fetchRoster() just returns everyone (see that file's
+   own comment), one button covers the whole roster and nobody's
+   missing from the dropdown depending on which button they guessed
+   to click. */
 
 const router = useRouter();
 
@@ -147,7 +154,7 @@ const loadingText = ref('Loading _');
 
 let pendingLinkSlug = null;
 
-const ROLE_LABELS = { guest: 'Guest', member: 'Member / Officer', moderator: 'Moderator' };
+const ROLE_LABELS = { guest: 'Guest', member: 'Member / Officer / Admin' };
 const chosenRoleLabel = computed(() => ROLE_LABELS[chosenRole.value] || '');
 
 /* Proper capitalization for the big welcome name — each word starts
@@ -214,8 +221,7 @@ async function selectRole(role) {
 
   setLoadingText('Loading roster…');
   try {
-    const bucket = role === 'moderator' ? 'moderator' : 'member';
-    rosterCache.value = await MemberAuth.fetchRoster(bucket);
+    rosterCache.value = await MemberAuth.fetchRoster();
     selectedSlug.value = '';
     namePlaceholder.value = rosterCache.value.length === 0
       ? 'No Members Found'
