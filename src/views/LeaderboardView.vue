@@ -5,20 +5,56 @@
 
       <!-- Countdown/Teaser before September 1, 2026 -->
       <div v-if="isCountdown" class="leaderboard-teaser">
-        <p class="leaderboard-teaser-lead">Leaderboard launches {{ revealDateLabel }}</p>
-        <div class="countdown">
-          <div class="countdown-item">
-            <span class="number">{{ countdown.days }}</span>
-            <span class="label">days</span>
+
+        <!-- Mystery podium silhouette — glowing, blurred, pulsing -->
+        <div class="teaser-podium" aria-hidden="true">
+          <div class="podium-block podium-block--2"></div>
+          <div class="podium-block podium-block--1">
+            <span class="podium-mystery">?</span>
           </div>
-          <div class="countdown-item">
-            <span class="number">{{ countdown.hours }}</span>
-            <span class="label">hours</span>
+          <div class="podium-block podium-block--3"></div>
+        </div>
+
+        <!-- Floating sparkle field -->
+        <div class="teaser-sparkle-field" aria-hidden="true">
+          <span
+            v-for="(s, i) in sparkles"
+            :key="i"
+            class="teaser-sparkle"
+            :style="s.style"
+          >◆</span>
+        </div>
+
+        <!-- Sweeping light beam -->
+        <div class="teaser-scanbeam" aria-hidden="true"></div>
+
+        <div class="teaser-content">
+          <span class="teaser-pill"><span class="teaser-pill-dot"></span>sneak peek incoming</span>
+
+          <p class="leaderboard-teaser-lead">
+            <GradWrap ref="leadWrapRef">Leaderboard launches {{ revealDateLabel }}</GradWrap>
+          </p>
+
+          <div class="countdown">
+            <div class="countdown-item">
+              <span class="number">{{ pad(countdown.days) }}</span>
+              <span class="label">days</span>
+            </div>
+            <div class="countdown-item">
+              <span class="number">{{ pad(countdown.hours) }}</span>
+              <span class="label">hours</span>
+            </div>
+            <div class="countdown-item">
+              <span class="number">{{ pad(countdown.minutes) }}</span>
+              <span class="label">minutes</span>
+            </div>
+            <div class="countdown-item countdown-item--seconds">
+              <span class="number number--seconds" :class="{ 'is-ticking': secondsTicking }">{{ pad(countdown.seconds) }}</span>
+              <span class="label">seconds</span>
+            </div>
           </div>
-          <div class="countdown-item">
-            <span class="number">{{ countdown.minutes }}</span>
-            <span class="label">minutes</span>
-          </div>
+
+          <p class="teaser-subtext">something's about to drop…</p>
         </div>
       </div>
 
@@ -134,11 +170,21 @@
 <script setup>
 import { ref, computed, watch, onMounted, onBeforeUnmount } from 'vue';
 import SecHead from '../components/SecHead.vue';
+import GradWrap from '../components/GradWrap.vue';
 import { sb } from '../lib/supabase-client.js';
+import { scrambleGradWrap } from '../lib/animations.js';
+import { playSfx } from '../composables/useSfx.js';
 import '../assets/css/pages/leaderboard.css';
 
 /* Reveal gate per dmac-consolidated-plan.md §8 — Sept 1, 2026. Before
-   that, a countdown/teaser shows in place of real standings. */
+   that, a countdown/teaser shows in place of real standings.
+
+   Flashier pass: seconds now tick (was minutes-only), the seconds
+   digit punches on every tick, a glowing "mystery podium" silhouette
+   + floating sparkles + a sweeping light beam sit behind the content,
+   and the headline periodically glitch-scrambles via the
+   scrambleGradWrap() effect that already existed in lib/animations.js
+   but had no caller anywhere in the app until now. */
 const revealDate = new Date(2026, 8, 1); // month is 0-indexed — 8 = September
 const revealDateLabel = revealDate.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
 
@@ -153,32 +199,66 @@ const tabs = [
 
 const factors = ['Ping', 'Bandwidth', 'FLOPS', 'Commits', 'Hertz'];
 
-const countdown = ref({ days: 0, hours: 0, minutes: 0 });
+const countdown = ref({ days: 0, hours: 0, minutes: 0, seconds: 0 });
 const threadsData = ref([]);
 const badgeScoresByBadge = ref({}); // { badge_id: [entry, ...] }
 const availableBadges = ref([]);
 const factorData = ref({});
 
-// Derived from badgeScoresByBadge — recomputes automatically when
-// the dropdown changes, instead of freezing at whatever badge was
-// selected the moment the page first loaded.
 const badgeData = computed(() => badgeScoresByBadge.value[selectedBadge.value] || []);
 
 const isCountdown = computed(() => new Date() < revealDate);
 
+function pad(n) {
+  return String(n).padStart(2, '0');
+}
+
 let countdownTimer = null;
+let scrambleTimer = null;
+
+// Restarts on every tick (see updateCountdown) — same "clear the class,
+// wait a frame, re-add it" reflow trick UpdateLogView.vue's flash()
+// uses to let a CSS animation replay on rapid repeats, applied here
+// to the seconds digit so it visibly punches once per second.
+const secondsTicking = ref(false);
+
+const leadWrapRef = ref(null);
+
+const sparkles = ref([]);
+function generateSparkles(count = 16) {
+  const arr = [];
+  for (let i = 0; i < count; i++) {
+    arr.push({
+      style: {
+        left: `${(Math.random() * 100).toFixed(1)}%`,
+        top: `${(Math.random() * 100).toFixed(1)}%`,
+        animationDelay: `${(Math.random() * 6).toFixed(2)}s`,
+        animationDuration: `${(3 + Math.random() * 3).toFixed(2)}s`,
+        fontSize: `${(8 + Math.random() * 10).toFixed(0)}px`,
+      },
+    });
+  }
+  sparkles.value = arr;
+}
 
 onMounted(() => {
   updateCountdown();
-  countdownTimer = setInterval(updateCountdown, 60000);
+  countdownTimer = setInterval(updateCountdown, 1000);
 
-  if (!isCountdown.value) {
+  if (isCountdown.value) {
+    generateSparkles();
+    playSfx('mmstart'); // one-time entrance chime — "get ready" cue
+    scrambleTimer = setInterval(() => {
+      if (leadWrapRef.value?.$el) scrambleGradWrap(leadWrapRef.value.$el);
+    }, 7000);
+  } else {
     loadLeaderboardData();
   }
 });
 
 onBeforeUnmount(() => {
   if (countdownTimer) clearInterval(countdownTimer);
+  if (scrambleTimer) clearInterval(scrambleTimer);
 });
 
 function updateCountdown() {
@@ -186,15 +266,19 @@ function updateCountdown() {
   const diff = revealDate - now;
 
   if (diff <= 0) {
-    countdown.value = { days: 0, hours: 0, minutes: 0 };
+    countdown.value = { days: 0, hours: 0, minutes: 0, seconds: 0 };
     return;
   }
 
   const days = Math.floor(diff / (1000 * 60 * 60 * 24));
   const hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
   const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+  const seconds = Math.floor((diff % (1000 * 60)) / 1000);
 
-  countdown.value = { days, hours, minutes };
+  countdown.value = { days, hours, minutes, seconds };
+
+  secondsTicking.value = false;
+  requestAnimationFrame(() => { secondsTicking.value = true; });
 }
 
 async function loadLeaderboardData() {
@@ -269,12 +353,6 @@ async function loadLeaderboardData() {
       `);
 
     if (!ratingsError && ratings) {
-      // member_domain_ratings stores one row per member with a column
-      // per domain, not one row per (member, domain) pair — flatten
-      // it into the { Factor: [...] } shape the template expects.
-      // Ping/Bandwidth/FLOPS map to the three real Bits domains;
-      // Commits/Hertz have no backing domain yet, so they stay empty
-      // until that's decided rather than showing invented numbers.
       const domainToFactor = { domain_arts: 'Ping', domain_tech: 'Bandwidth', domain_digital: 'FLOPS' };
       const grouped = { Ping: [], Bandwidth: [], FLOPS: [], Commits: [], Hertz: [] };
 

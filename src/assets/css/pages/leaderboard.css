@@ -1,13 +1,30 @@
 /* leaderboard.css — page-specific styles for the leaderboard page */
 
+/* ── TEASER SHELL ─────────────────────────────────── */
 .leaderboard-teaser {
+  position: relative;
+  overflow: hidden;
+  border-radius: 20px;
+  border: 1px solid rgba(255, 255, 255, .09);
+  background:
+    radial-gradient(circle at 28% 18%, rgba(249, 115, 22, .14), transparent 45%),
+    radial-gradient(circle at 76% 78%, rgba(76, 29, 149, .22), transparent 50%),
+    var(--surface);
   display: flex;
-  flex-direction: column;
   align-items: center;
   justify-content: center;
   min-height: 320px;
+  padding: 48px 20px;
   text-align: center;
-  gap: 8px;
+}
+
+.teaser-content {
+  position: relative;
+  z-index: 3;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
 }
 
 .leaderboard-teaser-lead {
@@ -18,10 +35,164 @@
   letter-spacing: .02em;
 }
 
+.teaser-subtext {
+  margin-top: 10px;
+  font-family: var(--font2);
+  font-size: .85rem;
+  font-style: italic;
+  color: var(--muted);
+  letter-spacing: .02em;
+}
+
+/* ── "SNEAK PEEK" PILL ────────────────────────────── */
+.teaser-pill {
+  position: relative;
+  z-index: 3;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 14px;
+  border-radius: 999px;
+  background: rgba(0, 0, 0, .42);
+  border: 1px solid rgba(255, 255, 255, .14);
+  font-family: var(--font);
+  font-size: .66rem;
+  font-weight: 700;
+  letter-spacing: .14em;
+  text-transform: uppercase;
+  color: var(--text);
+  margin-bottom: 16px;
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+}
+
+.teaser-pill-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--orange);
+  box-shadow: 0 0 8px var(--orange);
+  animation: pill-dot-pulse 1.4s ease-in-out infinite;
+}
+
+@keyframes pill-dot-pulse {
+  0%, 100% { opacity: 1;   transform: scale(1); }
+  50%      { opacity: .35; transform: scale(.7); }
+}
+
+/* ── MYSTERY PODIUM SILHOUETTE ────────────────────── */
+.teaser-podium {
+  position: absolute;
+  left: 50%;
+  bottom: 10%;
+  transform: translateX(-50%);
+  display: flex;
+  align-items: flex-end;
+  gap: 14px;
+  opacity: .4;
+  filter: blur(.5px);
+  pointer-events: none;
+  z-index: 1;
+}
+
+.podium-block {
+  position: relative;
+  width: 64px;
+  border-radius: 10px 10px 0 0;
+  background: linear-gradient(180deg, var(--orange), var(--purple));
+  box-shadow: 0 0 40px rgba(249, 115, 22, .35), 0 0 70px rgba(76, 29, 149, .3);
+  animation: podium-pulse 4s ease-in-out infinite;
+}
+
+.podium-block--1 { height: 140px; animation-delay: 0s;   }
+.podium-block--2 { height: 100px; animation-delay: .5s;  }
+.podium-block--3 { height: 76px;  animation-delay: 1s;   }
+
+@keyframes podium-pulse {
+  0%, 100% { opacity: .7;  transform: scaleY(1); }
+  50%      { opacity: 1;   transform: scaleY(1.035); }
+}
+
+.podium-mystery {
+  position: absolute;
+  top: -46px;
+  left: 50%;
+  transform: translateX(-50%);
+  font-family: var(--font);
+  font-weight: 800;
+  font-size: 1.8rem;
+  color: #fff;
+  text-shadow: 0 0 12px var(--orange), 0 0 26px var(--purple);
+  animation: mystery-pulse 2.4s ease-in-out infinite;
+}
+
+@keyframes mystery-pulse {
+  0%, 100% { opacity: .55; transform: translateX(-50%) scale(1); }
+  50%      { opacity: 1;   transform: translateX(-50%) scale(1.15); }
+}
+
+/* ── FLOATING SPARKLE FIELD ───────────────────────── */
+.teaser-sparkle-field {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 2;
+}
+
+.teaser-sparkle {
+  position: absolute;
+  color: var(--orange);
+  text-shadow: 0 0 8px var(--orange), 0 0 16px var(--purple);
+  opacity: 0;
+  animation-name: sparkle-twinkle;
+  animation-timing-function: ease-in-out;
+  animation-iteration-count: infinite;
+}
+
+.teaser-sparkle:nth-child(3n) {
+  color: var(--purple);
+  text-shadow: 0 0 8px var(--purple), 0 0 16px var(--orange);
+}
+
+@keyframes sparkle-twinkle {
+  0%, 100% { opacity: 0; transform: translateY(6px) scale(.6) rotate(0deg); }
+  50%      { opacity: 1; transform: translateY(-6px) scale(1.1) rotate(25deg); }
+}
+
+/* ── SWEEPING SCAN BEAM ────────────────────────────── */
+.teaser-scanbeam {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 140px;
+  left: -160px;
+  background: linear-gradient(
+    75deg,
+    transparent,
+    rgba(255, 255, 255, .08) 45%,
+    rgba(255, 255, 255, .2) 50%,
+    rgba(255, 255, 255, .08) 55%,
+    transparent
+  );
+  mix-blend-mode: screen;
+  animation: scanbeam-sweep 5s linear infinite;
+  z-index: 2;
+  pointer-events: none;
+}
+
+@keyframes scanbeam-sweep {
+  0%   { left: -160px; }
+  55%  { left: 110%; }
+  100% { left: 110%; }
+}
+
+/* ── COUNTDOWN ─────────────────────────────────────── */
 .countdown {
   display: flex;
-  gap: 32px;
-  margin-top: 12px;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 28px;
+  margin-top: 14px;
 }
 
 .countdown-item {
@@ -40,6 +211,7 @@
   -webkit-background-clip: text;
   background-clip: text;
   -webkit-text-fill-color: transparent;
+  display: inline-block;
 }
 
 .countdown-item .label {
@@ -48,6 +220,25 @@
   letter-spacing: .12em;
   text-transform: uppercase;
   color: var(--muted);
+}
+
+.countdown-item--seconds .number--seconds {
+  filter: drop-shadow(0 0 14px rgba(249, 115, 22, .55));
+}
+
+/* Punches once per second — retriggered from JS by toggling this
+   class off then back on every tick (see updateCountdown() in
+   LeaderboardView.vue), same reflow-restart trick UpdateLogView.vue's
+   flash() uses on its own click animation. */
+.number--seconds.is-ticking {
+  animation: digit-flip .5s var(--ease-out);
+}
+
+@keyframes digit-flip {
+  0%   { transform: translateY(0) scale(1);       filter: brightness(1); }
+  30%  { transform: translateY(-6px) scale(1.08);  filter: brightness(1.6); }
+  60%  { transform: translateY(2px) scale(.97); }
+  100% { transform: translateY(0) scale(1);        filter: brightness(1); }
 }
 
 /* ── TABS ─────────────────────────────────────────── */
@@ -199,7 +390,20 @@
 }
 .lb-factor-table tr:last-child td { border-bottom: none; }
 
+/* ── RESPONSIVE ───────────────────────────────────── */
 @media (max-width: 640px) {
-  .countdown { gap: 18px; }
-  .countdown-item .number { font-size: 1.9rem; }
+  .leaderboard-teaser { padding: 36px 14px; min-height: 280px; }
+
+  .teaser-podium {
+    transform: translateX(-50%) scale(.7);
+    bottom: 4%;
+  }
+
+  .teaser-sparkle:nth-child(n+10) { display: none; }
+
+  .countdown { gap: 16px; }
+  .countdown-item .number { font-size: 1.7rem; }
+  .countdown-item .label { font-size: .6rem; }
+
+  .teaser-pill { font-size: .58rem; padding: 5px 11px; }
 }
