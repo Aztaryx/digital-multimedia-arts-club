@@ -347,13 +347,13 @@ async function loadLeaderboardData() {
     const { data: ratings, error: ratingsError } = await sb
       .from('member_domain_ratings')
       .select(`
-        domain_arts, domain_tech, domain_digital,
+        domain_arts, domain_multimedia, domain_digital,
         member_id,
         members!inner(display_name, slug)
       `);
 
     if (!ratingsError && ratings) {
-      const domainToFactor = { domain_arts: 'Ping', domain_tech: 'Bandwidth', domain_digital: 'FLOPS' };
+      const domainToFactor = { domain_arts: 'Ping', domain_multimedia: 'Bandwidth', domain_digital: 'FLOPS' };
       const grouped = { Ping: [], Bandwidth: [], FLOPS: [], Commits: [], Hertz: [] };
 
       for (const r of ratings) {

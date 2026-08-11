@@ -158,7 +158,7 @@
               <select class="profile-input" v-model="contribDomain">
                 <option value="">Choose…</option>
                 <option value="Arts">Arts</option>
-                <option value="Tech">Tech</option>
+                <option value="Multimedia">Multimedia</option>
                 <option value="Digital">Digital</option>
               </select>
             </label>

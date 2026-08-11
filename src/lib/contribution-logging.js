@@ -9,7 +9,7 @@ export const contributionLogging = {
    * Create a new contribution draft
    * @param {UUID} sessionToken - Admin session token
    * @param {UUID} memberId - Member this contribution is for
-   * @param {string} domain - 'Arts' | 'Tech' | 'Digital'
+   * @param {string} domain - 'Arts' | 'Multimedia' | 'Digital'
    * @param {number} weight - multiplier (default 1.0)
    * @param {string} quality - 'low' | 'medium' | 'high'
    * @param {string} description - Description of contribution

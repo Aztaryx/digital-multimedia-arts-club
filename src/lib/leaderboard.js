@@ -178,6 +178,39 @@ const Leaderboard = (() => {
     'new-game':          'Press Start.',
   };
 
+  /* ── BADGE DOMAINS ──────────────────────────────────
+     badge_id → Bits domain ('Digital' | 'Multimedia' | 'Arts' | null).
+     Feeds the Bits engine (bits-threads-spec.md §1) — badges with no
+     domain (social/meta/easter-egg) simply don't feed Bits; they still
+     work as ordinary badges. Mirrored server-side in
+     supabase/dmac-bits-threads-schema.sql's `badge_domains` table (an
+     Edge Function can't import this file directly). Corrections vs.
+     the spec's original guess table, per
+     bits-threads-implementation-plan.md §0: 2fast4u and brick-placer
+     dropped to no domain; shakespeare moved from Multimedia to Digital. */
+  const BADGE_DOMAINS = {
+    speedtypist: 'Digital',
+    '2fast4u': null,
+    shakespeare: 'Digital',
+    'frame-by-frame': 'Multimedia',
+    'reel-deal': 'Multimedia',
+    'thumbnail-titan': 'Arts',
+    archivist: 'Digital',
+    initiate: 'Digital',
+    'beta-tester': 'Digital',
+    'brick-placer': null,
+    'showed-up': null,
+    inseparable: null,
+    'hive-mind': null,
+    whoops: null,
+    'h4h4-n00b': null,
+    superstar: null,
+    'day-one': null,
+    dethroned: null,
+    'growth-spurt': null,
+    'new-game': null,
+  };
+
   /* ── FLAVOR TEMPLATING ──────────────────────────────
      Only Inseparable needs this today, but written generically off
      any {token} found in the string rather than a hardcoded
@@ -508,7 +541,7 @@ const Leaderboard = (() => {
   return {
     fetchScores, getLeaderboard, getBadgesForSlug, getCompletionStatus,
     tierFor, tierForIssueNumber, applyFlavorTemplate,
-    TIER_CONFIG, TIER_COLORS, BADGES, BADGE_LABELS, BADGE_FLAVOR, COMPUTED_BADGES,
+    TIER_CONFIG, TIER_COLORS, BADGES, BADGE_LABELS, BADGE_FLAVOR, BADGE_DOMAINS, COMPUTED_BADGES,
     parseCSV,
   };
 })();
