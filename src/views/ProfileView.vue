@@ -11,53 +11,105 @@
 
       <div v-else class="profile-layout">
         <aside class="profile-viewer">
-          <section class="profile-card profile-card--viewer">
-            <div class="profile-banner" :style="bannerStyle">
-              <div class="profile-banner-overlay"></div>
-              <div class="profile-avatar-badge">
-                <img v-if="avatarUrl" :src="avatarUrl" class="profile-avatar-preview" alt="Avatar preview" />
-                <span v-else class="profile-avatar-fallback">{{ avatarInitials }}</span>
-              </div>
-            </div>
+          <!-- ══════════════ RANK CARD — public preview ══════════════
+               Redesigned per the new mockup: a mountain-silhouette
+               banner, identity + leaderboard rank, a radial diagram of
+               the member's live Threads score and its 5 factors, and
+               their badge collection. --rank-color is set here on the
+               root element and cascades down through the CSS var
+               system to both the rank pill and the radial diagram. -->
+          <section class="rank-card" :style="{ '--rank-color': rankColor }">
+            <div class="rank-card-banner">
+              <svg class="rank-card-zigzag" viewBox="0 0 400 90" preserveAspectRatio="none" aria-hidden="true">
+                <polygon :points="ZIGZAG_POINTS" :fill="rankColor" opacity="0.32" />
+              </svg>
 
-            <div class="profile-card-body">
-              <p class="profile-kicker">Public preview</p>
-              <h3>{{ publicName }}</h3>
-              <p class="profile-role">{{ member.club_role || 'DMAC member' }} · {{ member.site_role || 'member' }}</p>
-              <p class="profile-bio-preview">
-                {{ bio.trim() || 'Write a short bio about the events you cover, the edits you handle, or the tools you are best at using.' }}
-              </p>
-
-              <div class="profile-link-chips">
+              <div class="rank-card-socials">
                 <a
                   v-for="(link, i) in previewLinks"
                   :key="i"
-                  class="profile-chip"
+                  class="rank-card-social"
                   :href="link.url"
                   target="_blank"
                   rel="noopener"
-                >
-                  {{ link.label }}
-                </a>
-                <span v-if="!previewLinks.length" class="profile-chip profile-chip--ghost">No social links yet.</span>
+                >{{ link.label }}</a>
+                <span v-if="!previewLinks.length" class="rank-card-social rank-card-social--ghost">No socials yet</span>
               </div>
 
-              <div class="profile-stat-grid">
-                <div class="profile-stat">
-                  <span class="profile-stat-label">Year joined</span>
-                  <strong>{{ yearJoined }}</strong>
+              <div class="rank-card-avatar-wrap">
+                <img v-if="avatarUrl" :src="avatarUrl" class="rank-card-avatar" alt="Avatar preview" />
+                <span v-else class="rank-card-avatar-fallback">{{ avatarInitials }}</span>
+              </div>
+            </div>
+
+            <div class="rank-card-identity">
+              <div class="rank-card-name-block">
+                <h3>{{ publicName }}</h3>
+                <span class="rank-card-section">{{ member.club_role || 'DMAC member' }}</span>
+                <p class="rank-card-bio">
+                  {{ bio.trim() || 'Write a short bio about the events you cover, the edits you handle, or the tools you are best at using.' }}
+                </p>
+              </div>
+
+              <div class="rank-card-meta">
+                <div class="rank-card-meta-item">
+                  <span>Position</span>
+                  <strong>{{ member.site_role === 'admin' ? 'Admin' : 'Member' }}</strong>
                 </div>
-                <div class="profile-stat">
-                  <span class="profile-stat-label">Site role</span>
-                  <strong>{{ member.site_role || 'member' }}</strong>
+                <div class="rank-card-meta-item">
+                  <span>Leaderboard</span>
+                  <strong class="rank-card-rank-value">{{ threadsRank ? `#${threadsRank}` : '—' }}</strong>
                 </div>
-                <div class="profile-stat">
-                  <span class="profile-stat-label">Profile complete</span>
-                  <strong>{{ profileScore }}</strong>
+              </div>
+            </div>
+
+            <div class="rank-card-body">
+              <!-- Radial diagram — Threads composite in the center, its
+                   5 rolling factors around it, each idly floating. -->
+              <div class="rank-card-radar">
+                <svg class="rank-card-radar-lines" viewBox="0 0 260 260" aria-hidden="true">
+                  <line
+                    v-for="n in factorNodes"
+                    :key="n.key"
+                    x1="130" y1="130"
+                    :x2="n.x" :y2="n.y"
+                  />
+                </svg>
+
+                <div class="rank-node rank-node--threads">
+                  <span>{{ threadsScore != null ? Math.round(threadsScore) : '—' }}</span>
+                  <small>Threads</small>
                 </div>
-                <div class="profile-stat">
-                  <span class="profile-stat-label">Avatar</span>
-                  <strong>{{ avatarUrl ? 'Custom' : 'Default' }}</strong>
+
+                <div
+                  v-for="(n, i) in factorNodes"
+                  :key="n.key"
+                  class="rank-node rank-node--factor"
+                  :style="{ left: `${n.x}px`, top: `${n.y}px`, animationDelay: `${i * 0.6}s` }"
+                >
+                  <span>{{ n.display }}</span>
+                  <small>{{ n.label }}</small>
+                </div>
+              </div>
+
+              <!-- Badge collection -->
+              <div class="rank-card-badges">
+                <div class="rank-card-badges-head">
+                  <strong>{{ badges.length }}/{{ totalBadgeTypes }} badges</strong>
+                  <span>{{ badgePercent }}%<template v-if="badgeRank"> · top {{ badgeRank }}/{{ rosterCount || '?' }}</template></span>
+                </div>
+                <div class="rank-card-badges-grid">
+                  <div
+                    v-for="b in badges"
+                    :key="b.badge_id"
+                    class="rank-badge-chip"
+                    :style="{ '--tier-color': tierColorFor(b.tierKey) }"
+                    :title="b.name"
+                  >
+                    <div v-if="badgeBgSvg(b.tierKey)" class="rank-badge-bg" v-html="badgeBgSvg(b.tierKey)"></div>
+                    <span v-else class="rank-badge-diamond">◆</span>
+                  </div>
+                  <p v-if="!badges.length" class="rank-card-badges-empty">No badges yet — keep at it!</p>
                 </div>
               </div>
             </div>
@@ -225,7 +277,16 @@
    Google-linking itself is NOT reimplemented here — that OAuth
    redirect/callback dance already lives in LoginView.vue. If someone
    isn't Google-linked yet, this page just points them back to /login
-   to do it there, rather than duplicating that flow. */
+   to do it there, rather than duplicating that flow.
+
+   RANK CARD — the public-preview aside now surfaces live Bits/Threads
+   data (per bits-threads-spec.md / dmac-consolidated-plan.md §6–§8):
+   the member's Threads composite + its 5 rolling factors laid out
+   radially, their leaderboard rank, and their badge collection
+   (reusing the same Leaderboard helpers about/MembersView.vue and
+   RightPanel.vue already use). Everything here degrades gracefully —
+   a brand-new member with no Threads/badge rows yet just shows '—'
+   and empty states, not an error. */
 import { ref, onMounted, computed, watch } from 'vue';
 import { useRouter } from 'vue-router';
 import SecHead from '../components/SecHead.vue';
@@ -233,6 +294,9 @@ import AvatarCropModal from '../components/AvatarCropModal.vue';
 import ColorWheelPicker from '../components/ColorWheelPicker.vue';
 import MemberAuth from '../lib/member-auth.js';
 import MemberProfile from '../lib/member-profile.js';
+import { sb } from '../lib/supabase-client.js';
+import Leaderboard from '../lib/leaderboard.js';
+import { BADGE_SVG } from '../lib/badges.js';
 import { playSfx } from '../composables/useSfx.js';
 
 const router = useRouter();
@@ -312,29 +376,7 @@ const avatarInitials = computed(() => {
     .join('') || 'DMAC';
 });
 const previewLinks = computed(() => socialLinks.value.filter((link) => link.label.trim() && link.url.trim()).slice(0, 3));
-const bioLength = computed(() => bio.value.trim().length);
 const joinedYear = computed(() => member.value?.year_joined || '2026');
-// Was computed but never actually rendered anywhere — the stat grid
-// had two copy-pasted "Badges: Unknown" tiles instead. Now backs the
-// "Profile complete" tile there.
-const profileScore = computed(() => {
-  let score = 0;
-  if (nickname.value.trim()) score += 1;
-  if (bio.value.trim()) score += 1;
-  if (previewLinks.value.length) score += 1;
-  if (avatarUrl.value) score += 1;
-  if (bannerUrl.value) score += 1;
-  return `${score}/5`;
-});
-const bannerStyle = computed(() => {
-  if (bannerUrl.value) {
-    return { backgroundImage: `linear-gradient(180deg, rgba(10, 10, 16, 0.08), rgba(10, 10, 16, 0.72)), url("${bannerUrl.value}")` };
-  }
-  if (bannerColor.value) {
-    return { background: bannerColor.value };
-  }
-  return { backgroundImage: 'linear-gradient(135deg, rgba(249, 115, 22, 0.95), rgba(76, 29, 149, 0.95))' };
-});
 
 const statusMsg = ref('');
 const statusType = ref('info'); // 'info' | 'success' | 'error'
@@ -342,6 +384,131 @@ const statusType = ref('info'); // 'info' | 'success' | 'error'
 function status(msg, type = 'info') {
   statusMsg.value = msg;
   statusType.value = type;
+}
+
+/* ── RANK CARD DATA ──────────────────────────────────────────────── */
+const FACTOR_DEFS = [
+  { key: 'ping', label: 'Ping' },
+  { key: 'bandwidth', label: 'Bandwidth' },
+  { key: 'flops', label: 'FLOPS' },
+  { key: 'commits', label: 'Commits' },
+  { key: 'hertz', label: 'Hertz' },
+];
+
+// Static mountain-range silhouette for the rank card's banner —
+// same triangle-strip idea as FooterSection.vue/MembersView.vue's
+// zigzag dividers, just a fixed set of points rather than an
+// animated one (this banner is small and behind other content, so a
+// static shape reads cleaner than a moving one competing for
+// attention with the radial diagram below it).
+const ZIGZAG_POINTS = '0,90 0,52 40,16 80,54 120,10 160,50 200,20 240,58 280,14 320,52 360,18 400,50 400,90';
+
+const threadsScore = ref(null);
+const threadsFactors = ref({});
+const threadsRank = ref(null);
+const rosterCount = ref(0);
+const rankColor = ref('#f0f0f0');
+
+const badges = ref([]);
+const badgeRank = ref(null);
+const totalBadgeTypes = Object.keys(Leaderboard.BADGE_LABELS).length;
+const badgePercent = computed(() => (totalBadgeTypes ? Math.round((badges.value.length / totalBadgeTypes) * 100) : 0));
+
+// Pentagon layout around a 260x260 diagram, Threads sitting dead
+// center — same idea as the mockup's "the higher you are the more
+// the color shifts" note, applied here to every node's line color
+// via the shared --rank-color custom property rather than per-node.
+const factorNodes = computed(() => {
+  const cx = 130, cy = 130, r = 92;
+  return FACTOR_DEFS.map((f, i) => {
+    const angle = (-90 + (360 / FACTOR_DEFS.length) * i) * (Math.PI / 180);
+    const raw = threadsFactors.value[f.key];
+    return {
+      ...f,
+      x: cx + r * Math.cos(angle),
+      y: cy + r * Math.sin(angle),
+      display: raw != null ? `${Math.round(raw * 100)}%` : '—',
+    };
+  });
+});
+
+// white (rank floor) -> orange (mid pack) -> gold (top of the board)
+function colorForPercentile(p) {
+  const clamp = Math.max(0, Math.min(1, p));
+  const stops = [
+    { at: 0, c: [176, 176, 176] },
+    { at: 0.5, c: [249, 115, 22] },
+    { at: 1, c: [255, 215, 0] },
+  ];
+  const [a, b] = clamp > 0.5 ? [stops[1], stops[2]] : [stops[0], stops[1]];
+  const t = a.at === b.at ? 0 : (clamp - a.at) / (b.at - a.at);
+  const mix = a.c.map((v, i) => Math.round(v + (b.c[i] - v) * t));
+  return `rgb(${mix[0]}, ${mix[1]}, ${mix[2]})`;
+}
+
+function tierColorFor(tierKey) {
+  return Leaderboard.TIER_COLORS[tierKey] || '#888';
+}
+function badgeBgSvg(tierKey) {
+  return BADGE_SVG[`${tierKey}-badge`] || null;
+}
+
+async function loadRankData(slug) {
+  if (!slug) return;
+
+  // Threads composite + rank — requires schema-additions-v2-rework.sql's
+  // `threads` table + members FK. A query error here (missing
+  // migration, RLS not applied yet) just leaves the radar at its
+  // '—' empty state rather than throwing.
+  const { data: threadsRows, error: threadsError } = await sb
+    .from('threads')
+    .select('member_id, score, ping_factor, bandwidth_factor, flops_factor, commits_factor, hertz_factor, members!inner(slug)')
+    .order('score', { ascending: false });
+
+  if (!threadsError && threadsRows) {
+    rosterCount.value = threadsRows.length;
+    const idx = threadsRows.findIndex((r) => r.members?.slug === slug);
+    if (idx !== -1) {
+      const row = threadsRows[idx];
+      threadsScore.value = row.score;
+      threadsFactors.value = {
+        ping: row.ping_factor,
+        bandwidth: row.bandwidth_factor,
+        flops: row.flops_factor,
+        commits: row.commits_factor,
+        hertz: row.hertz_factor,
+      };
+      threadsRank.value = idx + 1;
+      const percentile = threadsRows.length > 1 ? 1 - idx / (threadsRows.length - 1) : 1;
+      rankColor.value = colorForPercentile(percentile);
+    }
+  } else if (threadsError) {
+    console.error('ProfileView: could not load Threads data —', threadsError.message);
+  }
+
+  // Badges — same Leaderboard helpers about/MembersView.vue and
+  // RightPanel.vue already use, so this stays in sync with how
+  // badges render everywhere else on the site.
+  try {
+    const scores = await Leaderboard.fetchScores();
+    const stored = Leaderboard.getBadgesForSlug(scores, slug);
+    const computed = Leaderboard.getCompletionStatus(scores, slug);
+    badges.value = [...stored, ...computed];
+
+    const bySlug = {};
+    for (const s of scores) {
+      if (!s.slug) continue;
+      if (!bySlug[s.slug]) bySlug[s.slug] = new Set();
+      bySlug[s.slug].add(s.badge_id);
+    }
+    const counts = Object.entries(bySlug)
+      .map(([s, set]) => ({ slug: s, count: set.size }))
+      .sort((a, b) => b.count - a.count);
+    const myIdx = counts.findIndex((c) => c.slug === slug);
+    badgeRank.value = myIdx !== -1 ? myIdx + 1 : null;
+  } catch (err) {
+    console.error('ProfileView: could not load badges —', err.message);
+  }
 }
 
 onMounted(async () => {
@@ -368,6 +535,8 @@ onMounted(async () => {
   bannerUrl.value = profile.banner_url;
   bannerColor.value = profile.banner_color || null;
   yearJoined.value = profile.year_joined || '2026';
+
+  loadRankData(member.value.slug);
 });
 
 async function saveBannerColor() {
@@ -442,16 +611,6 @@ async function saveBioAndLinks() {
   }
 }
 
-async function saveAppearance() {
-  playSfx('menuclick');
-  const result = await MemberProfile.updateAppearance({ bannerColor: bannerColor.value });
-  if (result.success) {
-    status('Appearance updated.', 'success');
-  } else {
-    status(result.message || 'Could not update appearance.', 'error');
-  }
-}
-
 // Picking a file opens the crop modal instead of uploading straight
 // away — pendingAvatarFile holding a File is what mounts it (see
 // template). The actual upload only happens once a crop is confirmed.
@@ -521,7 +680,7 @@ async function onBannerChosen(e) {
 
 .profile-layout {
   display: grid;
-  grid-template-columns: minmax(290px, 390px) minmax(0, 1fr);
+  grid-template-columns: minmax(300px, 420px) minmax(0, 1fr);
   gap: 24px;
   align-items: start;
 }
@@ -532,148 +691,283 @@ async function onBannerChosen(e) {
   gap: 12px;
 }
 
-.profile-card {
-  overflow: hidden;
-  border-radius: 28px;
-  border: 1px solid rgba(255, 255, 255, 0.09);
-  background: rgba(13, 13, 13, 0.78);
-  box-shadow: 0 20px 48px rgba(0, 0, 0, 0.34);
-}
-
-.profile-banner {
-  position: relative;
-  min-height: 260px;
-  padding: 20px;
-  background-size: cover;
-  background-position: center;
-  display: flex;
-  align-items: flex-end;
-  justify-content: flex-start;
-}
-
-.profile-banner-overlay {
-  position: absolute;
-  inset: 0;
-  background:
-    radial-gradient(circle at 18% 18%, rgba(255, 255, 255, 0.18), transparent 34%),
-    radial-gradient(circle at 78% 12%, rgba(255, 255, 255, 0.1), transparent 22%),
-    linear-gradient(180deg, rgba(9, 9, 15, 0.14), rgba(9, 9, 15, 0.76));
-}
-
-.profile-avatar-badge {
-  position: relative;
-  z-index: 1;
-  width: 108px;
-  height: 108px;
-  border-radius: 28px;
-  padding: 6px;
-  background: linear-gradient(135deg, rgba(249, 115, 22, 0.9), rgba(76, 29, 149, 0.9));
-  box-shadow: 0 14px 30px rgba(0, 0, 0, 0.34);
-}
-
-.profile-avatar-preview,
-.profile-media-preview img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-}
-
-.profile-avatar-preview {
-  border-radius: 22px;
-}
-
-.profile-avatar-fallback {
-  width: 100%;
-  height: 100%;
-  border-radius: 22px;
-  display: grid;
-  place-items: center;
-  background: rgba(13, 13, 13, 0.7);
-  color: #fff;
-  font-size: 1.4rem;
-  letter-spacing: 0.12em;
-}
-
-.profile-card-body {
-  padding: 22px 22px 24px;
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-}
-
-.profile-kicker,
-.profile-role,
-.profile-viewer-note,
-.profile-panel-head span,
-.profile-media-copy small,
-.profile-links-head span,
-.profile-stat-label {
-  color: rgba(240, 240, 240, 0.58);
-}
-
-.profile-card-body h3,
-.profile-panel-head h3,
-.profile-links-head h4 {
-  margin: 0;
-  line-height: 1.1;
-}
-
-.profile-role {
-  font-size: 0.82rem;
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
-}
-
-.profile-bio-preview {
-  color: rgba(240, 240, 240, 0.82);
-  line-height: 1.65;
-}
-
-.profile-link-chips {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 10px;
-}
-
-.profile-chip {
-  padding: 7px 11px;
-  border-radius: 999px;
-  background: rgba(255, 255, 255, 0.08);
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  font-size: 0.78rem;
-  letter-spacing: 0.05em;
-}
-
-.profile-chip--ghost {
-  color: rgba(240, 240, 240, 0.56);
-}
-
-.profile-stat-grid {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 10px;
-}
-
-.profile-stat {
-  padding: 12px 13px;
-  border-radius: 18px;
-  background: rgba(255, 255, 255, 0.05);
-  border: 1px solid rgba(255, 255, 255, 0.06);
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-}
-
-.profile-stat strong {
-  font-size: 1rem;
-}
-
 .profile-viewer-note {
   padding: 0 6px;
   line-height: 1.5;
   font-size: 0.88rem;
+  color: rgba(240, 240, 240, 0.58);
 }
 
+/* ── RANK CARD ─────────────────────────────────────────────────────── */
+.rank-card {
+  border-radius: 28px;
+  overflow: hidden;
+  border: 1px solid rgba(255, 255, 255, 0.09);
+  background: rgba(13, 13, 13, 0.82);
+  box-shadow: 0 20px 48px rgba(0, 0, 0, 0.34);
+}
+
+.rank-card-banner {
+  position: relative;
+  height: 116px;
+  background: linear-gradient(160deg, #1c1c22, #0d0d0d);
+  overflow: hidden;
+}
+.rank-card-zigzag {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+.rank-card-socials {
+  position: absolute;
+  top: 12px;
+  right: 14px;
+  z-index: 1;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 8px;
+  max-width: 65%;
+}
+.rank-card-social {
+  font-size: 0.7rem;
+  color: rgba(240, 240, 240, 0.78);
+  background: rgba(0, 0, 0, 0.4);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 999px;
+  padding: 4px 10px;
+  text-decoration: none;
+  white-space: nowrap;
+}
+.rank-card-social--ghost {
+  color: rgba(240, 240, 240, 0.42);
+}
+
+.rank-card-avatar-wrap {
+  position: absolute;
+  left: 20px;
+  bottom: -34px;
+  z-index: 2;
+  width: 88px;
+  height: 88px;
+  border-radius: 24px;
+  padding: 5px;
+  background: linear-gradient(135deg, rgba(249, 115, 22, 0.9), rgba(76, 29, 149, 0.9));
+  box-shadow: 0 10px 24px rgba(0, 0, 0, 0.4);
+}
+.rank-card-avatar {
+  width: 100%;
+  height: 100%;
+  border-radius: 19px;
+  object-fit: cover;
+  display: block;
+}
+.rank-card-avatar-fallback {
+  width: 100%;
+  height: 100%;
+  border-radius: 19px;
+  display: grid;
+  place-items: center;
+  background: #111;
+  color: #fff;
+  font-size: 1.15rem;
+  letter-spacing: 0.08em;
+}
+
+.rank-card-identity {
+  padding: 44px 20px 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+.rank-card-name-block h3 {
+  margin: 0 0 2px;
+  font-size: 1.14rem;
+  line-height: 1.2;
+}
+.rank-card-section {
+  font-size: 0.76rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: rgba(240, 240, 240, 0.55);
+}
+.rank-card-bio {
+  margin: 8px 0 0;
+  font-size: 0.85rem;
+  line-height: 1.6;
+  color: rgba(240, 240, 240, 0.78);
+}
+
+.rank-card-meta {
+  display: flex;
+  gap: 12px;
+}
+.rank-card-meta-item {
+  flex: 1;
+  padding: 10px 12px;
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.rank-card-meta-item span {
+  font-size: 0.66rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: rgba(240, 240, 240, 0.5);
+}
+.rank-card-meta-item strong {
+  font-size: 1rem;
+}
+.rank-card-rank-value {
+  color: var(--rank-color, #f0f0f0);
+}
+
+.rank-card-body {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 18px;
+  padding: 0 20px 22px;
+}
+
+/* ── RADIAL DIAGRAM ─────────────────────────────────────────────────
+   260x260 stage, Threads centered, 5 factor nodes pentagon-arranged
+   around it (see factorNodes computed). Lines + node fills key off
+   --rank-color, set on .rank-card above, so the whole diagram warms
+   from white toward gold the higher the member's Threads rank is. */
+.rank-card-radar {
+  position: relative;
+  width: 260px;
+  height: 260px;
+  margin: 0 auto;
+  flex-shrink: 0;
+}
+.rank-card-radar-lines {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+.rank-card-radar-lines line {
+  stroke: color-mix(in srgb, var(--rank-color, #888) 35%, rgba(255, 255, 255, 0.12));
+  stroke-width: 1;
+}
+
+.rank-node {
+  position: absolute;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  text-align: center;
+  line-height: 1.15;
+}
+
+.rank-node--threads {
+  left: 130px;
+  top: 130px;
+  transform: translate(-50%, -50%);
+  width: 84px;
+  height: 84px;
+  z-index: 2;
+  background: radial-gradient(circle, color-mix(in srgb, var(--rank-color, #f97316) 32%, #111) 0%, #111 78%);
+  border: 2px solid var(--rank-color, #f97316);
+  box-shadow: 0 0 22px color-mix(in srgb, var(--rank-color, #f97316) 40%, transparent);
+}
+.rank-node--threads span {
+  font-family: var(--font);
+  font-weight: 700;
+  font-size: 1.05rem;
+  color: #fff;
+}
+.rank-node--threads small {
+  font-size: 0.58rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: rgba(240, 240, 240, 0.62);
+}
+
+.rank-node--factor {
+  transform: translate(-50%, -50%);
+  width: 56px;
+  height: 56px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid color-mix(in srgb, var(--rank-color, #888) 45%, rgba(255, 255, 255, 0.14));
+  animation: rank-float 4.6s ease-in-out infinite;
+}
+.rank-node--factor span {
+  font-size: 0.74rem;
+  font-weight: 600;
+  color: #fff;
+}
+.rank-node--factor small {
+  font-size: 0.52rem;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: rgba(240, 240, 240, 0.55);
+}
+
+@keyframes rank-float {
+  0%, 100% { transform: translate(-50%, -50%) translateY(0); }
+  50%      { transform: translate(-50%, -50%) translateY(-6px); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .rank-node--factor { animation: none; }
+}
+
+/* ── BADGE COLLECTION ────────────────────────────────────────────── */
+.rank-card-badges {
+  flex: 1;
+  min-width: 200px;
+}
+.rank-card-badges-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  margin-bottom: 10px;
+  font-size: 0.8rem;
+  color: rgba(240, 240, 240, 0.6);
+}
+.rank-card-badges-head strong {
+  color: #fff;
+  font-size: 0.94rem;
+}
+.rank-card-badges-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(40px, 1fr));
+  gap: 8px;
+}
+.rank-badge-chip {
+  position: relative;
+  aspect-ratio: 1;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid var(--tier-color, rgba(255, 255, 255, 0.14));
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+}
+.rank-badge-bg :deep(svg) {
+  width: 100%;
+  height: 100%;
+}
+.rank-badge-diamond {
+  color: var(--tier-color, #888);
+  font-size: 1.1rem;
+}
+.rank-card-badges-empty {
+  grid-column: 1 / -1;
+  margin: 0;
+  color: rgba(240, 240, 240, 0.5);
+  font-size: 0.84rem;
+}
+
+/* ── EDITOR (unchanged from before) ─────────────────────────────── */
 .profile-editor {
   min-width: 0;
 }
@@ -711,6 +1005,13 @@ async function onBannerChosen(e) {
 .profile-panel-head h3,
 .profile-links-head h4 {
   font-size: 1rem;
+  color: rgba(240, 240, 240, 0.9);
+}
+
+.profile-panel-head span,
+.profile-links-head span,
+.profile-media-copy small {
+  color: rgba(240, 240, 240, 0.58);
 }
 
 .profile-field {
@@ -833,13 +1134,6 @@ async function onBannerChosen(e) {
   border: 1px solid rgba(255, 255, 255, 0.06);
 }
 
-/* The file input gets its own full-width row instead of sharing a
-   column with the copy text. A native <input type="file">'s button +
-   filename renders at whatever width the browser/OS gives it (this
-   varies a lot and can be quite wide) — if it shares an `auto` grid
-   column next to a `minmax(0, 1fr)` text column, that text column gets
-   squeezed toward 0 on narrower viewports, wrapping one word per line.
-   Giving it its own row sidesteps that entirely, on any screen size. */
 .profile-media-row .profile-file {
   grid-area: file;
   width: 100%;
@@ -874,6 +1168,12 @@ async function onBannerChosen(e) {
   border-radius: 16px;
 }
 
+.profile-media-preview img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
 .profile-media-preview strong {
   color: rgba(240, 240, 240, 0.55);
   letter-spacing: 0.08em;
@@ -889,10 +1189,6 @@ async function onBannerChosen(e) {
 
 .profile-media-copy strong {
   font-size: 0.92rem;
-}
-
-.profile-media-copy small {
-  line-height: 1.45;
 }
 
 .profile-file {
@@ -991,17 +1287,14 @@ async function onBannerChosen(e) {
 }
 
 @media (max-width: 640px) {
-  .profile-banner {
-    min-height: 220px;
+  .rank-card-avatar-wrap {
+    width: 76px;
+    height: 76px;
   }
 
-  .profile-avatar-badge {
-    width: 92px;
-    height: 92px;
-  }
-
-  .profile-stat-grid {
-    grid-template-columns: 1fr;
+  .rank-card-radar {
+    width: 230px;
+    height: 230px;
   }
 
   .profile-link-row {

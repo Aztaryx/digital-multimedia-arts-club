@@ -210,6 +210,110 @@
         </div>
       </section>
 
+      <!-- ── ATTENDANCE ─────────────────────────────────────────────── -->
+      <section v-if="activeTab === 'attendance'" class="admin-tab-panel">
+        <p class="profile-intro admin-section-intro">
+          Log who showed up to an event. Backs Ping (bits-threads-spec.md §2.1) once Phase 5 ships —
+          for now this just builds up real attendance history so Ping has something to compute from.
+        </p>
+
+        <div class="profile-grid">
+          <section class="profile-panel">
+            <div class="profile-panel-head">
+              <h3>Pick an event</h3>
+              <span>Or create a new one</span>
+            </div>
+
+            <label class="profile-field">
+              <span>Event</span>
+              <select class="profile-input" v-model="selectedEventId" @change="onEventPicked">
+                <option value="">— Select an event —</option>
+                <option v-for="e in attendanceEvents" :key="e.id" :value="e.id">
+                  {{ e.event_date }} — {{ e.title }}
+                </option>
+              </select>
+            </label>
+
+            <button class="profile-btn profile-btn--ghost" v-sfx-hover @click="showNewEventForm = !showNewEventForm">
+              {{ showNewEventForm ? 'Cancel' : '+ New event' }}
+            </button>
+
+            <template v-if="showNewEventForm">
+              <label class="profile-field">
+                <span>Title</span>
+                <input class="profile-input" v-model="newEventTitle" maxlength="120" placeholder="e.g. General Assembly" />
+              </label>
+              <label class="profile-field">
+                <span>Date</span>
+                <input class="profile-input" type="date" v-model="newEventDate" />
+              </label>
+              <label class="profile-field">
+                <span>Type</span>
+                <select class="profile-input" v-model="newEventType">
+                  <option value="">— none —</option>
+                  <option value="competition">Competition</option>
+                  <option value="assembly">Assembly</option>
+                  <option value="meeting">Meeting</option>
+                  <option value="showcase">Showcase</option>
+                  <option value="other">Other</option>
+                </select>
+              </label>
+              <label class="profile-field">
+                <span>Location</span>
+                <input class="profile-input" v-model="newEventLocation" placeholder="Optional" />
+              </label>
+              <label class="profile-field">
+                <span>Description</span>
+                <textarea class="profile-textarea" v-model="newEventDescription" rows="3" placeholder="Optional"></textarea>
+              </label>
+              <button class="profile-btn" v-sfx-hover :disabled="creatingEvent" @click="createEvent">Create event</button>
+            </template>
+          </section>
+
+          <section class="profile-panel">
+            <div class="profile-panel-head">
+              <h3>Attendance</h3>
+              <span v-if="selectedEventId">{{ presentCount }} present · {{ lateCount }} late · {{ absentCount }} absent</span>
+            </div>
+
+            <template v-if="!selectedEventId">
+              <p class="forums-guest-note">Pick or create an event first.</p>
+            </template>
+            <template v-else>
+              <div v-for="m in roster" :key="m.slug" class="admin-roster-row">
+                <div class="admin-roster-id">
+                  <strong>{{ m.display_name }}</strong>
+                </div>
+                <div class="seg-toggle" role="group" :aria-label="`Attendance for ${m.display_name}`">
+                  <button
+                    type="button"
+                    class="seg-btn"
+                    :class="{ active: attendanceEntries[m.slug] === 'present' }"
+                    @click="attendanceEntries[m.slug] = 'present'"
+                  >Present</button>
+                  <button
+                    type="button"
+                    class="seg-btn"
+                    :class="{ active: attendanceEntries[m.slug] === 'late' }"
+                    @click="attendanceEntries[m.slug] = 'late'"
+                  >Late</button>
+                  <button
+                    type="button"
+                    class="seg-btn"
+                    :class="{ active: attendanceEntries[m.slug] === 'absent' }"
+                    @click="attendanceEntries[m.slug] = 'absent'"
+                  >Absent</button>
+                </div>
+              </div>
+
+              <button class="profile-btn" v-sfx-hover :disabled="savingAttendance" @click="saveAttendance">
+                {{ savingAttendance ? 'Saving…' : 'Save attendance' }}
+              </button>
+            </template>
+          </section>
+        </div>
+      </section>
+
       <!-- ── SEASON RESET ─────────────────────────────────────────── -->
       <section v-if="activeTab === 'season-reset'" class="admin-tab-panel">
         <p class="profile-intro admin-section-intro">
@@ -469,7 +573,7 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue';
+import { ref, computed, reactive, onMounted } from 'vue';
 import SecHead from '../components/SecHead.vue';
 import MemberAuth from '../lib/member-auth.js';
 import { sb } from '../lib/supabase-client.js';
@@ -491,6 +595,7 @@ const tabs = [
   { id: 'overview', label: 'Overview' },
   { id: 'announcements', label: 'Newsletters' },
   { id: 'contributions', label: 'Contribution Logging' },
+  { id: 'attendance', label: 'Attendance' },
   { id: 'season-reset', label: 'Start New Season' },
   { id: 'scores', label: 'Badges & Scores' },
   { id: 'members', label: 'Members' },
@@ -538,6 +643,23 @@ const contribDescription = ref('');
 const contribDrafts = ref([]);
 const submittingBatch = ref(false);
 
+// ── ATTENDANCE (Phase 1) ─────────────────────────────────────────
+const attendanceEvents = ref([]);
+const selectedEventId = ref('');
+const attendanceEntries = reactive({}); // slug -> 'present' | 'late' | 'absent'
+const savingAttendance = ref(false);
+const showNewEventForm = ref(false);
+const newEventTitle = ref('');
+const newEventDate = ref('');
+const newEventType = ref('');
+const newEventLocation = ref('');
+const newEventDescription = ref('');
+const creatingEvent = ref(false);
+
+const presentCount = computed(() => Object.values(attendanceEntries).filter((s) => s === 'present').length);
+const lateCount = computed(() => Object.values(attendanceEntries).filter((s) => s === 'late').length);
+const absentCount = computed(() => Object.values(attendanceEntries).filter((s) => s === 'absent').length);
+
 // Season reset
 const seasonNumber = ref('2');
 const resetPreview = ref({ scoresWiped: 0, worksWiped: 0, contributionsArchived: 0 });
@@ -581,6 +703,7 @@ onMounted(() => {
   loadSiteStats();
   loadResetPreview();
   loadLegacyCandidates();
+  loadAttendanceEvents();
 });
 
 async function loadAnnouncements() {
@@ -599,7 +722,7 @@ async function loadAnnouncements() {
 async function loadRoster() {
   const { data, error } = await sb
     .from('members')
-    .select('slug, display_name, club_role, site_role, silenced_until, year_joined, created_at')
+    .select('id, slug, display_name, club_role, site_role, silenced_until, year_joined, created_at')
     .order('display_name');
   if (error) {
     console.error('AdminView: could not load roster —', error.message);
@@ -641,6 +764,97 @@ async function loadModerationLog() {
     return;
   }
   modLog.value = data.entries || [];
+}
+
+async function loadAttendanceEvents() {
+  const { data, error } = await sb
+    .from('events')
+    .select('id, title, event_date, event_type')
+    .order('event_date', { ascending: false });
+
+  if (error) {
+    console.error('AdminView: could not load events —', error.message);
+    return;
+  }
+
+  attendanceEvents.value = data || [];
+}
+
+// Default everyone to Present (matches how attendance is actually
+// taken — mark the exceptions, not the whole roster), then overlay
+// anything already logged for this event so reopening one to fix a
+// mistake doesn't blow away what's already there.
+async function onEventPicked() {
+  for (const m of roster.value) attendanceEntries[m.slug] = 'present';
+  if (!selectedEventId.value) return;
+
+  const { data, error } = await sb.rpc('admin_get_attendance', {
+    p_session_token: MemberAuth.getSessionToken(),
+    p_event_id: selectedEventId.value,
+  });
+  if (error || !data?.success) return;
+
+  const idToSlug = Object.fromEntries(roster.value.map((m) => [m.id, m.slug]));
+  for (const entry of data.entries || []) {
+    const slug = idToSlug[entry.member_id];
+    if (slug) attendanceEntries[slug] = entry.status;
+  }
+}
+
+async function createEvent() {
+  if (!newEventTitle.value.trim() || !newEventDate.value) {
+    status('An event needs a title and a date.', 'error');
+    return;
+  }
+  creatingEvent.value = true;
+  const { data, error } = await sb.rpc('admin_create_event', {
+    p_session_token: MemberAuth.getSessionToken(),
+    p_title: newEventTitle.value.trim(),
+    p_event_date: newEventDate.value,
+    p_description: newEventDescription.value.trim() || null,
+    p_location: newEventLocation.value.trim() || null,
+    p_event_type: newEventType.value || null,
+  });
+  creatingEvent.value = false;
+
+  if (error || !data?.success) {
+    status(data?.message || error?.message || 'Could not create event.', 'error');
+    return;
+  }
+
+  newEventTitle.value = '';
+  newEventDate.value = '';
+  newEventType.value = '';
+  newEventLocation.value = '';
+  newEventDescription.value = '';
+  showNewEventForm.value = false;
+  status('Event created.', 'success');
+
+  await loadAttendanceEvents();
+  selectedEventId.value = data.event_id;
+  await onEventPicked();
+}
+
+async function saveAttendance() {
+  if (!selectedEventId.value) return;
+  const slugToId = Object.fromEntries(roster.value.map((m) => [m.slug, m.id]));
+  const entries = roster.value
+    .map((m) => ({ member_id: slugToId[m.slug], status: attendanceEntries[m.slug] || 'present' }))
+    .filter((e) => e.member_id);
+
+  savingAttendance.value = true;
+  const { data, error } = await sb.rpc('admin_log_attendance', {
+    p_session_token: MemberAuth.getSessionToken(),
+    p_event_id: selectedEventId.value,
+    p_entries: entries,
+  });
+  savingAttendance.value = false;
+
+  if (error || !data?.success) {
+    status(data?.message || error?.message || 'Could not save attendance.', 'error');
+    return;
+  }
+  status(`Attendance saved for ${data.entries_logged} member(s).`, 'success');
 }
 
 async function loadSiteStats() {

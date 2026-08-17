@@ -303,12 +303,12 @@ async function loadLeaderboardData() {
       threadsData.value = threads.map((t) => ({
         id: t.id,
         member_id: t.member_id,
-        score: Math.round(t.score),
-        ping: (t.ping_factor * 100).toFixed(1),
-        bandwidth: (t.bandwidth_factor * 100).toFixed(1),
-        flops: (t.flops_factor * 100).toFixed(1),
-        commits: (t.commits_factor * 100).toFixed(1),
-        hertz: (t.hertz_factor * 100).toFixed(1),
+        score: Number(t.score).toFixed(2),
+        ping: Number(t.ping_factor).toFixed(2),
+        bandwidth: Number(t.bandwidth_factor).toFixed(2),
+        flops: Number(t.flops_factor).toFixed(2),
+        commits: Number(t.commits_factor).toFixed(2),
+        hertz: Number(t.hertz_factor).toFixed(2),
         name: t.members?.display_name || 'Anonymous',
         slug: t.members?.slug || 'unknown',
       }));
