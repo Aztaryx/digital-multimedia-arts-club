@@ -428,14 +428,15 @@ function badgeTitle(b) {
 }
 .member-card-radar-traces {
   position: absolute; inset: 0; width: 100%; height: 100%;
+  opacity: 0.45; /* dimmed — was full-strength */
 }
 .member-card-trace {
   fill: none;
-  stroke: color-mix(in srgb, var(--rank-color, #888) 40%, rgba(255, 255, 255, 0.12));
-  stroke-width: 1.4;
+  stroke: color-mix(in srgb, var(--rank-color, #888) 25%, rgba(255, 255, 255, 0.08));
+  stroke-width: 1.1;
 }
 .member-card-via {
-  fill: color-mix(in srgb, var(--rank-color, #888) 55%, rgba(255, 255, 255, 0.2));
+  fill: color-mix(in srgb, var(--rank-color, #888) 35%, rgba(255, 255, 255, 0.14));
 }
 
 .member-node {
@@ -449,6 +450,9 @@ function badgeTitle(b) {
   fill: rgba(255, 255, 255, 0.04);
   stroke: currentColor;
   stroke-width: 1.4;
+}
+.member-node--factor .member-node-frame {
+  opacity: 0.7;
 }
 
 .member-node--threads {

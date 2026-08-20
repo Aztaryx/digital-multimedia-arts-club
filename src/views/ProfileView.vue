@@ -9,30 +9,6 @@
       <div v-if="!member" class="profile-loading">Loading…</div>
 
       <div v-else class="profile-layout">
-        <aside class="profile-viewer">
-          <MemberCard
-            :name="publicName"
-            :section="member.club_role || 'DMAC member'"
-            :position="member.site_role === 'admin' ? 'Admin' : 'Member'"
-            :bio="bio.trim() || 'Write a short bio about the events you cover, the edits you handle, or the tools you are best at using.'"
-            :initials="avatarInitials"
-            :avatar-url="avatarUrl"
-            :banner-url="bannerUrl"
-            :banner-color="bannerColor"
-            :socials="previewLinks"
-            :rank="threadsRank"
-            :rank-color="rankColor"
-            :threads-score="threadsScore"
-            :threads-factors="threadsFactors"
-            :badges="badges"
-            :badge-rank="badgeRank"
-            :roster-count="rosterCount"
-          />
-          <p class="profile-viewer-note">
-            This is the public-facing card people will use when checking who is available to cover school events.
-          </p>
-        </aside>
-
         <section class="profile-editor">
           <p v-if="statusMsg" class="profile-status" :class="statusType">{{ statusMsg }}</p>
 
@@ -181,23 +157,14 @@
 </template>
 
 <script setup>
-/* ProfileView.vue — private self-service profile editor at /profile.
-   The public-preview aside is now just a thin wrapper around the
-   shared MemberCard.vue (see that file's header) — this view's own
-   job is resolving the data MemberCard needs (profile fields, live
-   Threads rank/factors, badges) and handing them down as props,
-   plus the actual editor form below it, which is unchanged. */
+/* ProfileView.vue — private self-service profile editor at /profile. */
 import { ref, onMounted, computed, watch } from 'vue';
 import { useRouter } from 'vue-router';
 import PageHero from '../components/PageHero.vue';
 import AvatarCropModal from '../components/AvatarCropModal.vue';
 import ColorWheelPicker from '../components/ColorWheelPicker.vue';
-import MemberCard from '../components/MemberCard.vue';
 import MemberAuth from '../lib/member-auth.js';
 import MemberProfile from '../lib/member-profile.js';
-import Leaderboard from '../lib/leaderboard.js';
-import { fetchThreadsBoard, rankByBadgeCount } from '../lib/threads-board.js';
-import { colorForPercentile } from '../lib/rank-color.js';
 import { playSfx } from '../composables/useSfx.js';
 
 const router = useRouter();
@@ -260,7 +227,6 @@ const avatarInitials = computed(() => {
   return source.trim().split(/\s+/).filter(Boolean).slice(0, 2)
     .map((part) => part[0]?.toUpperCase() || '').join('') || 'DMAC';
 });
-const previewLinks = computed(() => socialLinks.value.filter((link) => link.label.trim() && link.url.trim()).slice(0, 3));
 
 const statusMsg = ref('');
 const statusType = ref('info');
@@ -268,42 +234,6 @@ const statusType = ref('info');
 function status(msg, type = 'info') {
   statusMsg.value = msg;
   statusType.value = type;
-}
-
-/* ── RANK CARD DATA (fed into MemberCard) ─────────────────────── */
-const threadsScore = ref(null);
-const threadsFactors = ref({});
-const threadsRank = ref(null);
-const rosterCount = ref(0);
-const rankColor = ref('#b0b0b0');
-const badges = ref([]);
-const badgeRank = ref(null);
-
-async function loadRankData(slug) {
-  if (!slug) return;
-
-  try {
-    const board = await fetchThreadsBoard();
-    rosterCount.value = board.length;
-    const mine = board.find((r) => r.slug === slug);
-    if (mine) {
-      threadsScore.value = mine.score;
-      threadsFactors.value = mine.factors;
-      threadsRank.value = mine.rank;
-      const percentile = board.length > 1 ? 1 - (mine.rank - 1) / (board.length - 1) : 1;
-      rankColor.value = colorForPercentile(percentile);
-    }
-  } catch (err) {
-    console.error('ProfileView: could not load Threads board —', err.message);
-  }
-
-  try {
-    const scores = await Leaderboard.fetchScores();
-    badges.value = [...Leaderboard.getBadgesForSlug(scores, slug), ...Leaderboard.getCompletionStatus(scores, slug)];
-    badgeRank.value = rankByBadgeCount(scores, slug).rank;
-  } catch (err) {
-    console.error('ProfileView: could not load badges —', err.message);
-  }
 }
 
 onMounted(async () => {
@@ -322,8 +252,6 @@ onMounted(async () => {
   avatarUrl.value = profile.avatar_url;
   bannerUrl.value = profile.banner_url;
   bannerColor.value = profile.banner_color || null;
-
-  loadRankData(member.value.slug);
 });
 
 async function saveBannerColor() {
@@ -444,18 +372,7 @@ async function onBannerChosen(e) {
 }
 
 .profile-layout {
-  display: grid;
-  grid-template-columns: minmax(300px, 420px) minmax(0, 1fr);
-  gap: 24px;
-  align-items: start;
-}
-
-.profile-viewer { display: flex; flex-direction: column; gap: 12px; }
-.profile-viewer-note {
-  padding: 0 6px;
-  line-height: 1.5;
-  font-size: 0.88rem;
-  color: rgba(240, 240, 240, 0.58);
+  display: block;
 }
 
 .profile-editor { min-width: 0; }
@@ -631,7 +548,6 @@ async function onBannerChosen(e) {
 .profile-panel--full .profile-btn { margin-top: 2px; }
 
 @media (max-width: 1040px) {
-  .profile-layout { grid-template-columns: 1fr; }
   .profile-grid { grid-template-columns: 1fr; }
   .profile-password-grid { grid-template-columns: 1fr; }
 }

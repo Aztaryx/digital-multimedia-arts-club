@@ -174,7 +174,7 @@
       </div>
 
       <div class="events-layout">
-        <div class="calendar-card">
+        <div class="calendar-card" :style="{ '--calendar-theme': calendarThemeColor }">
           <div class="calendar-nav">
             <button class="calendar-nav-btn" aria-label="Previous month" @click="prevMonth">‹</button>
             <strong>{{ monthLabel }}</strong>
@@ -299,6 +299,17 @@ function formatDate(dateStr) {
 const today = new Date();
 const calYear = ref(today.getFullYear());
 const calMonth = ref(today.getMonth());
+/* Calendar background theme — ties the card's tint to the month
+   currently in view. August → cyan for Buwan ng Wika, per the spec.
+   Other flagged months get a fitting color; anything unlisted falls
+   back to the site's usual orange rather than looking unstyled. */
+const MONTH_THEME_COLORS = {
+  0: '#38bdf8',   // January
+  7: '#06b6d4',   // August — Buwan ng Wika
+  10: '#eab308',  // November — Foundation Day
+  11: '#ef4444',  // December — Valenciana Festival / Christmas
+};
+const calendarThemeColor = computed(() => MONTH_THEME_COLORS[calMonth.value] || '#f97316');
 const allEvents = ref([]);
 const eventsByDate = ref({});
 const selectedDay = ref(null);
@@ -539,9 +550,9 @@ onMounted(async () => {
 }
 .calendar-card {
   border-radius: 20px;
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  background: rgba(255, 255, 255, 0.03);
+  background: color-mix(in srgb, var(--calendar-theme, var(--orange)) 14%, rgba(255, 255, 255, 0.03));
   padding: 16px;
+  /* borders removed entirely, per spec */
 }
 .calendar-nav {
   display: flex;
@@ -553,8 +564,7 @@ onMounted(async () => {
 .calendar-nav-btn {
   width: 28px; height: 28px;
   border-radius: 50%;
-  border: 1px solid rgba(255, 255, 255, 0.14);
-  background: rgba(255, 255, 255, 0.04);
+  background: rgba(255, 255, 255, 0.09);
   color: #fff;
   cursor: pointer;
   font-size: 1rem;
@@ -573,7 +583,6 @@ onMounted(async () => {
 .calendar-cell {
   position: relative;
   aspect-ratio: 1;
-  border: none;
   background: transparent;
   color: rgba(240, 240, 240, 0.75);
   font-size: 0.8rem;
@@ -581,28 +590,28 @@ onMounted(async () => {
   border-radius: 8px;
 }
 .calendar-cell.is-out { color: rgba(240, 240, 240, 0.22); }
-.calendar-cell.is-today { border: 1px solid rgba(249, 115, 22, 0.6); }
-.calendar-cell.has-event { cursor: pointer; color: #fff; background: rgba(249, 115, 22, 0.1); }
-.calendar-cell.has-event:hover { background: rgba(249, 115, 22, 0.2); }
-.calendar-cell.is-selected { background: rgba(249, 115, 22, 0.32); }
+.calendar-cell.is-today { background: color-mix(in srgb, var(--calendar-theme, var(--orange)) 22%, transparent); font-weight: 700; }
+.calendar-cell.has-event { cursor: pointer; color: #fff; background: color-mix(in srgb, var(--calendar-theme, var(--orange)) 16%, transparent); }
+.calendar-cell.has-event:hover { background: color-mix(in srgb, var(--calendar-theme, var(--orange)) 30%, transparent); }
+.calendar-cell.is-today.has-event { background: color-mix(in srgb, var(--calendar-theme, var(--orange)) 36%, transparent); }
+.calendar-cell.is-selected { background: color-mix(in srgb, var(--calendar-theme, var(--orange)) 45%, transparent); }
 .calendar-dot {
   position: absolute;
   bottom: 4px; left: 50%;
   transform: translateX(-50%);
   width: 4px; height: 4px;
   border-radius: 50%;
-  background: var(--orange);
+  background: var(--calendar-theme, var(--orange));
 }
 .calendar-detail {
   margin-top: 12px;
   padding-top: 12px;
-  border-top: 1px solid rgba(255, 255, 255, 0.08);
   display: flex;
   flex-direction: column;
   gap: 10px;
 }
 .calendar-detail-item strong { display: block; font-size: 0.9rem; }
-.calendar-detail-countdown { font-size: 0.76rem; color: var(--orange); }
+.calendar-detail-countdown { font-size: 0.76rem; color: var(--calendar-theme, var(--orange)); }
 .calendar-detail-item p { margin: 2px 0 0; font-size: 0.78rem; color: rgba(240, 240, 240, 0.6); }
 
 .events-upcoming {
