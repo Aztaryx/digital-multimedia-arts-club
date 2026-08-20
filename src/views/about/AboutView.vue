@@ -1,6 +1,6 @@
 <template>
   <main>
-    <!-- Two-column body -->
+    <PageHero title="About Us" />
     <div class="about-body">
 
       <div class="about-img-frame reveal" v-sfx-hover v-reveal>
@@ -11,7 +11,6 @@
       </div>
 
       <div class="about-text reveal" v-reveal>
-        <SecHead>About Us</SecHead>
         <p class="about-paragraph">
           DMAC — the Digital Multimedia Arts Club — is a student-run club watched over by Sir Richmond Causaren and the Head of TLE. In practice, that makes us the school's go-to team for event coverage: we show up to record what happens, edit the footage and photos afterward, and post the finished coverage for the rest of the school to see.
         </p>
@@ -31,11 +30,6 @@
 </template>
 
 <script setup>
-import SecHead from '../../components/SecHead.vue';
+import PageHero from '../../components/PageHero.vue';
 import '../../assets/css/pages/about.css';
-
-/* Ported from about/index.html. Original page had no page-specific
-   JS (js/pages/about.js was an empty stub) — reveal-on-scroll and
-   the gradient heading are handled by the v-reveal directive and
-   SecHead/GradWrap components respectively. */
 </script>

@@ -1,7 +1,7 @@
 <template>
   <main>
+    <PageHero title="Mission" />
     <div class="page-section reveal" v-reveal>
-      <SecHead>Mission</SecHead>
       <div class="mission-content">
         <p class="mission-lead">
           DMAC exists to cover what happens at our school — recording events, editing the footage and photos, and getting the finished coverage out to students — while giving members a low-pressure space to build real skills along the way, regardless of experience level.
@@ -46,10 +46,6 @@
 </template>
 
 <script setup>
-import SecHead from '../../components/SecHead.vue';
+import PageHero from '../../components/PageHero.vue';
 import '../../assets/css/pages/mission.css';
-
-/* Ported from about/mission.html — no page-specific JS in the
-   original (gradient heading + reveal are global.js concerns,
-   now handled by GradWrap/SecHead + the v-reveal directive). */
 </script>

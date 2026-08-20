@@ -1,7 +1,7 @@
 <template>
   <main>
+    <PageHero title="Newsletters" />
     <div class="page-section reveal" v-reveal>
-      <SecHead>Newsletters</SecHead>
       <p class="nl-subtitle">
         The site's own dev journal — roadmap updates, sneak peeks, the occasional joke. For club news
         (meetings, results, shout-outs) see <router-link to="/info/announcements">Announcements</router-link>;
@@ -32,16 +32,9 @@
 
 <script setup>
 import { ref, onMounted } from 'vue';
-import SecHead from '../../components/SecHead.vue';
+import PageHero from '../../components/PageHero.vue';
 import { sb } from '../../lib/supabase-client.js';
 import '../../assets/css/pages/newsletters.css';
-
-/* Newsletters = the site/dev journal — what used to live in this
-   page's static "no announcements yet" stub is now a real read from
-   the `announcements` table (kind: 'announcement' | 'maintenance'),
-   the same table AdminView.vue's Newsletters tab writes to. Club
-   news and School Events both moved to their own tables/pages — see
-   dmac-consolidated-plan.md §4 for why those three are kept apart. */
 
 const entries = ref([]);
 const loading = ref(true);

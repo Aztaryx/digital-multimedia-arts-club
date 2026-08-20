@@ -1,7 +1,7 @@
 <template>
   <main>
+    <PageHero title="FAQ" />
     <div class="page-section reveal" v-reveal>
-      <SecHead>FAQ</SecHead>
       <div class="faq-list">
 
         <div class="faq-item">
@@ -43,9 +43,6 @@
 </template>
 
 <script setup>
-import SecHead from '../../components/SecHead.vue';
+import PageHero from '../../components/PageHero.vue';
 import '../../assets/css/pages/faq.css';
-
-/* Ported from info/faq.html — static content, no page-specific JS
-   in the original. Internal links converted to <router-link>. */
 </script>

@@ -1,7 +1,7 @@
 <template>
   <main>
+    <PageHero title="Members" />
     <div class="page-section reveal" v-reveal>
-      <SecHead>Members</SecHead>
       <div class="members-content">
 
         <!-- ── ADVISERS ── -->
@@ -77,205 +77,63 @@
     </div>
   </main>
 
-  <!-- ════════════════════ MEMBER CARD OVERLAY ════════════════════ -->
+  <!-- ════════════════════ MEMBER CARD POPUP ════════════════════ -->
   <div
-    class="card-overlay"
+    class="member-popup-overlay"
     :class="{ open: cardOpen }"
     role="dialog"
     aria-modal="true"
     aria-label="Member Profile"
     @click="onOverlayClick"
   >
-    <div class="card-panel" :class="{ open: panelOpen, 'is-founder': openedMember?.isFounder }" :style="cardTintStyle" ref="panelRef">
-
-      <!-- Banner -->
-      <div class="card-banner" :class="`card-banner--${openedMember?.bannerKey || 'default'}`" :style="bannerStyle">
-        <div class="card-banner-content">
-          <div
-            class="card-avatar"
-            :style="avatarStyle"
-          ></div>
-          <div class="card-header-text">
-            <h2 class="card-name">{{ openedMember?.name }}</h2>
-            <span class="card-grade">{{ openedMember?.gradeSection || 'DMAC' }}</span>
-          </div>
-        </div>
-      </div>
-
-      <!-- Mini zigzag divider -->
-      <div class="card-zigzag" aria-hidden="true">
-        <svg class="card-zigzag-svg" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="none" :viewBox="zigzagViewBox">
-          <polygon class="card-zigzag-poly" fill="#111" stroke="none" :points="zigzagPoints" />
-        </svg>
-      </div>
-
-      <!-- Close -->
-      <button class="card-close" aria-label="Close profile" v-sfx-hover @click="closeCard">✕ CLOSE</button>
-
-      <!-- Body -->
-      <div class="card-body">
-
-        <!-- Founder banner — spans the full card width -->
-        <div v-if="openedMember?.isFounder" class="founder-title-bar founder-title-bar--full">
-          <div class="founder-title-bg"></div>
-          <div class="founder-title-main">
-            <span class="founder-title-name">{{ founderFirstName }}</span>
-            <span class="founder-title-slash">/</span>
-            <span class="founder-title-label">{{ openedMember.founderTitle }}</span>
-          </div>
-          <span class="founder-title-roles">{{ openedMember.founderRoles }}</span>
-        </div>
-
-        <!-- Header Info (Position & Socials) -->
-        <div class="card-header-info">
-          <div class="card-identity">
-            <span class="card-role">{{ openedMember?.role }}</span>
-            <span v-if="!openedMember?.isFounder && openedMember?.tagline" class="card-tagline">{{ openedMember.tagline }}</span>
-          </div>
-
-          <div class="card-socials-container">
-            <span class="card-socials-label">socials (max 3)</span>
-            <div class="card-socials">
-              <template v-if="openedMember?.liveSocials?.length">
-                <a
-                  v-for="(soc, i) in openedMember.liveSocials.slice(0, 3)"
-                  :key="i"
-                  :href="soc.url"
-                  target="_blank"
-                  rel="noopener"
-                  class="card-social-link card-social-link--text"
-                  v-sfx-hover
-                >{{ soc.label }}</a>
-              </template>
-              <template v-else-if="openedMember?.socials?.length">
-                <a
-                  v-for="soc in openedMember.socials.slice(0, 3)"
-                  :key="soc.icon"
-                  :href="soc.url"
-                  target="_blank"
-                  class="card-social-link"
-                  v-sfx-hover
-                >
-                  <img :src="`https://aztaryx.github.io/dmac-assets/icons/${soc.icon}`" :alt="soc.platform" />
-                </a>
-              </template>
-              <span v-else class="card-empty-text">No socials linked.</span>
-            </div>
-          </div>
-
-          <div class="card-time-working-container">
-            <span class="card-time-working-label">time spent working</span>
-            <div class="card-time-working">
-              <template v-if="openedMember?.timeWorking?.length">
-                <div class="card-time-entry" v-for="tw in openedMember.timeWorking" :key="tw.label">
-                  <span class="time-label">{{ tw.label }}</span><span class="time-value">{{ tw.value }}</span>
-                </div>
-              </template>
-              <span v-else class="card-empty-text">Unknown time spent.</span>
-            </div>
-          </div>
-        </div>
-
-        <!-- Badges -->
-        <div class="card-badges-section">
-          <div class="card-badges-header">
-            <div class="card-badge-count">
-              <span class="card-badge-percent">{{ badgeCount }}</span>
-              <span class="card-badge-text">badge count</span>
-            </div>
-            <div class="card-badges-scrollable">
-              <div
-                v-for="(badge, i) in openedMember?.badges || []"
-                :key="i"
-                class="badge-slot"
-                :style="{ '--tier-color': tierColor(badge.tierKey) }"
-                :title="badgeLabel(badge)"
-                @mouseenter="playSfx('menuhover')"
-                @mousemove="onBadgeTilt"
-                @mouseleave="resetBadgeTilt"
-                @click="playSfx('no')"
-              >
-                <div v-if="badgeBgSvg(badge.tierKey)" class="badge-bg" v-html="badgeBgSvg(badge.tierKey)"></div>
-                <div v-if="badgeIconSvg(badge.file)" class="badge-icon" :aria-label="badgeLabel(badge)" v-html="badgeIconSvg(badge.file)"></div>
-                <span
-                  v-else
-                  class="badge-diamond"
-                  :style="{ color: tierColor(badge.tierKey), textShadow: `0 0 14px ${tierColor(badge.tierKey)}, 0 0 28px ${tierColor(badge.tierKey)}66` }"
-                >◆</span>
-                <span class="badge-tip">
-                  <span class="badge-tip-name">{{ badgeLabel(badge) }}</span>
-                  <span v-if="badge.flavor" class="badge-tip-flavor">{{ badge.flavor }}</span>
-                </span>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <!-- About -->
-        <div class="card-about-section">
-          <p class="card-about-text">{{ openedMember?.about || 'No description provided.' }}</p>
-        </div>
-
-        <!-- Stats Row -->
-        <div class="card-stats-row">
-          <div class="card-stat">
-            <span class="card-stat-label">year<br />joined</span>
-            <span class="card-stat-value">{{ openedMember?.yearJoined || '--' }}</span>
-          </div>
-          <div class="card-stat">
-            <span class="card-stat-label">badge count</span>
-            <span class="card-stat-value">{{ badgeCount }}</span>
-          </div>
-          <div class="card-stat">
-            <span class="card-stat-label">specializes in..</span>
-            <span class="card-stat-value">{{ openedMember?.specialization || '--' }}</span>
-          </div>
-          <div class="card-stat">
-            <span class="card-stat-label">random stat</span>
-            <span class="card-stat-value">{{ openedMember?.randomStat || '--' }}</span>
-          </div>
-        </div>
-
-      </div>
+    <div class="member-popup-panel" :class="{ open: panelOpen }" @click.stop>
+      <button class="member-popup-close" aria-label="Close profile" v-sfx-hover @click="closeCard">✕</button>
+      <MemberCard
+        v-if="openedMember"
+        :name="openedMember.name"
+        :section="openedMember.role"
+        :position="openedMember.role"
+        :bio="openedMember.about"
+        :initials="openedMember.initials"
+        :avatar-url="openedMember.avatarUrl"
+        :banner-url="openedMember.liveBannerUrl"
+        :banner-color="openedMember.liveBannerColor"
+        :socials="openedMember.socials"
+        :rank="openedMember.rank"
+        :rank-color="openedMember.rankColor"
+        :threads-score="openedMember.threadsScore"
+        :threads-factors="openedMember.threadsFactors"
+        :badges="openedMember.badges"
+        :badge-rank="openedMember.badgeRank"
+        :roster-count="openedMember.rosterCount"
+        :founder="openedMember.isFounder"
+        :founder-title="openedMember.founderTitle"
+        :founder-roles="openedMember.founderRoles"
+        :active="panelOpen"
+      />
     </div>
   </div>
 </template>
 
 <script setup>
-import { ref, computed, nextTick, onMounted, onBeforeUnmount } from 'vue';
-import SecHead from '../../components/SecHead.vue';
+import { ref, computed, onMounted, onBeforeUnmount } from 'vue';
+import PageHero from '../../components/PageHero.vue';
+import MemberCard from '../../components/MemberCard.vue';
 import Leaderboard from '../../lib/leaderboard.js';
-import { BADGE_SVG } from '../../lib/badges.js';
-import { playSfx } from '../../composables/useSfx.js';
-import { hexToRgb } from '../../lib/color-utils.js';
+import { fetchThreadsBoard, rankByBadgeCount } from '../../lib/threads-board.js';
+import { colorForPercentile } from '../../lib/rank-color.js';
 import { sb } from '../../lib/supabase-client.js';
+import { playSfx } from '../../composables/useSfx.js';
 import '../../assets/css/pages/members.css';
 
-/* Ported from about/members.html + js/pages/members.js. The roster
-   markup (advisers/officers/team members) is now driven by small
-   arrays instead of 18 hand-copied card blocks — same DOM shape and
-   classes as the original, just generated. The profile-popup data
-   (MEMBERS) is kept as a plain object exactly like the original,
-   since that's genuinely one-record-per-person content, not a
-   layout concern.
+/* Roster markup + MEMBERS profile data are untouched from before —
+   still small arrays / one plain object, same as ever. What changed
+   is everything past "click a card": the popup used to render its
+   own big banner/badges/stats markup directly; now it just resolves
+   this member's data and hands it to the shared MemberCard.vue
+   (about/MembersView.vue's popup + ProfileView.vue's own preview both
+   use it now — see that component's header comment). */
 
-   LIVE PROFILE OVERLAY — nickname/bio/avatar_url/social_links are
-   editable per-person via ProfileView (member_update_profile RPC),
-   and stored on public.members, not in this hardcoded object. Those
-   fields get fetched once here and merged on top of MEMBERS by slug,
-   so an edited nickname/bio/avatar shows up here without needing to
-   duplicate anything by hand. Requires dmac-profile-sync-fix.sql to
-   have been run — that's what makes these columns actually readable
-   (and makes member_update_profile itself work at all). */
-
-/* ── TIER COLOURS ─────────────────────────────────── */
-const TIER_COLORS = {
-  ...Leaderboard.TIER_COLORS,
-  leaddeveloper: '#ff4444',
-  founder: '#f97316',
-};
-
-/* ── ROSTER (drives the grid markup) ──────────────── */
 const ADVISERS = [
   { id: 'richmond-causaren', role: 'Club Adviser', name: 'Richmond P. Causaren' },
   { id: 'marie-asuncion', role: 'Co-Adviser', name: 'Marie Aldron G. Asuncion' },
@@ -325,17 +183,14 @@ function profileLabel(name) {
   return `View ${name}'s profile`;
 }
 
-/* ── MEMBER PROFILE DATA (card overlay content) ───── */
-const EMPTY = { tagline: '', about: '', bannerKey: '', badges: [], gradeSection: '', socials: [], timeWorking: [], yearJoined: '2026', arScore: '', specialization: '', randomStat: '', avatar: null };
+const EMPTY = { tagline: '', about: '', isFounder: false, gradeSection: '', socials: [], avatar: null };
 
 const MEMBERS = {
   'richmond-causaren': {
     name: 'Richmond P. Causaren', role: 'Club Adviser', ...EMPTY,
-    tagline: 'Founder · DMAC',
     about: 'The visionary who started it all. Sir Richmond founded the Digital Multimedia Arts Club, bringing together creative minds with a shared passion for digital media.',
-    bannerKey: 'founder',
     isFounder: true,
-    founderTitle: 'DMAC FOUNDER',
+    founderTitle: 'DMAC Founder',
     founderRoles: 'Club Adviser · Founder',
   },
   'marie-asuncion': { name: 'Marie Aldron G. Asuncion', role: 'Co-Adviser', ...EMPTY },
@@ -350,9 +205,7 @@ const MEMBERS = {
   'alianna-abangan': { name: 'Alianna Jen M. Abangan', role: 'Auditor', ...EMPTY },
   'mark-patnon': {
     name: 'Mark James C. Patnon', role: 'Public Information Officer', ...EMPTY,
-    tagline: 'Lead Developer · Web & Systems',
     about: "The guy who actually builds stuff around here. If it's on the site, I probably made it.",
-    bannerKey: 'mark',
   },
   'jezrylle-andres': { name: 'Jezrylle D. Andres', role: 'Public Information Officer', ...EMPTY },
 
@@ -373,68 +226,20 @@ const MEMBERS = {
   'sofia-obejas': { name: 'Sofia Lois A. Obejas', role: 'Creative Imagery Specialist', ...EMPTY },
 };
 
-/* ── BADGE HELPERS ─────────────────────────────────
-   BADGE_SVG only knows about the .svg files actually sitting in
-   src/assets/badges/ (see lib/badges.js's import.meta.glob). Right
-   now that's just the tier gems + speedtypist.svg — none of the
-   per-person badge icons referenced above (founder.png,
-   quartzcontributor.png, etc.) exist yet. Rather than port the old
-   two-step <img onerror> fallback chain, we just check up front:
-   known file → render the real SVG (inlined via v-html — see
-   template — rather than an <img src>, so its markup is real DOM
-   CSS/JS can actually reach into); unknown → render the ◆ glyph
-   fallback directly. Once real badge art is dropped into
-   src/assets/badges/ as .svg (matching the tier-gem convention),
-   these start resolving automatically — no code change needed. */
-function tierColor(tierKey) {
-  return TIER_COLORS[tierKey] || '#888';
-}
-function badgeLabel(badge) {
-  const name = badge?.name || 'Badge';
-  return badge?.level ? `${badge.level} ${name}` : name;
-}
-function badgeBgSvg(tierKey) {
-  return BADGE_SVG[`${tierKey}-badge`] || null;
-}
-// Guards against a badge entry with no `file` (or a non-string one) —
-// `.replace` on undefined used to throw and take the whole card down
-// with it, well before real per-person badge art ever gets a chance to
-// exist for someone to notice. Falls back to the ◆ glyph instead, same
-// as the "file doesn't resolve to anything in BADGE_SVG" case already
-// handled below it.
-function badgeIconSvg(file) {
-  if (typeof file !== 'string' || !file) return null;
-  const base = file.replace(/\.[^.]+$/, '');
-  return BADGE_SVG[base] || null;
+function initialsFor(name) {
+  return (name || 'DMAC').trim().split(/\s+/).filter(Boolean).slice(0, 2)
+    .map((p) => p[0]?.toUpperCase() || '').join('') || 'DMAC';
 }
 
-/* ── CARD OPEN/CLOSE STATE ─────────────────────────
-   selectedId is the source of truth; cardOpen/panelOpen mirror the
-   old overlay/panel classList toggles (panelOpen lags one frame
-   behind cardOpen so the CSS transition actually plays, same as
-   the original's requestAnimationFrame trick). */
-const selectedId = ref(null);
-const cardOpen = ref(false);
-const panelOpen = ref(false);
-const panelRef = ref(null);
-const zigzagViewBox = ref('0 0 760 28');
-const zigzagPoints = ref('');
-
-/* ── LIVE PROFILE DATA ──────────────────────────────
-   Fetched once for every known slug, keyed by slug → { nickname,
-   bio, avatar_url, social_links }. A failed fetch (RLS/grant not
-   applied yet, network hiccup, etc.) just leaves this empty and
-   every card silently falls back to the static MEMBERS data below —
-   never a hard error the visitor would see. */
+/* ── LIVE PROFILE DATA + BADGES + THREADS BOARD ────────────────── */
 const liveProfiles = ref({});
+const liveScores = ref([]);
+const threadsBoard = ref([]);
 
 async function loadLiveProfiles() {
-  // year_joined / banner_color / banner_url only exist after
-  // dmac-site-polish-schema.sql has been run — retry without them so
-  // the page still works against the older schema.
   let { data, error } = await sb
     .from('members')
-    .select('slug, nickname, bio, avatar_url, social_links, banner_url, banner_color, year_joined')
+    .select('slug, nickname, bio, avatar_url, social_links, banner_url, banner_color')
     .in('slug', Object.keys(MEMBERS));
 
   if (error) {
@@ -443,25 +248,14 @@ async function loadLiveProfiles() {
       .select('slug, nickname, bio, avatar_url, social_links')
       .in('slug', Object.keys(MEMBERS)));
   }
-
   if (error) {
     console.error('MembersView: could not load live profile data —', error.message);
     return;
   }
-
   const map = {};
   for (const row of data || []) map[row.slug] = row;
   liveProfiles.value = map;
 }
-
-/* ── LIVE BADGES ─────────────────────────────────────
-   Requires dmac-scores-members-link.sql — before that migration,
-   scores.member_id had no real link to members.slug at all (see that
-   file's header), which is the actual reason this section's `badges`
-   was always the static, hardcoded `[]` sitting on every MEMBERS
-   entry above. Fetched once; recomputed per opened member by
-   matching slug against every badge's own leaderboard. */
-const liveScores = ref([]);
 
 async function loadLiveScores() {
   try {
@@ -471,154 +265,81 @@ async function loadLiveScores() {
   }
 }
 
+async function loadThreadsBoard() {
+  try {
+    threadsBoard.value = await fetchThreadsBoard();
+  } catch (err) {
+    console.error('MembersView: could not load Threads board —', err.message);
+  }
+}
+
 function badgesForSlug(slug) {
   const stored = Leaderboard.getBadgesForSlug(liveScores.value, slug);
   const computed = Leaderboard.getCompletionStatus(liveScores.value, slug);
   return [...stored, ...computed];
 }
 
-// Real count instead of the old hardcoded "Unknown" — badges already
-// live on each MEMBERS entry (or get merged in via liveProfiles below),
-// so there's no reason this couldn't just be badges.length all along.
-const badgeCount = computed(() => openedMember.value?.badges?.length || 0);
+/* ── CARD OPEN/CLOSE STATE ─────────────────────────────────────── */
+const selectedId = ref(null);
+const cardOpen = ref(false);
+const panelOpen = ref(false);
 
 const openedMember = computed(() => {
   if (!selectedId.value) return null;
   const base = MEMBERS[selectedId.value];
   if (!base) return null;
 
-  const liveBadges = badgesForSlug(selectedId.value);
   const live = liveProfiles.value[selectedId.value];
-  if (!live) return { ...base, badges: liveBadges };
+  const name = live?.nickname?.trim() || base.name;
+  const threadsRow = threadsBoard.value.find((r) => r.slug === selectedId.value);
+  const percentile = threadsRow && threadsBoard.value.length > 1
+    ? 1 - (threadsRow.rank - 1) / (threadsBoard.value.length - 1)
+    : (threadsRow ? 1 : 0);
+  const { rank: badgeRank, rosterCount } = rankByBadgeCount(liveScores.value, selectedId.value);
 
-  // Same precedence ProfileView already uses for itself: a member's
-  // own nickname/bio override the static roster copy when set, and
-  // fall back to it when not — never a blank card just because
-  // someone hasn't gotten around to filling their profile in yet.
-  const liveSocials = Array.isArray(live.social_links) && live.social_links.length
-    ? live.social_links
-    : null;
+  const liveSocials = Array.isArray(live?.social_links) && live.social_links.length
+    ? live.social_links.map((l) => ({ label: l?.label || '', url: l?.url || '' }))
+    : [];
 
   return {
-    ...base,
-    name: live.nickname?.trim() || base.name,
-    tagline: live.bio?.trim() || base.tagline,
-    about: live.bio?.trim() || base.about,
-    yearJoined: live.year_joined || base.yearJoined,
-    badges: liveBadges,
-    liveAvatarUrl: live.avatar_url || null,
-    liveBannerUrl: live.banner_url || null,
-    liveBannerColor: live.banner_color || null,
-    liveSocials,
+    name,
+    initials: initialsFor(name),
+    role: base.role,
+    about: live?.bio?.trim() || base.about,
+    avatarUrl: live?.avatar_url || (base.avatar ? `https://aztaryx.github.io/dmac-assets/avatars/${base.avatar}` : null),
+    liveBannerUrl: live?.banner_url || null,
+    liveBannerColor: live?.banner_color || null,
+    socials: liveSocials,
+    badges: badgesForSlug(selectedId.value),
+    isFounder: !!base.isFounder,
+    founderTitle: base.founderTitle,
+    founderRoles: base.founderRoles,
+    rank: threadsRow?.rank ?? null,
+    rankColor: colorForPercentile(percentile),
+    threadsScore: threadsRow?.score ?? null,
+    threadsFactors: threadsRow?.factors ?? {},
+    badgeRank,
+    rosterCount,
   };
 });
 
-const bannerStyle = computed(() => {
-  const m = openedMember.value;
-  if (!m) return {};
-  if (m.liveBannerUrl) return { backgroundImage: `url(${m.liveBannerUrl})`, backgroundSize: 'cover', backgroundPosition: 'center' };
-  if (m.liveBannerColor) return { background: m.liveBannerColor };
-  return {};
-});
-
-// "Change card color" turned out to mean the WHOLE popup card, not
-// just the banner strip at the top — bannerStyle above only ever
-// touched .card-banner, which is why this is separate rather than
-// just reusing it. .card-panel's own background is a flat #111
-// (members.css); this washes it top-to-bottom in the member's own
-// color instead, fading back to that same #111 by mid-card so the
-// about/badges/stats text underneath stays exactly as legible as
-// before — "tinted", not "repainted illegibly."
-const cardTintStyle = computed(() => {
-  const color = openedMember.value?.liveBannerColor;
-  if (!color) return {};
-  const { r, g, b } = hexToRgb(color);
-  return {
-    background: `linear-gradient(180deg, rgba(${r},${g},${b},0.32) 0%, rgba(${r},${g},${b},0.14) 30%, #111 65%)`,
-  };
-});
-
-const avatarStyle = computed(() => {
-  const m = openedMember.value;
-  if (!m) return {};
-  if (m.liveAvatarUrl) return { backgroundImage: `url(${m.liveAvatarUrl})` };
-  if (m.avatar) return { backgroundImage: `url(https://aztaryx.github.io/dmac-assets/avatars/${m.avatar})` };
-  return {};
-});
-
-const founderFirstName = computed(() => openedMember.value?.name?.split(' ')[0]?.toLowerCase() || '');
-
-/* ── BADGE TILT ──────────────────────────────────
-   The badge tilts away from the cursor as if it's being pressed
-   down where the pointer sits — rotation axes follow the cursor's
-   offset from the slot's centre. */
-function onBadgeTilt(e) {
-  const el = e.currentTarget;
-  const rect = el.getBoundingClientRect();
-  const px = (e.clientX - rect.left) / rect.width - 0.5;  // -0.5 .. 0.5
-  const py = (e.clientY - rect.top) / rect.height - 0.5;
-  const MAX_DEG = 18;
-  el.style.transform = `perspective(240px) rotateX(${(-py * MAX_DEG).toFixed(2)}deg) rotateY(${(px * MAX_DEG).toFixed(2)}deg) scale(1.06)`;
-}
-
-function resetBadgeTilt(e) {
-  e.currentTarget.style.transform = '';
-}
-
-/* ── MINI ZIGZAG ────────────────────────────────────
-   Same triangle-strip math as the original drawCardZigzag(), just
-   writing into refs instead of setAttribute-ing an SVG directly. */
-const ZZ_PITCH = 52;
-const ZZ_DEPTH = 28;
-
-function drawCardZigzag() {
-  const W = panelRef.value?.offsetWidth || 760;
-  const startX = -ZZ_PITCH;
-  const count = Math.ceil((W + ZZ_PITCH * 2) / ZZ_PITCH);
-  const pts = [`${startX},0`];
-
-  for (let i = 0; i < count; i++) {
-    const tipX = startX + i * ZZ_PITCH + ZZ_PITCH / 2;
-    const baseX = startX + (i + 1) * ZZ_PITCH;
-    pts.push(`${tipX},${ZZ_DEPTH}`, `${baseX},0`);
-  }
-
-  const farRight = startX + (count + 1) * ZZ_PITCH;
-  pts.push(`${farRight},${ZZ_DEPTH}`, `${startX},${ZZ_DEPTH}`);
-
-  zigzagViewBox.value = `0 0 ${W} ${ZZ_DEPTH}`;
-  zigzagPoints.value = pts.join(' ');
-}
-
-/* ── OPEN / CLOSE ───────────────────────────────────── */
 function openCard(memberId) {
   if (!MEMBERS[memberId]) return;
   playSfx('menuconfirm');
   selectedId.value = memberId;
   cardOpen.value = true;
   document.body.style.overflow = 'hidden';
-  nextTick(() => {
-    requestAnimationFrame(() => {
-      panelOpen.value = true;
-      drawCardZigzag();
-    });
-  });
+  requestAnimationFrame(() => { panelOpen.value = true; });
 }
 
 function closeCard() {
   if (!cardOpen.value) return;
   playSfx('menuback');
   panelOpen.value = false;
-  const panel = panelRef.value;
-  const finish = () => {
+  setTimeout(() => {
     cardOpen.value = false;
     document.body.style.overflow = '';
-  };
-  if (panel) {
-    panel.addEventListener('transitionend', finish, { once: true });
-  } else {
-    finish();
-  }
+  }, 260);
 }
 
 function onCardKeydown(memberId, e) {
@@ -636,22 +357,68 @@ function onGlobalKeydown(e) {
   if (e.key === 'Escape' && cardOpen.value) closeCard();
 }
 
-function onResize() {
-  if (cardOpen.value) drawCardZigzag();
-}
-
 onMounted(() => {
   document.addEventListener('keydown', onGlobalKeydown);
-  window.addEventListener('resize', onResize);
   loadLiveProfiles();
   loadLiveScores();
+  loadThreadsBoard();
 });
 
 onBeforeUnmount(() => {
   document.removeEventListener('keydown', onGlobalKeydown);
-  window.removeEventListener('resize', onResize);
-  // Safety net if the view unmounts (route change) while a card is
-  // still open — don't leave scrolling locked.
   document.body.style.overflow = '';
 });
 </script>
+
+<style scoped>
+.member-popup-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 900;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  background: rgba(8, 8, 12, 0);
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+  transition: opacity 0.25s ease, background 0.25s ease, visibility 0.25s;
+}
+.member-popup-overlay.open {
+  opacity: 1;
+  visibility: visible;
+  pointer-events: auto;
+  background: rgba(8, 8, 12, 0.78);
+  backdrop-filter: blur(4px);
+}
+
+.member-popup-panel {
+  position: relative;
+  width: min(560px, 100%);
+  max-height: 86vh;
+  overflow-y: auto;
+  transform: scale(0.94) translateY(10px);
+  opacity: 0;
+  transition: transform 0.25s var(--ease-out, ease), opacity 0.25s ease;
+}
+.member-popup-panel.open {
+  transform: scale(1) translateY(0);
+  opacity: 1;
+}
+
+.member-popup-close {
+  position: absolute;
+  top: -14px;
+  right: -14px;
+  z-index: 3;
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  border: none;
+  cursor: pointer;
+  background: rgba(0, 0, 0, 0.6);
+  color: #fff;
+  font-size: 0.7rem;
+}
+</style>

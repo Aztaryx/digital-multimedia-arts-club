@@ -1,7 +1,7 @@
 <template>
   <main>
+    <PageHero title="Leaderboard" />
     <div class="page-section reveal" v-reveal>
-      <SecHead>Leaderboard</SecHead>
 
       <!-- Countdown/Teaser before September 1, 2026 -->
       <div v-if="isCountdown" class="leaderboard-teaser">
@@ -169,22 +169,13 @@
 
 <script setup>
 import { ref, computed, watch, onMounted, onBeforeUnmount } from 'vue';
-import SecHead from '../components/SecHead.vue';
+import PageHero from '../components/PageHero.vue';
 import GradWrap from '../components/GradWrap.vue';
 import { sb } from '../lib/supabase-client.js';
 import { scrambleGradWrap } from '../lib/animations.js';
 import { playSfx } from '../composables/useSfx.js';
 import '../assets/css/pages/leaderboard.css';
 
-/* Reveal gate per dmac-consolidated-plan.md §8 — Sept 1, 2026. Before
-   that, a countdown/teaser shows in place of real standings.
-
-   Flashier pass: seconds now tick (was minutes-only), the seconds
-   digit punches on every tick, a glowing "mystery podium" silhouette
-   + floating sparkles + a sweeping light beam sit behind the content,
-   and the headline periodically glitch-scrambles via the
-   scrambleGradWrap() effect that already existed in lib/animations.js
-   but had no caller anywhere in the app until now. */
 const revealDate = new Date(2026, 8, 1); // month is 0-indexed — 8 = September
 const revealDateLabel = revealDate.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
 
@@ -201,7 +192,7 @@ const factors = ['Ping', 'Bandwidth', 'FLOPS', 'Commits', 'Hertz'];
 
 const countdown = ref({ days: 0, hours: 0, minutes: 0, seconds: 0 });
 const threadsData = ref([]);
-const badgeScoresByBadge = ref({}); // { badge_id: [entry, ...] }
+const badgeScoresByBadge = ref({});
 const availableBadges = ref([]);
 const factorData = ref({});
 
@@ -216,12 +207,7 @@ function pad(n) {
 let countdownTimer = null;
 let scrambleTimer = null;
 
-// Restarts on every tick (see updateCountdown) — same "clear the class,
-// wait a frame, re-add it" reflow trick UpdateLogView.vue's flash()
-// uses to let a CSS animation replay on rapid repeats, applied here
-// to the seconds digit so it visibly punches once per second.
 const secondsTicking = ref(false);
-
 const leadWrapRef = ref(null);
 
 const sparkles = ref([]);
@@ -247,7 +233,7 @@ onMounted(() => {
 
   if (isCountdown.value) {
     generateSparkles();
-    playSfx('mmstart'); // one-time entrance chime — "get ready" cue
+    playSfx('mmstart');
     scrambleTimer = setInterval(() => {
       if (leadWrapRef.value?.$el) scrambleGradWrap(leadWrapRef.value.$el);
     }, 7000);
@@ -303,12 +289,12 @@ async function loadLeaderboardData() {
       threadsData.value = threads.map((t) => ({
         id: t.id,
         member_id: t.member_id,
-        score: Number(t.score).toFixed(2),
-        ping: Number(t.ping_factor).toFixed(2),
-        bandwidth: Number(t.bandwidth_factor).toFixed(2),
-        flops: Number(t.flops_factor).toFixed(2),
-        commits: Number(t.commits_factor).toFixed(2),
-        hertz: Number(t.hertz_factor).toFixed(2),
+        score: Math.round(t.score),
+        ping: (t.ping_factor * 100).toFixed(1),
+        bandwidth: (t.bandwidth_factor * 100).toFixed(1),
+        flops: (t.flops_factor * 100).toFixed(1),
+        commits: (t.commits_factor * 100).toFixed(1),
+        hertz: (t.hertz_factor * 100).toFixed(1),
         name: t.members?.display_name || 'Anonymous',
         slug: t.members?.slug || 'unknown',
       }));

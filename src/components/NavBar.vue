@@ -110,30 +110,17 @@
         </ul>
       </li>
 
-      <!-- Only shown once logged in — sessionMember is the reactive
-           mirror in member-auth.js, so this appears/disappears right
-           after login/logout without needing a page reload. Profile
-           isn't part of the 19-icon set (stays the avatar circle in
-           nav-actions), so this is the one .nav-links entry that's
-           still a text link rather than an icon. -->
       <li v-if="MemberAuth.sessionMember.value">
         <router-link to="/profile" class="nav-text-link" :class="{ active: isSection('/profile') }">profile</router-link>
       </li>
     </ul>
 
-    <!-- ──────── NAV ACTIONS: profile ────────
-         The Forums/Rulebook and Notifications icon buttons that used
-         to sit here are gone along with the two side overlay panels
-         (LeftPanel.vue/RightPanel.vue) — forums were removed entirely
-         per dmac-consolidated-plan.md §1/§11, and the Rulebook +
-         Notifications panels that replaced/accompanied it were
-         dropped as unneeded once forums were gone. Toasts (see
-         NotificationToasts.vue) still surface maintenance/
-         announcement/warn/silence/badge events on their own, with no
-         panel behind them anymore. Only the profile circle is left
-         here now. -->
+    <!-- ──────── NAV ACTIONS: profile / inline login ────────
+         Logged out: clicking the circle opens this same dropdown,
+         now with LoginPopover embedded directly in it — login happens
+         right here, in the corner, instead of on a separate /login
+         page (that route is gone; see router/index.js). -->
     <div class="nav-actions">
-      <!-- Profile circle: guest / member / admin. -->
       <div
         class="nav-profile"
         role="button"
@@ -164,8 +151,7 @@
             <button class="nav-dropdown-item nav-dropdown-item--danger" @click="signOut">Sign out</button>
           </template>
           <template v-else>
-            <p class="nav-dropdown-note">Log in to edit your profile and unlock member features.</p>
-            <router-link to="/login" class="nav-dropdown-item" @click="closeDropdowns">Log in</router-link>
+            <LoginPopover @logged-in="onLoggedIn" />
           </template>
         </div>
       </div>
@@ -224,8 +210,13 @@
       </a>
     </div>
 
-    <!-- Profile stays text-only — deliberately outside the icon set. -->
     <router-link v-if="MemberAuth.sessionMember.value" to="/profile" class="mobile-link" @click="closeMobile">profile</router-link>
+
+    <!-- Logged out, on mobile: same inline popover, just docked into
+         the mobile menu sheet instead of a corner dropdown. -->
+    <div v-else class="mobile-login">
+      <LoginPopover @logged-in="onLoggedIn" />
+    </div>
   </nav>
 </template>
 
@@ -237,27 +228,9 @@ import MemberAuth from '../lib/member-auth.js';
 import MemberProfile from '../lib/member-profile.js';
 import { sb } from '../lib/supabase-client.js';
 import { registerLogoTap } from '../lib/secret-badges.js';
+import { loginPromptRequested, clearLoginPrompt } from '../lib/login-prompt.js';
+import LoginPopover from './LoginPopover.vue';
 
-/* ── ICON PATHS ─────────────────────────────────────
-   Files live at /icons/File_Name.png in the repo's public/ folder
-   (Vite copies public/ as-is to dist/'s root, unprocessed).
-
-   IMPORTANT: don't hardcode "/icons/Home.png" directly — this repo
-   deploys to GitHub Pages under a subpath (see vite.config.js's
-   base: '/digital-multimedia-arts-club/'), so a literal leading-slash
-   path resolves against the domain ROOT in production, not the
-   subpath the site actually lives at. That's an easy way to get
-   icons that work perfectly in `npm run dev` (served from '/') and
-   then silently 404 the moment it's deployed. import.meta.env.BASE_URL
-   is '/' locally and '/digital-multimedia-arts-club/' in the built
-   site, so prefixing with it keeps both cases working without
-   needing two different configs.
-
-   `notifications` is kept in this map even though there's no
-   notifications trigger left to put it on (that button went away
-   with the side-panel removal above) — harmless to leave defined in
-   case it finds a home somewhere else later; nothing currently
-   renders it. */
 const ICON_BASE = `${import.meta.env.BASE_URL}icons/`;
 const ICONS = {
   home: `${ICON_BASE}Home.png`,
@@ -285,10 +258,6 @@ const route = useRoute();
 const router = useRouter();
 const mobileOpen = ref(false);
 
-// Populate the reactive session mirror on first paint so the "profile"
-// link (and the account-circle role state) is correct immediately after
-// a hard refresh, not just after the next login/logout call. Cheap
-// no-op if nobody's logged in.
 onMounted(() => {
   if (!MemberAuth.current()) MemberAuth.restoreSession();
   document.addEventListener('click', onDocumentClick);
@@ -297,12 +266,6 @@ onBeforeUnmount(() => {
   document.removeEventListener('click', onDocumentClick);
 });
 
-/* ── PROFILE DROPDOWN ─────────────────────────────────
-   The only dropdown left in the navbar now that Forums/Notifications
-   opened side panels that no longer exist. A document-level click
-   listener closes it when the click lands outside (@click.stop on
-   the trigger + panel itself keeps clicks *inside* from bubbling up
-   first). */
 const profileOpen = ref(false);
 
 function toggleProfile() {
@@ -317,10 +280,25 @@ function onDocumentClick(e) {
   }
 }
 
-/* ── ROLE DISPLAY ──────────────────────────────────────
-   site_role is the only permission tier this project tracks now —
-   'member' | 'admin' (dmac-consolidated-plan.md §2 merged moderator
-   into admin). Not-logged-in is treated as "Guest" throughout. */
+// A protected route the visitor couldn't reach (router/index.js's
+// beforeEach guard) sets this flag instead of redirecting to a
+// /login page that no longer exists — pop the corner login open for
+// them automatically, on both desktop (dropdown) and mobile (sheet).
+watch(loginPromptRequested, (requested) => {
+  if (!requested) return;
+  if (window.innerWidth <= 768) {
+    mobileOpen.value = true;
+  } else {
+    profileOpen.value = true;
+  }
+  clearLoginPrompt();
+});
+
+function onLoggedIn() {
+  closeDropdowns();
+  mobileOpen.value = false;
+}
+
 const roleLabel = computed(() => {
   const m = MemberAuth.sessionMember.value;
   if (!m) return 'Guest';
@@ -333,15 +311,12 @@ const roleClass = computed(() => {
 });
 const isAdmin = computed(() => MemberAuth.sessionMember.value?.site_role === 'admin');
 
-// Initials fallback when no custom avatar image is set.
 const avatarLabel = computed(() => {
   const name = MemberAuth.sessionMember.value?.display_name;
   if (!name) return '?';
   return name.trim().split(/\s+/).slice(0, 2).map((w) => w[0]).join('').toUpperCase();
 });
 
-// Custom avatar image — looked up by slug the same way ProfileView
-// does, so the circle shows the member's uploaded picture.
 const avatarUrl = ref(null);
 watch(
   () => MemberAuth.sessionMember.value?.slug,
@@ -360,17 +335,12 @@ async function signOut() {
   closeDropdowns();
   try { await MemberAuth.logout(); } catch (_) {}
   try { await sb.auth.signOut(); } catch (_) {}
-  router.push('/login');
+  router.push('/home');
 }
 
-/* Top-level section links stay highlighted while browsing any
-   sub-page in that section (mirrors resolvePath()/startsWith()
-   logic from the old global.js). */
 function isSection(prefix) {
   return route.path === prefix || route.path.startsWith(prefix + '/');
 }
-
-/* Dropdown / mobile-group sub-links only light up on an exact match. */
 function isExact(path) {
   return route.path === path;
 }
@@ -379,8 +349,15 @@ function toggleMobile() {
   mobileOpen.value = !mobileOpen.value;
   playSfx('menutap');
 }
-
 function closeMobile() {
   mobileOpen.value = false;
 }
 </script>
+
+<style scoped>
+/* Only additive to global.css's own nav rules — the mobile login
+   dock needs a bit of padding the plain .mobile-link rows don't. */
+.mobile-login {
+  padding: 14px 28px 20px;
+}
+</style>

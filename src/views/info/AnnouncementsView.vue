@@ -1,7 +1,7 @@
 <template>
   <main>
+    <PageHero title="Announcements" />
     <div class="page-section reveal" v-reveal>
-      <SecHead>Announcements</SecHead>
       <p class="ann-subtitle">Club news, meeting recaps, and shout-outs — not to be confused with Newsletters (the site's own dev journal), see the FAQ if that's ever unclear.</p>
 
       <div v-if="loading" class="ann-empty">Loading…</div>
@@ -24,14 +24,9 @@
 
 <script setup>
 import { ref, onMounted } from 'vue';
-import SecHead from '../../components/SecHead.vue';
+import PageHero from '../../components/PageHero.vue';
 import { sb } from '../../lib/supabase-client.js';
 import '../../assets/css/pages/club-announcements.css';
-
-/* Club news (meetings, results, shout-outs) — a separate table and
-   page from Newsletters (the site/dev journal — info/NewslettersView.vue,
-   backed by the `announcements` table) and from Maintenance notices.
-   See dmac-consolidated-plan.md §4 for the full disambiguation. */
 
 const announcements = ref([]);
 const loading = ref(true);

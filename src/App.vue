@@ -24,28 +24,21 @@ import { BADGE_URL_LIST } from './lib/badges.js';
 import MemberAuth from './lib/member-auth.js';
 import Notifications from './lib/notifications.js';
 import { startKonamiListener } from './lib/secret-badges.js';
+import { handleOAuthCallback } from './lib/oauth-link.js';
 
 const route = useRoute();
-// Standalone pages (currently just /login) opt out of the shared
-// nav/footer chrome via route meta — see router/index.js.
+// No standalone /login route left to opt out of chrome for — kept
+// as a meta-driven switch in case a future route needs it.
 const showChrome = computed(() => !route.meta?.hideChrome);
 
 const preloaderRef = ref(null);
 const statusText = ref('Loading code…');
 
-/* ── PRELOADER ─────────────────────────────────────
-   Same staged messaging as the old global.js preloader, but now
-   this only ever runs ONCE for the whole app session (App.vue
-   mounts a single time) instead of on every full page load — one
-   of the concrete wins of moving to an SPA. SFX sprites, once
-   decoded here, stay warm for the entire visit; no more "first
-   sound on each new page has to wait on a fetch + decode". */
-
 function preloadImage(url) {
   return new Promise((resolve) => {
     const img = new Image();
     img.onload = resolve;
-    img.onerror = resolve; // one missing/renamed badge shouldn't stall the preloader
+    img.onerror = resolve;
     img.src = url;
   });
 }
@@ -87,15 +80,16 @@ onMounted(() => {
     });
 });
 
-/* ── NOTIFICATIONS ──────────────────────────────────
-   Starts immediately (guests still get maintenance toasts) and
-   restarts under the new identity whenever login/logout happens —
-   Notifications.startPolling() itself no-ops if it's already polling
-   for the same slug, so this can fire on every sessionMember change
-   without duplicating timers. */
 onMounted(() => {
   Notifications.startPolling();
   startKonamiListener();
+
+  // Google's OAuth redirect can now land on any page (login is
+  // inline, not a dedicated /login route anymore) — handle it here,
+  // once, regardless of where the visitor ends up back at.
+  handleOAuthCallback((msg, type) => {
+    Notifications.push({ type: type === 'error' ? 'warn' : 'announcement', title: msg });
+  });
 });
 watch(MemberAuth.sessionMember, () => {
   Notifications.startPolling();

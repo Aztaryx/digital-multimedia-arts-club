@@ -1,7 +1,7 @@
 <template>
   <main>
+    <PageHero title="School Events" />
     <div class="page-section reveal" v-reveal>
-      <SecHead>School Events</SecHead>
       <p class="se-subtitle">Assemblies, competitions, and activities DMAC covers or plans to cover.</p>
 
       <div v-if="loading" class="se-empty">Loading…</div>
@@ -27,7 +27,7 @@
 
 <script setup>
 import { ref, onMounted } from 'vue';
-import SecHead from '../../components/SecHead.vue';
+import PageHero from '../../components/PageHero.vue';
 import { sb } from '../../lib/supabase-client.js';
 import '../../assets/css/pages/school-events.css';
 

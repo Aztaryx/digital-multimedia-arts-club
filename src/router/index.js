@@ -1,5 +1,6 @@
 import { createRouter, createWebHistory } from 'vue-router';
 import MemberAuth from '../lib/member-auth.js';
+import { requestLoginPrompt } from '../lib/login-prompt.js';
 
 const routes = [
   {
@@ -90,16 +91,10 @@ const routes = [
     component: () => import('../views/SocialsView.vue'),
     meta: { title: 'DMAC — Socials' },
   },
-  {
-    path: '/login',
-    name: 'login',
-    component: () => import('../views/LoginView.vue'),
-    // The original login/index.html was a standalone page — its own
-    // header/footer, no site nav — not a page wrapped in the normal
-    // chrome. hideChrome tells App.vue to skip NavBar/FooterSection
-    // for this route instead of double-stacking headers.
-    meta: { title: 'DMAC — Log In', hideChrome: true },
-  },
+  // /login is gone — login now happens inline via NavBar.vue's
+  // profile dropdown (LoginPopover.vue), from whatever page the
+  // visitor was already on. See lib/login-prompt.js for how a
+  // protected-route redirect below asks NavBar to open it.
   {
     path: '/profile',
     name: 'profile',
@@ -113,9 +108,6 @@ const routes = [
     meta: { title: 'DMAC — Admin Panel', requiresAuth: true, requiresAdmin: true },
   },
   {
-    // Catch-all — also the trigger point for the Whoops. secret badge,
-    // see views/NotFoundView.vue. Must stay last in this array; Vue
-    // Router matches routes in order.
     path: '/:pathMatch(.*)*',
     name: 'not-found',
     component: () => import('../views/NotFoundView.vue'),
@@ -132,22 +124,22 @@ const router = createRouter({
   },
 });
 
-// Guards any route with meta.requiresAuth (currently just /profile).
-// On a hard refresh, MemberAuth's in-memory cache is empty even for a
-// genuinely logged-in member — restoreSession() re-checks the stored
-// token against the server before we decide to bounce anyone to /login.
+// Guards any route with meta.requiresAuth. No /login page to bounce
+// to anymore — redirect home and ask NavBar to open the corner login
+// instead (requestLoginPrompt()), so the visitor lands somewhere real
+// and the login UI still shows up right where they'd expect it.
 router.beforeEach(async (to) => {
   if (to.meta?.requiresAdmin) {
     if (MemberAuth.hasRole('admin')) return true;
     const member = MemberAuth.current() || await MemberAuth.restoreSession();
-    if (!member) return '/login';
+    if (!member) { requestLoginPrompt(); return '/home'; }
     return member.site_role === 'admin' ? true : '/home';
   }
   if (!to.meta?.requiresAuth) return true;
 
   let member = MemberAuth.current();
   if (!member) member = await MemberAuth.restoreSession();
-  if (!member) return '/login';
+  if (!member) { requestLoginPrompt(); return '/home'; }
 
   if (to.meta?.requiresAdmin && member.site_role !== 'admin') return '/home';
   return true;

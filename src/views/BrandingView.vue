@@ -1,8 +1,7 @@
 <template>
   <main>
+    <PageHero title="Branding" subtitle="DMAC's visual identity, in one place — how to identify us, and where the actual files live." />
     <div class="page-section reveal" v-reveal>
-      <SecHead>Branding</SecHead>
-      <p class="brand-subtitle">DMAC's visual identity, in one place — how to identify us, and where the actual files live.</p>
 
       <!-- ── GUIDELINES ── -->
       <section class="brand-section">
@@ -89,11 +88,6 @@
 </template>
 
 <script setup>
-import SecHead from '../components/SecHead.vue';
+import PageHero from '../components/PageHero.vue';
 import '../assets/css/pages/branding.css';
-
-/* Single combined page — identity guide + asset library in one place,
-   not a dropdown, per dmac-consolidated-plan.md §9. Content here is
-   still a placeholder pass; the icon set and downloadable asset
-   files themselves aren't ready yet (see §3/§13). */
 </script>

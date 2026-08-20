@@ -1,7 +1,7 @@
 <template>
   <main>
+    <PageHero title="Update Log" />
     <div class="page-section reveal" v-reveal>
-      <SecHead>Update Log</SecHead>
       <div class="update-log-intro">
         <p>
           Complete git history for this site, shown newest first. Merge commits are included so the page
@@ -44,21 +44,16 @@
   </main>
 </template>
 
-<script setup>
-import { reactive } from 'vue';
-import SecHead from '../../components/SecHead.vue';
-import '../../assets/css/pages/update-log.css';
-
-/* Ported from info/update-log.html + js/pages/update-log.js.
-   LOG_ENTRIES was extracted programmatically (one-time script) from
-   the 24 <details> blocks in the original page — same content, now
-   data instead of hand-copied markup. The click-flash behavior
-   (briefly adding .is-clicked to replay the log-card-click CSS
-   animation, same as the original's classList dance + void
-   offsetWidth reflow trick) is now a small reactive flag per entry,
-   keyed by commit hash. */
-
-const LOG_ENTRIES = [
+<script>
+/* LOG_ENTRIES lives in a plain (non-setup) <script> block on purpose —
+   <script setup> doesn't allow named `export` statements, only the
+   implicit setup exports. This is Vue's supported way to share a
+   module-level constant out of an SFC: a normal <script> block's
+   exports and a <script setup> block's setup logic coexist in the
+   same file. HomeView.vue's "Latest From DMAC" Updates preview
+   imports this directly so the 3-most-recent list never drifts from
+   the full log below. Content/order unchanged. */
+export const LOG_ENTRIES = [
   {
     date: '2026-07-05',
     title: 'supabase prep 3.5',
@@ -252,12 +247,16 @@ const LOG_ENTRIES = [
     commitUrl: 'https://github.com/Aztaryx/digital-multimedia-arts-club/commit/7c43497',
   },
 ];
+</script>
+
+<script setup>
+import { reactive } from 'vue';
+import PageHero from '../../components/PageHero.vue';
+import '../../assets/css/pages/update-log.css';
+
 const flashing = reactive({});
 
 function flash(hash) {
-  // Reset then re-add on the next frame so the animation restarts
-  // even on a rapid repeat click (mirrors the original's
-  // `void card.offsetWidth` forced-reflow trick).
   flashing[hash] = false;
   requestAnimationFrame(() => {
     flashing[hash] = true;
